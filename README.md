@@ -74,7 +74,7 @@ import (
        "context"
        "fmt"
        "github.com/paulmach/orb"       
-       "github.com/whosonfirst/go-whosonfirst-spatial"
+       "github.com/whosonfirst/go-whosonfirst-spatial/database"
 )
 
 func main(){
