@@ -38,6 +38,8 @@ $> pmtiles /usr/local/data/wof.mbtiles /usr/local/data/wof.pmtiles
 
 ## Spatial Database URIs
 
+Spatial database URIs for Protomaps PMTiles databases take the form of:
+
 ```
 pmtiles://?{QUERY_PARAMETERS}
 ```
@@ -46,11 +48,11 @@ pmtiles://?{QUERY_PARAMETERS}
 
 | Name | Value | Required | Notes |
 | --- | --- | --- | --- |
-| tiles | A valid `gocloud.dev/blob` bucket URI | yes | |
+| tiles | A valid `gocloud.dev/blob` bucket URI | yes | Support for `file://` URIs is enabled by default. |
 | database | The name of the Protomaps tiles database | yes | Ensure that this value does _not_ include a `.pmtiles` extension |
 | pmtiles-cache-size | The size, in megabytes, of the pmtiles cache | no | Default is 64 |
 | enable-feature-cache | Enable caching of WOF features associated with a tile path | no | Default is false |
-| feature-cache-uri | A valid `gocloud.dev/docstore` collection URI | |
+| feature-cache-uri | A valid `gocloud.dev/docstore` collection URI | Support for `memdocstore://` URIs is enabled by default. |
 
 For example:
 
