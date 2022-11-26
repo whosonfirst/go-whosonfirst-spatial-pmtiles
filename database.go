@@ -1,6 +1,10 @@
 package pmtiles
 
 import (
+	_ "github.com/whosonfirst/go-whosonfirst-spatial-sqlite"
+)
+
+import (
 	"context"
 	"fmt"
 	"github.com/paulmach/orb"
@@ -19,7 +23,6 @@ type PMTilesDatabase struct {
 	loop     *pmtiles.Loop
 	logger   *log.Logger
 	database string
-	spatial_db database.SpatialDatabase
 }
 
 func NewPMTilesDatabase(ctx context.Context, uri string) (*PMTilesDatabase, error) {
@@ -30,12 +33,6 @@ func NewPMTilesDatabase(ctx context.Context, uri string) (*PMTilesDatabase, erro
 		return nil, fmt.Errorf("Failed to parse URI, %w", err)
 	}
 
-	spatial_db, err := database.NewSpatialDatabase(ctx, "sqlite://?dsn=/tmp/test.db")
-
-	if err != nil {
-		return nil, fmt.Errorf("Failed to create spatial database, %w", err)
-	}
-	
 	q := u.Query()
 
 	tile_path := q.Get("tiles")
@@ -56,35 +53,97 @@ func NewPMTilesDatabase(ctx context.Context, uri string) (*PMTilesDatabase, erro
 	db := &PMTilesDatabase{
 		loop:     loop,
 		database: database,
-		spatial_db: spatial_db,
 	}
 
 	return db, nil
+}
+
+func (db *PMTilesDatabase) IndexFeature(context.Context, []byte) error {
+	return fmt.Errorf("Not implemented.")
+}
+
+func (db *PMTilesDatabase) RemoveFeature(context.Context, string) error {
+	return fmt.Errorf("Not implemented.")
 }
 
 func (db *PMTilesDatabase) PointInPolygon(ctx context.Context, coord *orb.Point, filters ...spatial.Filter) (spr.StandardPlacesResults, error) {
 
 	/*
 
-	$> ./bin/server -tile-path file:///usr/local/whosonfirst/go-whosonfirst-tippecanoe -enable-example -example-database wof
-	2022/11/24 14:41:32 Listening for requests on http://localhost:8080
-	2022/11/24 14:41:48 fetching wof 0-16384
-	2022/11/24 14:41:48 fetched wof 0-0
-	2022/11/24 14:41:48 fetching wof 39541-13802
-	2022/11/24 14:41:48 fetched wof 39541-13802
-	2022/11/24 14:41:48 [200] served /wof/8/41/98.mvt in 3.485603ms
+		$> ./bin/server -tile-path file:///usr/local/whosonfirst/go-whosonfirst-tippecanoe -enable-example -example-database wof
+		2022/11/24 14:41:32 Listening for requests on http://localhost:8080
+		2022/11/24 14:41:48 fetching wof 0-16384
+		2022/11/24 14:41:48 fetched wof 0-0
+		2022/11/24 14:41:48 fetching wof 39541-13802
+		2022/11/24 14:41:48 fetched wof 39541-13802
+		2022/11/24 14:41:48 [200] served /wof/8/41/98.mvt in 3.485603ms
 
-	> go run cmd/query/main.go -spatial-database-uri 'pmtiles://?tiles=file:///usr/local/whosonfirst/go-whosonfirst-tippecanoe&database=wof'
-	2022/11/25 18:33:32 fetching wof 0-16384
-	2022/11/25 18:33:32 fetched wof 0-0
-	2022/11/25 18:33:32 fetching wof 39541-13802
-	2022/11/25 18:33:32 fetched wof 39541-13802
-	map[wof:0xc0001005a0]
+		> go run cmd/query/main.go -spatial-database-uri 'pmtiles://?tiles=file:///usr/local/whosonfirst/go-whosonfirst-tippecanoe&database=wof'
+		2022/11/25 18:33:32 fetching wof 0-16384
+		2022/11/25 18:33:32 fetched wof 0-0
+		2022/11/25 18:33:32 fetching wof 39541-13802
+		2022/11/25 18:33:32 fetched wof 39541-13802
+		map[wof:0xc0001005a0]
 
 	*/
 
-	z := maptile.Zoom(uint32(8)) // fix me
-	t := maptile.At(*coord, z)
+	spatial_db, err := db.spatialDatabaseFromCoord(ctx, coord)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create spatial database, %w", err)
+	}
+
+	defer spatial_db.Disconnect(ctx)
+
+	return spatial_db.PointInPolygon(ctx, coord, filters...)
+}
+
+func (db *PMTilesDatabase) PointInPolygonCandidates(ctx context.Context, coord *orb.Point, filters ...spatial.Filter) ([]*spatial.PointInPolygonCandidate, error) {
+
+	spatial_db, err := db.spatialDatabaseFromCoord(ctx, coord)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create spatial database, %w", err)
+	}
+
+	defer spatial_db.Disconnect(ctx)
+
+	return spatial_db.PointInPolygonCandidates(ctx, coord, filters...)
+}
+
+func (db *PMTilesDatabase) PointInPolygonWithChannels(ctx context.Context, spr_ch chan spr.StandardPlacesResult, err_ch chan error, done_ch chan bool, coord *orb.Point, filters ...spatial.Filter) {
+
+	spatial_db, err := db.spatialDatabaseFromCoord(ctx, coord)
+
+	if err != nil {
+		err_ch <- fmt.Errorf("Failed to create spatial database, %w", err)
+		return
+	}
+
+	defer spatial_db.Disconnect(ctx)
+
+	spatial_db.PointInPolygonWithChannels(ctx, spr_ch, err_ch, done_ch, coord, filters...)
+}
+
+func (db *PMTilesDatabase) PointInPolygonCandidatesWithChannels(ctx context.Context, pip_ch chan *spatial.PointInPolygonCandidate, err_ch chan error, done_ch chan bool, coord *orb.Point, filters ...spatial.Filter) {
+
+	spatial_db, err := db.spatialDatabaseFromCoord(ctx, coord)
+
+	if err != nil {
+		err_ch <- fmt.Errorf("Failed to create spatial database, %w", err)
+		return
+	}
+
+	defer spatial_db.Disconnect(ctx)
+
+	spatial_db.PointInPolygonCandidatesWithChannels(ctx, pip_ch, err_ch, done_ch, coord, filters...)
+}
+
+func (db *PMTilesDatabase) Disconnect(ctx context.Context) error {
+	return nil
+}
+
+func (db *PMTilesDatabase) spatialDatabaseFromTile(ctx context.Context, t maptile.Tile) (database.SpatialDatabase, error) {
 
 	path := fmt.Sprintf("/%s/%d/%d/%d.mvt", db.database, t.Z, t.X, t.Y)
 
@@ -100,6 +159,8 @@ func (db *PMTilesDatabase) PointInPolygon(ctx context.Context, coord *orb.Point,
 		return nil, fmt.Errorf("Failed to unmarshal tile, %w", err)
 	}
 
+	layers.ProjectToWGS84(t)
+
 	fc := layers.ToFeatureCollections()
 
 	_, exists := fc[db.database]
@@ -108,35 +169,39 @@ func (db *PMTilesDatabase) PointInPolygon(ctx context.Context, coord *orb.Point,
 		return nil, fmt.Errorf("Missing %s layer", db.database)
 	}
 
+	spatial_db, err := database.NewSpatialDatabase(ctx, "sqlite://?dsn=:memory:")
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create spatial database, %w", err)
+	}
+
 	for idx, f := range fc[db.database].Features {
 
-		props := f.Properties
-		fmt.Printf("Index %f %s\n", props.MustFloat64("wof:id"), props.MustString("wof:name"))
-		
+		// props := f.Properties
+		// fmt.Printf("Index %f %s\n", props.MustFloat64("wof:id"), props.MustString("wof:name"))
+
 		body, err := f.MarshalJSON()
 
 		if err != nil {
 			return nil, fmt.Errorf("Failed to marshal JSON for feature at offset %d, %w", idx, err)
 		}
 
-		err = db.spatial_db.IndexFeature(ctx, body)
+		err = spatial_db.IndexFeature(ctx, body)
 
 		if err != nil {
 			return nil, fmt.Errorf("Failed to index feature at offset %d, %w", idx, err)
 		}
 	}
 
-	/*
+	// cache this?
 
-sqlite> SELECT id, wof_id, is_alt, alt_label, min_x, min_y, max_x, max_y FROM rtree;
-41|102087579|0||1720.0|-80.0|2371.0|289.0
-39|85922583|0||1720.0|-80.0|2371.0|289.0
-36|85633793|0||1720.0|-80.0|2371.0|289.0
-34|85688637|0||1720.0|-80.0|2371.0|289.0
-22|102087579|0||1720.0|-80.0|2371.0|289.0
-20|85922583|0||1720.0|-80.0|2371.0|289.0
+	return spatial_db, nil
+}
 
-	*/
-	
-	return db.spatial_db.PointInPolygon(ctx, coord, filters...)
+func (db *PMTilesDatabase) spatialDatabaseFromCoord(ctx context.Context, coord *orb.Point) (database.SpatialDatabase, error) {
+
+	z := maptile.Zoom(uint32(8)) // fix me
+	t := maptile.At(*coord, z)
+
+	return db.spatialDatabaseFromTile(ctx, t)
 }
