@@ -4,10 +4,12 @@ Go package to implement the `whosonfirst/go-whosonfirst-spatial` interfaces usin
 
 ## Documentation
 
-Documentation is incomplete at this time. There may be bugs. Notably, as written:
+Documentation is incomplete at this time.
 
 ## This is work in progress
 
+There may be bugs. Notably, as written:
+ 
 * The code and examples do not do anything to clip the geometries or minimize the size or volume of data in the `tippecanoe` MBTiles or `protomaps` PMTiles databases.
 * It is possible to define a caching layer for GeoJSON features associated with a given PMTiles tile path but there is no cache invalidation or expiry.
 * All tile lookups are performed at zoom 9.
