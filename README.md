@@ -96,6 +96,8 @@ func main(){
 }
 ```
 
+_Error handling omitted for the sake of brevity._
+
 ## Tools
 
 ### query
