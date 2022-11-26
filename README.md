@@ -28,7 +28,7 @@ $> bin/features \
 	| tippecanoe -zg -o /usr/local/data/wof.mbtiles
 ```
 
-### PMtiles
+### PMTiles
 
 Next, use the `pmtiles` tool which is part of the [protomaps/go-pmtiles](https://github.com/protomaps/go-pmtiles#creating-pmtiles-archives) package to convert the MBTiles database to a Protomaps PMTiles database:
 
@@ -154,8 +154,13 @@ func main() {
 
 ```
 
+## Web interface(s)
+
+The [whosonfirst/go-whosonfirst-spatial-www-pmtiles](https://github.com/whosonfirst/go-whosonfirst-spatial-www-pmtiles) package provides supports for exposing access to a PMTiles-enabled spatial database over HTTP.
+
 ## See also
 
+* https://github.com/whosonfirst/go-whosonfirst-spatial-www-pmtiles
 * https://github.com/whosonfirst/go-whosonfirst-tippecanoe
 * https://github.com/protomaps/go-pmtiles
 * https://github.com/felt/tippecanoe
