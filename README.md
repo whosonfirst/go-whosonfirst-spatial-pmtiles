@@ -18,7 +18,7 @@ As of this writing producing a Who's On First -enabled Protomaps tile database i
 
 ### Tippecanoe
 
-The first step is to produce a MBTiles database derived from Who's On First data. There are a number of way you might accomplish this but as a convenience you can also use the `features` tool which is part of the [whosonfirst/go-whosonfirst-tippecanoe](https://github.com/whosonfirst/go-whosonfirst-tippecanoe) package. For example:
+The first step is to produce a MBTiles database derived from Who's On First data. There are a variety of ways you might accomplish this but as a convenience you can use the `features` tool which is part of the [whosonfirst/go-whosonfirst-tippecanoe](https://github.com/whosonfirst/go-whosonfirst-tippecanoe) package. For example:
 
 ```
 $> bin/features \
