@@ -222,6 +222,7 @@ The [whosonfirst/go-whosonfirst-spatial-www-pmtiles](https://github.com/whosonfi
 * https://github.com/whosonfirst/go-whosonfirst-spatial
 * https://github.com/whosonfirst/go-whosonfirst-spatial-pip
 * https://github.com/whosonfirst/go-whosonfirst-spatial-sqlite
+* https://github.com/whosonfirst/go-whosonfirst-spatial-www
 * https://github.com/whosonfirst/go-whosonfirst-spatial-www-pmtiles
 * https://github.com/whosonfirst/go-whosonfirst-tippecanoe
 * https://github.com/protomaps/go-pmtiles
