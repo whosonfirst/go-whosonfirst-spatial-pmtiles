@@ -56,7 +56,26 @@ func NewPMTilesDatabase(ctx context.Context, uri string) (*PMTilesDatabase, erro
 
 func (db *PMTilesDatabase) PointInPolygon(ctx context.Context, coord *orb.Point, filters ...spatial.Filter) (spr.StandardPlacesResults, error) {
 
-	z := maptile.Zoom(uint32(10)) // fix me
+	/*
+
+	$> ./bin/server -tile-path file:///usr/local/whosonfirst/go-whosonfirst-tippecanoe -enable-example -example-database wof
+	2022/11/24 14:41:32 Listening for requests on http://localhost:8080
+	2022/11/24 14:41:48 fetching wof 0-16384
+	2022/11/24 14:41:48 fetched wof 0-0
+	2022/11/24 14:41:48 fetching wof 39541-13802
+	2022/11/24 14:41:48 fetched wof 39541-13802
+	2022/11/24 14:41:48 [200] served /wof/8/41/98.mvt in 3.485603ms
+
+	> go run cmd/query/main.go -spatial-database-uri 'pmtiles://?tiles=file:///usr/local/whosonfirst/go-whosonfirst-tippecanoe&database=wof'
+	2022/11/25 18:33:32 fetching wof 0-16384
+	2022/11/25 18:33:32 fetched wof 0-0
+	2022/11/25 18:33:32 fetching wof 39541-13802
+	2022/11/25 18:33:32 fetched wof 39541-13802
+	map[wof:0xc0001005a0]
+
+	*/
+
+	z := maptile.Zoom(uint32(8)) // fix me
 	t := maptile.At(*coord, z)
 
 	path := fmt.Sprintf("/%s/%d/%d/%d.mvt", db.database, t.Z, t.X, t.Y)
