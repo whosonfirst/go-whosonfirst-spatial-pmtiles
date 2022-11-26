@@ -2,11 +2,13 @@ package main
 
 import (
 	_ "gocloud.dev/blob/fileblob"
+	_ "github.com/whosonfirst/go-whosonfirst-spatial-sqlite"	
 )
 
 import (
 	"context"
 	"flag"
+	"fmt"
 	"github.com/paulmach/orb"
 	"github.com/whosonfirst/go-whosonfirst-spatial-pmtiles"
 	"log"
@@ -31,9 +33,13 @@ func main() {
 
 	coord := &orb.Point{lon, lat}
 
-	_, err = db.PointInPolygon(ctx, coord)
+	rsp, err := db.PointInPolygon(ctx, coord)
 
 	if err != nil {
 		log.Fatalf("Failed to perform point in polygon, %v", err)
+	}
+
+	for _, r := range rsp.Results(){
+		fmt.Println(r.Id(), r.Name())
 	}
 }

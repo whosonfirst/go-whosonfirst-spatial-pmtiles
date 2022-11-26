@@ -19,6 +19,7 @@ type PMTilesDatabase struct {
 	loop     *pmtiles.Loop
 	logger   *log.Logger
 	database string
+	spatial_db database.SpatialDatabase
 }
 
 func NewPMTilesDatabase(ctx context.Context, uri string) (*PMTilesDatabase, error) {
@@ -29,6 +30,12 @@ func NewPMTilesDatabase(ctx context.Context, uri string) (*PMTilesDatabase, erro
 		return nil, fmt.Errorf("Failed to parse URI, %w", err)
 	}
 
+	spatial_db, err := database.NewSpatialDatabase(ctx, "sqlite://?dsn=/tmp/test.db")
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create spatial database, %w", err)
+	}
+	
 	q := u.Query()
 
 	tile_path := q.Get("tiles")
@@ -49,6 +56,7 @@ func NewPMTilesDatabase(ctx context.Context, uri string) (*PMTilesDatabase, erro
 	db := &PMTilesDatabase{
 		loop:     loop,
 		database: database,
+		spatial_db: spatial_db,
 	}
 
 	return db, nil
@@ -93,7 +101,42 @@ func (db *PMTilesDatabase) PointInPolygon(ctx context.Context, coord *orb.Point,
 	}
 
 	fc := layers.ToFeatureCollections()
-	fmt.Println(fc)
 
-	return nil, nil
+	_, exists := fc[db.database]
+
+	if !exists {
+		return nil, fmt.Errorf("Missing %s layer", db.database)
+	}
+
+	for idx, f := range fc[db.database].Features {
+
+		props := f.Properties
+		fmt.Printf("Index %f %s\n", props.MustFloat64("wof:id"), props.MustString("wof:name"))
+		
+		body, err := f.MarshalJSON()
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to marshal JSON for feature at offset %d, %w", idx, err)
+		}
+
+		err = db.spatial_db.IndexFeature(ctx, body)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to index feature at offset %d, %w", idx, err)
+		}
+	}
+
+	/*
+
+sqlite> SELECT id, wof_id, is_alt, alt_label, min_x, min_y, max_x, max_y FROM rtree;
+41|102087579|0||1720.0|-80.0|2371.0|289.0
+39|85922583|0||1720.0|-80.0|2371.0|289.0
+36|85633793|0||1720.0|-80.0|2371.0|289.0
+34|85688637|0||1720.0|-80.0|2371.0|289.0
+22|102087579|0||1720.0|-80.0|2371.0|289.0
+20|85922583|0||1720.0|-80.0|2371.0|289.0
+
+	*/
+	
+	return db.spatial_db.PointInPolygon(ctx, coord, filters...)
 }

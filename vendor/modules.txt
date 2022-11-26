@@ -6,9 +6,20 @@ github.com/RoaringBitmap/roaring/roaring64
 # github.com/aaronland/go-json-query v0.1.3
 ## explicit; go 1.18
 github.com/aaronland/go-json-query
+# github.com/aaronland/go-pagination v0.2.0
+## explicit; go 1.16
+github.com/aaronland/go-pagination
+github.com/aaronland/go-pagination/countable
+# github.com/aaronland/go-pagination-sql v0.2.0
+## explicit; go 1.16
+github.com/aaronland/go-pagination-sql
 # github.com/aaronland/go-roster v1.0.0
 ## explicit; go 1.16
 github.com/aaronland/go-roster
+# github.com/aaronland/go-sqlite v0.2.2
+## explicit; go 1.18
+github.com/aaronland/go-sqlite
+github.com/aaronland/go-sqlite/database
 # github.com/bits-and-blooms/bitset v1.2.0
 ## explicit; go 1.14
 github.com/bits-and-blooms/bitset
@@ -47,12 +58,18 @@ github.com/hashicorp/errwrap
 # github.com/hashicorp/go-multierror v1.1.1
 ## explicit; go 1.13
 github.com/hashicorp/go-multierror
+# github.com/jtacoma/uritemplates v1.0.0
+## explicit
+github.com/jtacoma/uritemplates
 # github.com/mattn/go-isatty v0.0.16
 ## explicit; go 1.15
 github.com/mattn/go-isatty
 # github.com/mattn/go-runewidth v0.0.13
 ## explicit; go 1.9
 github.com/mattn/go-runewidth
+# github.com/mattn/go-sqlite3 v1.14.16
+## explicit; go 1.16
+github.com/mattn/go-sqlite3
 # github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db
 ## explicit
 github.com/mitchellh/colorstring
@@ -62,12 +79,16 @@ github.com/mschoch/smat
 # github.com/natefinch/atomic v1.0.1
 ## explicit; go 1.12
 github.com/natefinch/atomic
+# github.com/patrickmn/go-cache v2.1.0+incompatible
+## explicit
+github.com/patrickmn/go-cache
 # github.com/paulmach/orb v0.7.1
 ## explicit; go 1.15
 github.com/paulmach/orb
 github.com/paulmach/orb/clip
 github.com/paulmach/orb/encoding/mvt
 github.com/paulmach/orb/encoding/mvt/vectortile
+github.com/paulmach/orb/encoding/wkt
 github.com/paulmach/orb/geojson
 github.com/paulmach/orb/internal/length
 github.com/paulmach/orb/internal/mercator
@@ -100,6 +121,11 @@ github.com/sfomuseum/go-edtf/level2
 github.com/sfomuseum/go-edtf/parser
 github.com/sfomuseum/go-edtf/re
 github.com/sfomuseum/go-edtf/tests
+# github.com/sfomuseum/go-flags v0.10.0
+## explicit; go 1.16
+github.com/sfomuseum/go-flags/flagset
+github.com/sfomuseum/go-flags/lookup
+github.com/sfomuseum/go-flags/multi
 # github.com/tidwall/gjson v1.14.4
 ## explicit; go 1.12
 github.com/tidwall/gjson
@@ -118,6 +144,12 @@ github.com/whosonfirst/go-ioutil
 # github.com/whosonfirst/go-reader v1.0.2
 ## explicit; go 1.18
 github.com/whosonfirst/go-reader
+# github.com/whosonfirst/go-rfc-5646 v0.1.0
+## explicit; go 1.12
+github.com/whosonfirst/go-rfc-5646
+# github.com/whosonfirst/go-sanitize v0.1.0
+## explicit; go 1.12
+github.com/whosonfirst/go-sanitize
 # github.com/whosonfirst/go-whosonfirst-crawl v0.2.1
 ## explicit; go 1.12
 github.com/whosonfirst/go-whosonfirst-crawl
@@ -129,12 +161,22 @@ github.com/whosonfirst/go-whosonfirst-feature/properties
 # github.com/whosonfirst/go-whosonfirst-flags v0.4.4
 ## explicit; go 1.16
 github.com/whosonfirst/go-whosonfirst-flags
+github.com/whosonfirst/go-whosonfirst-flags/date
 github.com/whosonfirst/go-whosonfirst-flags/existential
+github.com/whosonfirst/go-whosonfirst-flags/geometry
+github.com/whosonfirst/go-whosonfirst-flags/placetypes
 # github.com/whosonfirst/go-whosonfirst-iterate/v2 v2.3.1
 ## explicit; go 1.18
 github.com/whosonfirst/go-whosonfirst-iterate/v2/emitter
 github.com/whosonfirst/go-whosonfirst-iterate/v2/filters
 github.com/whosonfirst/go-whosonfirst-iterate/v2/iterator
+# github.com/whosonfirst/go-whosonfirst-names v0.1.0
+## explicit; go 1.12
+github.com/whosonfirst/go-whosonfirst-names
+github.com/whosonfirst/go-whosonfirst-names/tags
+# github.com/whosonfirst/go-whosonfirst-placetypes v0.4.1
+## explicit; go 1.18
+github.com/whosonfirst/go-whosonfirst-placetypes
 # github.com/whosonfirst/go-whosonfirst-sources v0.1.0
 ## explicit; go 1.12
 github.com/whosonfirst/go-whosonfirst-sources
@@ -143,9 +185,23 @@ github.com/whosonfirst/go-whosonfirst-sources/sources
 ## explicit; go 1.18
 github.com/whosonfirst/go-whosonfirst-spatial
 github.com/whosonfirst/go-whosonfirst-spatial/database
+github.com/whosonfirst/go-whosonfirst-spatial/filter
+github.com/whosonfirst/go-whosonfirst-spatial/flags
+github.com/whosonfirst/go-whosonfirst-spatial/geo
+github.com/whosonfirst/go-whosonfirst-spatial/timer
+# github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.5.5
+## explicit; go 1.18
+github.com/whosonfirst/go-whosonfirst-spatial-sqlite
 # github.com/whosonfirst/go-whosonfirst-spr/v2 v2.3.2
 ## explicit; go 1.18
 github.com/whosonfirst/go-whosonfirst-spr/v2
+# github.com/whosonfirst/go-whosonfirst-sqlite-features v0.10.0
+## explicit; go 1.16
+github.com/whosonfirst/go-whosonfirst-sqlite-features
+github.com/whosonfirst/go-whosonfirst-sqlite-features/tables
+# github.com/whosonfirst/go-whosonfirst-sqlite-spr v0.3.2
+## explicit; go 1.16
+github.com/whosonfirst/go-whosonfirst-sqlite-spr
 # github.com/whosonfirst/go-whosonfirst-uri v1.2.0
 ## explicit; go 1.13
 github.com/whosonfirst/go-whosonfirst-uri

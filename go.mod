@@ -6,6 +6,7 @@ require (
 	github.com/paulmach/orb v0.7.1
 	github.com/protomaps/go-pmtiles v1.6.2
 	github.com/whosonfirst/go-whosonfirst-spatial v0.5.1
+	github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.5.5
 	github.com/whosonfirst/go-whosonfirst-spr/v2 v2.3.2
 	gocloud.dev v0.27.0
 )
@@ -13,7 +14,10 @@ require (
 require (
 	github.com/RoaringBitmap/roaring v1.2.1 // indirect
 	github.com/aaronland/go-json-query v0.1.3 // indirect
+	github.com/aaronland/go-pagination v0.2.0 // indirect
+	github.com/aaronland/go-pagination-sql v0.2.0 // indirect
 	github.com/aaronland/go-roster v1.0.0 // indirect
+	github.com/aaronland/go-sqlite v0.2.2 // indirect
 	github.com/bits-and-blooms/bitset v1.2.0 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/g8rswimmer/error-chain v1.0.0 // indirect
@@ -24,27 +28,37 @@ require (
 	github.com/googleapis/gax-go/v2 v2.4.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
+	github.com/jtacoma/uritemplates v1.0.0 // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect
+	github.com/mattn/go-sqlite3 v1.14.16 // indirect
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
 	github.com/mschoch/smat v0.2.0 // indirect
 	github.com/natefinch/atomic v1.0.1 // indirect
+	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/paulmach/protoscan v0.2.1 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/schollz/progressbar/v3 v3.11.0 // indirect
 	github.com/sfomuseum/go-edtf v1.1.1 // indirect
+	github.com/sfomuseum/go-flags v0.10.0 // indirect
 	github.com/tidwall/gjson v1.14.4 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
 	github.com/whosonfirst/go-ioutil v1.0.2 // indirect
 	github.com/whosonfirst/go-reader v1.0.2 // indirect
+	github.com/whosonfirst/go-rfc-5646 v0.1.0 // indirect
+	github.com/whosonfirst/go-sanitize v0.1.0 // indirect
 	github.com/whosonfirst/go-whosonfirst-crawl v0.2.1 // indirect
 	github.com/whosonfirst/go-whosonfirst-feature v0.0.24 // indirect
 	github.com/whosonfirst/go-whosonfirst-flags v0.4.4 // indirect
 	github.com/whosonfirst/go-whosonfirst-iterate/v2 v2.3.1 // indirect
+	github.com/whosonfirst/go-whosonfirst-names v0.1.0 // indirect
+	github.com/whosonfirst/go-whosonfirst-placetypes v0.4.1 // indirect
 	github.com/whosonfirst/go-whosonfirst-sources v0.1.0 // indirect
+	github.com/whosonfirst/go-whosonfirst-sqlite-features v0.10.0 // indirect
+	github.com/whosonfirst/go-whosonfirst-sqlite-spr v0.3.2 // indirect
 	github.com/whosonfirst/go-whosonfirst-uri v1.2.0 // indirect
 	github.com/whosonfirst/go-writer/v3 v3.1.0 // indirect
 	github.com/whosonfirst/walk v0.0.1 // indirect
