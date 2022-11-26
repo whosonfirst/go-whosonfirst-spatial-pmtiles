@@ -11,6 +11,7 @@ Documentation is incomplete at this time. There may be bugs. Notably, as written
 * The code and examples do not do anything to clip the geometries or minimize the size or volume of data in the `tippecanoe` MBTiles or `protomaps` PMTiles databases.
 * It is possible to define a caching layer for GeoJSON features associated with a given PMTiles tile path but there is no cache invalidation or expiry.
 * All tile lookups are performed at zoom 9.
+* The underlying spatial queries performed on features derived from PMTiles data are done using in-memory [whosonfirst/go-whosonfirst-spatial-sqlite](https://github.com/whosonfirst/go-whosonfirst-spatial-sqlite) instances.
 
 ## Producing a Who's On First -enabled Protomaps tile database
 
@@ -162,5 +163,6 @@ The [whosonfirst/go-whosonfirst-spatial-www-pmtiles](https://github.com/whosonfi
 
 * https://github.com/whosonfirst/go-whosonfirst-spatial-www-pmtiles
 * https://github.com/whosonfirst/go-whosonfirst-tippecanoe
+* https://github.com/whosonfirst/go-whosonfirst-spatial-sqlite
 * https://github.com/protomaps/go-pmtiles
 * https://github.com/felt/tippecanoe
