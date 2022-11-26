@@ -21,6 +21,7 @@ import (
 	"log"
 	"net/url"
 	"strconv"
+	"time"
 )
 
 func init() {
@@ -35,6 +36,7 @@ type PMTilesSpatialDatabase struct {
 	database             string
 	enable_feature_cache bool
 	feature_cache        *docstore.Collection
+	ticker               *time.Ticker
 }
 
 func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.SpatialDatabase, error) {
@@ -103,7 +105,22 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 
 			db.feature_cache = feature_cache
 
-			// To do: Start loop to prune feature cache
+			now := time.Now()
+			go db.pruneFeatureCache(ctx, now)
+
+			ticker := time.NewTicker(300 * time.Second)
+
+			go func() {
+
+				for {
+					select {
+					case t := <-ticker.C:
+						db.pruneFeatureCache(ctx, t)
+					}
+				}
+			}()
+
+			db.ticker = ticker
 		}
 	}
 
@@ -195,6 +212,10 @@ func (db *PMTilesSpatialDatabase) Disconnect(ctx context.Context) error {
 
 	if db.feature_cache != nil {
 		db.feature_cache.Close()
+	}
+
+	if db.ticker != nil {
+		db.ticker.Stop()
 	}
 
 	return nil
@@ -300,4 +321,12 @@ func (db *PMTilesSpatialDatabase) featuresForTile(ctx context.Context, t maptile
 	}
 
 	return fc[db.database].Features, nil
+}
+
+func (db *PMTilesSpatialDatabase) pruneFeatureCache(ctx context.Context, t time.Time) error {
+
+	// q := db.feature_cache.Query()
+	// q = q.Where("Created", "<=", t.Unix())
+
+	return nil
 }
