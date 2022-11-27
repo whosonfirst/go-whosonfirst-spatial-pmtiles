@@ -14,16 +14,19 @@ import (
 	"github.com/paulmach/orb/geojson"
 	"github.com/paulmach/orb/maptile"
 	"github.com/protomaps/go-pmtiles/pmtiles"
+	"github.com/whosonfirst/go-ioutil"
 	"github.com/whosonfirst/go-reader"
 	"github.com/whosonfirst/go-whosonfirst-spatial"
 	"github.com/whosonfirst/go-whosonfirst-spatial/database"
 	"github.com/whosonfirst/go-whosonfirst-spr/v2"
+	"github.com/whosonfirst/go-whosonfirst-uri"
 	"gocloud.dev/docstore"
 	"gocloud.dev/gcerrors"
 	"io"
 	"log"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -41,6 +44,7 @@ type PMTilesSpatialDatabase struct {
 	enable_feature_cache bool
 	feature_cache        *docstore.Collection
 	ticker               *time.Ticker
+	cache_manager        *CacheManager
 }
 
 func NewPMTilesSpatialDatabaseReader(ctx context.Context, uri string) (reader.Reader, error) {
@@ -85,70 +89,52 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 
 	loop.Start()
 
+	feature_cache_uri := "mem://features/Id"
+	tile_cache_uri := "mem://tiles/Path"
+
+	feature_cache, err := docstore.OpenCollection(context.Background(), feature_cache_uri)
+
+	if err != nil {
+		return nil, fmt.Errorf("could not open collection: %w", err)
+	}
+
+	tile_cache, err := docstore.OpenCollection(context.Background(), tile_cache_uri)
+
+	if err != nil {
+		return nil, fmt.Errorf("could not open collection: %w", err)
+	}
+
+	cache_manager := NewCacheManager(feature_cache, tile_cache)
+
 	db := &PMTilesSpatialDatabase{
-		loop:     loop,
-		database: database,
-		logger:   logger,
+		loop:          loop,
+		database:      database,
+		logger:        logger,
+		cache_manager: cache_manager,
 	}
 
-	enable_fc := q.Get("enable-feature-cache")
+	/*
+				now := time.Now()
+				then := now.Add(time.Duration(-feature_cache_ttl) * time.Second)
 
-	if enable_fc != "" {
+				db.pruneFeatureCache(ctx, then)
 
-		enable_feature_cache, err := strconv.ParseBool(enable_fc)
+				ticker := time.NewTicker(time.Duration(feature_cache_ttl) * time.Second)
 
-		if err != nil {
-			return nil, fmt.Errorf("Failed to parse ?enable-feature-cache= parameter, %w", err)
-		}
-		db.enable_feature_cache = enable_feature_cache
+				go func() {
 
-		if enable_feature_cache {
-
-			feature_cache_uri := q.Get("feature-cache-uri")
-
-			feature_cache, err := docstore.OpenCollection(context.Background(), feature_cache_uri)
-
-			if err != nil {
-				return nil, fmt.Errorf("could not open collection: %w", err)
-			}
-
-			db.feature_cache = feature_cache
-
-			feature_cache_ttl := 300
-
-			str_ttl := q.Get("feature-cache-ttl")
-
-			if str_ttl != "" {
-
-				ttl, err := strconv.Atoi(str_ttl)
-
-				if err != nil {
-					return nil, fmt.Errorf("Failed to parse ?feature-cache-ttl= parameter, %w", err)
-				}
-
-				feature_cache_ttl = ttl
-			}
-
-			now := time.Now()
-			then := now.Add(time.Duration(-feature_cache_ttl) * time.Second)
-
-			db.pruneFeatureCache(ctx, then)
-
-			ticker := time.NewTicker(time.Duration(feature_cache_ttl) * time.Second)
-
-			go func() {
-
-				for {
-					select {
-					case t := <-ticker.C:
-						db.pruneFeatureCache(ctx, t)
+					for {
+						select {
+						case t := <-ticker.C:
+							db.pruneFeatureCache(ctx, t)
+						}
 					}
-				}
-			}()
+				}()
 
-			db.ticker = ticker
+				db.ticker = ticker
+			}
 		}
-	}
+	*/
 
 	return db, nil
 }
@@ -248,7 +234,28 @@ func (db *PMTilesSpatialDatabase) Disconnect(ctx context.Context) error {
 }
 
 func (db *PMTilesSpatialDatabase) Read(ctx context.Context, path string) (io.ReadSeekCloser, error) {
-	return nil, fmt.Errorf("Not implemented")
+
+	id, _, err := uri.ParseURI(path)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to path %s, %w", path, err)
+	}
+
+	fc, err := db.cache_manager.GetFeatureCache(ctx, id)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get feature cache for %s, %w", path, err)
+	}
+
+	r := strings.NewReader(fc.Body)
+
+	rsc, err := ioutil.NewReadSeekCloser(r)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create ReadSeekCloser for %s, %w", path, err)
+	}
+
+	return rsc, nil
 }
 
 func (db *PMTilesSpatialDatabase) ReaderURI(ctx context.Context, path string) string {
@@ -308,11 +315,7 @@ func (db *PMTilesSpatialDatabase) featuresForTile(ctx context.Context, t maptile
 
 	if db.enable_feature_cache {
 
-		tc := TileFeaturesCache{
-			Path: path,
-		}
-
-		err := db.feature_cache.Get(ctx, &tc)
+		tc, err := db.cache_manager.GetTileCache(ctx, path)
 
 		if err != nil {
 
@@ -322,26 +325,11 @@ func (db *PMTilesSpatialDatabase) featuresForTile(ctx context.Context, t maptile
 
 		} else {
 
-			features, err := tc.UnmarshalFeatures()
+			features, err := db.cache_manager.UnmarshalTileCache(ctx, tc)
 
 			if err != nil {
 				db.logger.Printf("Failed to unmarshal features for %s, %v", path, err)
 			} else {
-
-				go func() {
-
-					now := time.Now()
-
-					mods := docstore.Mods{
-						"LastAccessed": now.Unix(),
-					}
-
-					err := db.feature_cache.Update(ctx, &tc, mods)
-
-					if err != nil {
-						db.logger.Printf("Failed to update last access time for %s, %v", path, err)
-					}
-				}()
 
 				return features, nil
 			}
@@ -370,61 +358,56 @@ func (db *PMTilesSpatialDatabase) featuresForTile(ctx context.Context, t maptile
 		return nil, fmt.Errorf("Missing %s layer", db.database)
 	}
 
-	if db.enable_feature_cache {
+	go func() {
 
-		go func() {
+		_, err := db.cache_manager.CacheTile(ctx, path, fc[db.database].Features)
 
-			tc, err := NewTileFeatureCache(path, fc[db.database].Features)
-
-			if err != nil {
-				db.logger.Printf("Failed to create new feature cache for %s, %v", path, err)
-			}
-
-			err = db.feature_cache.Put(ctx, tc)
-
-			if err != nil {
-				db.logger.Printf("Failed to put feature cache for %s, %v", path, err)
-			}
-		}()
-	}
+		if err != nil {
+			db.logger.Printf("Failed to create new feature cache for %s, %v", path, err)
+		}
+	}()
 
 	return fc[db.database].Features, nil
 }
 
 func (db *PMTilesSpatialDatabase) pruneFeatureCache(ctx context.Context, t time.Time) error {
 
-	db.logger.Printf("Prune feature cache older that %v\n", t)
+	return nil
 
-	ts := t.Unix()
+	/*
+		db.logger.Printf("Prune feature cache older that %v\n", t)
 
-	q := db.feature_cache.Query()
-	q = q.Where("Created", "<=", ts)
-	q = q.Where("LastAccessed", "<=", ts)
+		ts := t.Unix()
 
-	iter := q.Get(ctx)
+		q := db.feature_cache.Query()
+		q = q.Where("Created", "<=", ts)
+		q = q.Where("LastAccessed", "<=", ts)
 
-	defer iter.Stop()
+		iter := q.Get(ctx)
 
-	for {
+		defer iter.Stop()
 
-		var tc TileFeaturesCache
+		for {
 
-		err := iter.Next(ctx, &tc)
+			var tc TileFeaturesCache
 
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			db.logger.Printf("Failed to get next iterator, %v", err)
-		} else {
+			err := iter.Next(ctx, &tc)
 
-			db.logger.Printf("Prune %s\n", tc.Path)
-			err := db.feature_cache.Delete(ctx, &tc)
+			if err == io.EOF {
+				break
+			} else if err != nil {
+				db.logger.Printf("Failed to get next iterator, %v", err)
+			} else {
 
-			if err != nil {
-				db.logger.Printf("Failed to delete feature cache %s, %v", tc.Path, err)
+				db.logger.Printf("Prune %s\n", tc.Path)
+				err := db.feature_cache.Delete(ctx, &tc)
+
+				if err != nil {
+					db.logger.Printf("Failed to delete feature cache %s, %v", tc.Path, err)
+				}
 			}
 		}
-	}
 
-	return nil
+		return nil
+	*/
 }
