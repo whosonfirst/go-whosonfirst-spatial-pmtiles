@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"log"
 )
 
 // JSON-encoding features is not ideal given the known performance issues around marshaling
@@ -253,13 +254,16 @@ func (m *CacheManager) UnmarshalTileCache(ctx context.Context, tc *TileCache) ([
 
 func NewFeatureCache(feature *geojson.Feature) (*FeatureCache, error) {
 
-	props := feature.Properties
-	str_id := props.MustString("wof:id", "-1")
+	var id int64
 
-	id, err := strconv.ParseInt(str_id, 10, 64)
+	props := feature.Properties
+
+	props_id := fmt.Sprintf("%s", props["wof:id"])
+
+	id, err := strconv.ParseInt(props_id, 10, 64)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to parse ID %s, %w", str_id, err)
+		return nil, fmt.Errorf("Failed to parse %s, %w", props_id, err)
 	}
 
 	if id < wof_id.EARTH {
@@ -275,13 +279,13 @@ func NewFeatureCache(feature *geojson.Feature) (*FeatureCache, error) {
 	now := time.Now()
 	ts := now.Unix()
 
-	c := &FeatureCache{
+	fc := &FeatureCache{
 		Created: ts,
 		Id:      id,
 		Body:    string(body),
 	}
 
-	return c, nil
+	return fc, nil
 }
 
 func NewTileCache(path string, feature_ids []int64) (*TileCache, error) {
