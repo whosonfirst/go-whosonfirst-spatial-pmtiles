@@ -10,8 +10,6 @@ Documentation is incomplete at this time.
 
 There may be bugs. Notably, as written:
  
-* The code and examples do not do anything to clip the geometries or minimize the size or volume of data in the `tippecanoe` MBTiles or `protomaps` PMTiles databases.
-* It is possible to define a caching layer for GeoJSON features associated with a given PMTiles tile path but there is no cache invalidation or expiry.
 * All tile lookups are performed at zoom 9.
 * The underlying spatial queries performed on features derived from PMTiles data are done using in-memory [whosonfirst/go-whosonfirst-spatial-sqlite](https://github.com/whosonfirst/go-whosonfirst-spatial-sqlite) instances. These instances are not cached at this time.
 
@@ -55,7 +53,8 @@ pmtiles://?{QUERY_PARAMETERS}
 | database | The name of the Protomaps tiles database | yes | Ensure that this value does _not_ include a `.pmtiles` extension |
 | pmtiles-cache-size | The size, in megabytes, of the pmtiles cache | no | Default is 64 |
 | enable-feature-cache | Enable caching of WOF features associated with a tile path | no | Default is false |
-| feature-cache-uri | A valid `gocloud.dev/docstore` collection URI | no | Support for `memdocstore://` URIs is enabled by default. |
+| feature-cache-uri | A valid `gocloud.dev/docstore` collection URI | no | Support for `memdocstore://` URIs is enabled by default |
+| feature-cache-ttl | The number of seconds that items in the feature cache should persist | no | Default is 300 |
 
 For example:
 

@@ -18,6 +18,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-spatial/database"
 	"github.com/whosonfirst/go-whosonfirst-spr/v2"
 	"gocloud.dev/docstore"
+	"io"
 	"log"
 	"net/url"
 	"strconv"
@@ -105,10 +106,27 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 
 			db.feature_cache = feature_cache
 
-			now := time.Now()
-			go db.pruneFeatureCache(ctx, now)
+			feature_cache_ttl := 300
 
-			ticker := time.NewTicker(300 * time.Second)
+			str_ttl := q.Get("feature-cache-ttl")
+
+			if str_ttl != "" {
+
+				ttl, err := strconv.Atoi(str_ttl)
+
+				if err != nil {
+					return nil, fmt.Errorf("Failed to parse ?feature-cache-ttl= parameter, %w", err)
+				}
+
+				feature_cache_ttl = ttl
+			}
+
+			now := time.Now()
+			then := now.Add(time.Duration(-feature_cache_ttl) * time.Second)
+
+			go db.pruneFeatureCache(ctx, then)
+
+			ticker := time.NewTicker(time.Duration(feature_cache_ttl) * time.Second)
 
 			go func() {
 
@@ -325,8 +343,32 @@ func (db *PMTilesSpatialDatabase) featuresForTile(ctx context.Context, t maptile
 
 func (db *PMTilesSpatialDatabase) pruneFeatureCache(ctx context.Context, t time.Time) error {
 
-	// q := db.feature_cache.Query()
-	// q = q.Where("Created", "<=", t.Unix())
+	q := db.feature_cache.Query()
+	q = q.Where("Created", "<=", t.Unix())
+
+	iter := q.Get(ctx)
+
+	defer iter.Stop()
+
+	for {
+
+		var tc TileFeaturesCache
+
+		err := iter.Next(ctx, &tc)
+
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			db.logger.Printf("Failed to get next iterator, %w", err)
+		} else {
+
+			err := db.feature_cache.Delete(ctx, tc)
+
+			if err != nil {
+				db.logger.Printf("Failed to delete feature cache %s, %v", tc.Path, err)
+			}
+		}
+	}
 
 	return nil
 }
