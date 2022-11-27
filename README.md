@@ -53,7 +53,7 @@ pmtiles://?{QUERY_PARAMETERS}
 | database | The name of the Protomaps tiles database | yes | Ensure that this value does _not_ include a `.pmtiles` extension |
 | pmtiles-cache-size | The size, in megabytes, of the pmtiles cache | no | Default is 64 |
 | enable-feature-cache | Enable caching of WOF features associated with a tile path | no | Default is false |
-| feature-cache-uri | A valid `gocloud.dev/docstore` collection URI | no | Support for `memdocstore://` URIs is enabled by default |
+| feature-cache-uri | A valid `gocloud.dev/docstore` collection URI | no | Support for `mem://` URIs is enabled by default |
 | feature-cache-ttl | The number of seconds that items in the feature cache should persist | no | Default is 300 |
 
 For example:
