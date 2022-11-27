@@ -5,6 +5,7 @@ go 1.19
 require (
 	github.com/paulmach/orb v0.7.1
 	github.com/protomaps/go-pmtiles v1.6.2
+	github.com/whosonfirst/go-reader v1.0.2
 	github.com/whosonfirst/go-whosonfirst-spatial v0.5.1
 	github.com/whosonfirst/go-whosonfirst-spatial-pip v0.3.1
 	github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.5.5
@@ -55,7 +56,6 @@ require (
 	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
 	github.com/whosonfirst/go-ioutil v1.0.2 // indirect
-	github.com/whosonfirst/go-reader v1.0.2 // indirect
 	github.com/whosonfirst/go-rfc-5646 v0.1.0 // indirect
 	github.com/whosonfirst/go-sanitize v0.1.0 // indirect
 	github.com/whosonfirst/go-whosonfirst-crawl v0.2.1 // indirect

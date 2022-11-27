@@ -14,6 +14,7 @@ import (
 	"github.com/paulmach/orb/geojson"
 	"github.com/paulmach/orb/maptile"
 	"github.com/protomaps/go-pmtiles/pmtiles"
+	"github.com/whosonfirst/go-reader"
 	"github.com/whosonfirst/go-whosonfirst-spatial"
 	"github.com/whosonfirst/go-whosonfirst-spatial/database"
 	"github.com/whosonfirst/go-whosonfirst-spr/v2"
@@ -29,6 +30,7 @@ import (
 func init() {
 	ctx := context.Background()
 	database.RegisterSpatialDatabase(ctx, "pmtiles", NewPMTilesSpatialDatabase)
+	reader.RegisterReader(ctx, "pmtiles", NewPMTilesSpatialDatabaseReader)
 }
 
 type PMTilesSpatialDatabase struct {
@@ -39,6 +41,10 @@ type PMTilesSpatialDatabase struct {
 	enable_feature_cache bool
 	feature_cache        *docstore.Collection
 	ticker               *time.Ticker
+}
+
+func NewPMTilesSpatialDatabaseReader(ctx context.Context, uri string) (reader.Reader, error) {
+	return NewPMTilesSpatialDatabase(ctx, uri)
 }
 
 func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.SpatialDatabase, error) {
@@ -239,6 +245,14 @@ func (db *PMTilesSpatialDatabase) Disconnect(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (db *PMTilesSpatialDatabase) Read(ctx context.Context, path string) (io.ReadSeekCloser, error) {
+	return nil, fmt.Errorf("Not implemented")
+}
+
+func (db *PMTilesSpatialDatabase) ReaderURI(ctx context.Context, path string) string {
+	return path
 }
 
 func (db *PMTilesSpatialDatabase) spatialDatabaseFromTile(ctx context.Context, t maptile.Tile) (database.SpatialDatabase, error) {
