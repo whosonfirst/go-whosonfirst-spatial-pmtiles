@@ -140,7 +140,7 @@ func (m *CacheManager) CacheTile(ctx context.Context, path string, features []*g
 
 	m.logger.Printf("cache tile %s\n", tc.Path)
 
-	err = m.tile_collection.Put(ctx, tc)
+	err = m.tile_collection.Replace(ctx, tc)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to store tile cache for %s, %w", path, err)
@@ -159,7 +159,7 @@ func (m *CacheManager) CacheFeature(ctx context.Context, feature *geojson.Featur
 
 	m.logger.Printf("cache feature %s\n", fc.Id)
 
-	err = m.feature_collection.Put(ctx, fc)
+	err = m.feature_collection.Replace(ctx, fc)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to store feature cache, %w", err)
