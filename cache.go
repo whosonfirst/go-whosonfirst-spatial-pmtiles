@@ -25,9 +25,9 @@ type FeatureCache struct {
 }
 
 type TileCache struct {
-	Created      int64    `json:"created"`
-	Path         string   `json:"path"`
-	Features     []string `json:"features"`
+	Created  int64    `json:"created"`
+	Path     string   `json:"path"`
+	Features []string `json:"features"`
 }
 
 type CacheManager struct {
@@ -36,6 +36,8 @@ type CacheManager struct {
 	tile_collection    *docstore.Collection
 	logger             *log.Logger
 	ticker             *time.Ticker
+	feature_counts     map[string]int64
+	counts_mu          *sync.RWMutex
 }
 
 type CacheManagerOptions struct {
@@ -49,11 +51,16 @@ func NewCacheManager(ctx context.Context, opts *CacheManagerOptions) *CacheManag
 
 	keys_map := new(sync.Map)
 
+	feature_counts := make(map[string]int64)
+	counts_mu := new(sync.RWMutex)
+
 	m := &CacheManager{
 		feature_collection: opts.FeatureCollection,
 		tile_collection:    opts.TileCollection,
 		logger:             opts.Logger,
 		keys_map:           keys_map,
+		feature_counts:     feature_counts,
+		counts_mu:          counts_mu,
 	}
 
 	cache_ttl := opts.CacheTTL
@@ -154,6 +161,9 @@ func (m *CacheManager) CacheTile(ctx context.Context, path string, features []*g
 
 		m.logger.Printf("cache tile %s\n", tc.Path)
 
+		m.counts_mu.Lock()
+		defer m.counts_mu.Unlock()
+
 		err = m.tile_collection.Put(ctx, tc)
 
 		if err != nil {
@@ -161,6 +171,20 @@ func (m *CacheManager) CacheTile(ctx context.Context, path string, features []*g
 		}
 
 		m.keys_map.Store(tc.Path, tc.Created)
+
+		for _, id := range tc.Features {
+
+			count, exists := m.feature_counts[id]
+
+			if exists {
+				count = count + 1
+			} else {
+				count = int64(1)
+			}
+
+			m.feature_counts[id] = count
+		}
+
 	}
 
 	return tc, err
@@ -344,6 +368,25 @@ func (m *CacheManager) pruneTileCache(ctx context.Context, t time.Time) error {
 			}
 
 			m.keys_map.Delete(tc.Path)
+
+			m.counts_mu.Lock()
+
+			for _, id := range tc.Features {
+
+				count, exists := m.feature_counts[id]
+
+				if exists {
+					count = count - 1
+				}
+
+				if count <= 0 {
+					delete(m.feature_counts, id)
+				} else {
+					m.feature_counts[id] = count
+				}
+			}
+
+			m.counts_mu.Unlock()
 		}
 	}
 
@@ -375,7 +418,16 @@ func (m *CacheManager) pruneFeatureCache(ctx context.Context, t time.Time) error
 			m.logger.Printf("Failed to get next iterator, %v", err)
 		} else {
 
-			m.logger.Printf("Prune %s\n", fc.Id)
+			m.counts_mu.RLock()
+			count, exists := m.feature_counts[fc.Id]
+			m.counts_mu.RUnlock()
+
+			if exists && count > 0 {
+				m.logger.Printf("Feature %s still has %d existing pointers, do not prune yet\n", fc.Id, count)
+				continue
+			}
+
+			m.logger.Printf("Prune feature %s\n", fc.Id)
 			err := m.feature_collection.Delete(ctx, &fc)
 
 			if err != nil {
