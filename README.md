@@ -23,10 +23,10 @@ The first step is to produce a MBTiles database derived from Who's On First data
 
 ```
 $> bin/features \
-	-writer-uri 'constant://?val=featurecollection://?writer=stdout://' \
+	-writer-uri 'constant://?val=jsonl://?writer=stdout://' \
 	/usr/local/data/sfomuseum-data-whosonfirst/ \
 	
-	| tippecanoe -zg -o /usr/local/data/wof.mbtiles
+	| tippecanoe -P -z 12 -pf -pk -o /usr/local/data/wof.mbtiles
 ```
 
 ### PMTiles
