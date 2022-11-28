@@ -14,6 +14,7 @@ import (
 	"github.com/paulmach/orb/geojson"
 	"github.com/paulmach/orb/maptile"
 	"github.com/protomaps/go-pmtiles/pmtiles"
+	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-ioutil"
 	"github.com/whosonfirst/go-reader"
 	"github.com/whosonfirst/go-whosonfirst-spatial"
@@ -87,6 +88,9 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 
 	loop.Start()
 
+	enable_feature_cache := true
+	enable_tile_cache := true
+
 	feature_cache_uri := "mem://features/Id"
 	tile_cache_uri := "mem://tiles/Path"
 
@@ -105,10 +109,12 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 	cache_manager := NewCacheManager(feature_cache, tile_cache, logger)
 
 	db := &PMTilesSpatialDatabase{
-		loop:          loop,
-		database:      database,
-		logger:        logger,
-		cache_manager: cache_manager,
+		loop:                 loop,
+		database:             database,
+		logger:               logger,
+		cache_manager:        cache_manager,
+		enable_feature_cache: enable_feature_cache,
+		enable_tile_cache:    enable_tile_cache,
 	}
 
 	return db, nil
@@ -203,6 +209,10 @@ func (db *PMTilesSpatialDatabase) Disconnect(ctx context.Context) error {
 
 func (db *PMTilesSpatialDatabase) Read(ctx context.Context, path string) (io.ReadSeekCloser, error) {
 
+	if !db.enable_feature_cache {
+		return nil, fmt.Errorf("Not found")
+	}
+
 	id, uri_args, err := uri.ParseURI(path)
 
 	if err != nil {
@@ -256,19 +266,19 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseFromTile(ctx context.Context, t
 
 	for idx, f := range features {
 
-		// props := f.Properties
-		// fmt.Printf("Index %f %s\n", props.MustFloat64("wof:id"), props.MustString("wof:name"))
-
 		body, err := f.MarshalJSON()
 
+		id_rsp := gjson.GetBytes(body, "properties.wof:id")
+		id := id_rsp.Int()
+
 		if err != nil {
-			return nil, fmt.Errorf("Failed to marshal JSON for feature at offset %d, %w", idx, err)
+			return nil, fmt.Errorf("Failed to marshal JSON for feature %d at offset %d, %w", id, idx, err)
 		}
 
 		err = spatial_db.IndexFeature(ctx, body)
 
 		if err != nil {
-			return nil, fmt.Errorf("Failed to index feature at offset %d, %w", idx, err)
+			return nil, fmt.Errorf("Failed to index feature %d at offset %d, %w", id, idx, err)
 		}
 	}
 
@@ -279,7 +289,7 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseFromTile(ctx context.Context, t
 
 func (db *PMTilesSpatialDatabase) spatialDatabaseFromCoord(ctx context.Context, coord *orb.Point) (database.SpatialDatabase, error) {
 
-	z := maptile.Zoom(uint32(9)) // fix me
+	z := maptile.Zoom(uint32(11)) // fix me
 	t := maptile.At(*coord, z)
 
 	return db.spatialDatabaseFromTile(ctx, t)
@@ -289,7 +299,7 @@ func (db *PMTilesSpatialDatabase) featuresForTile(ctx context.Context, t maptile
 
 	path := fmt.Sprintf("/%s/%d/%d/%d.mvt", db.database, t.Z, t.X, t.Y)
 
-	if db.enable_feature_cache {
+	if db.enable_tile_cache {
 
 		tc, err := db.cache_manager.GetTileCache(ctx, path)
 
@@ -336,11 +346,26 @@ func (db *PMTilesSpatialDatabase) featuresForTile(ctx context.Context, t maptile
 
 	go func() {
 
-		_, err := db.cache_manager.CacheTile(ctx, path, fc[db.database].Features)
+		if db.enable_tile_cache {
 
-		if err != nil {
-			db.logger.Printf("Failed to create new feature cache for %s, %v", path, err)
+			_, err := db.cache_manager.CacheTile(ctx, path, fc[db.database].Features)
+
+			if err != nil {
+				db.logger.Printf("Failed to create new feature cache for %s, %v", path, err)
+			}
+
+		} else if db.enable_feature_cache {
+
+			_, err := db.cache_manager.CacheFeatures(ctx, fc[db.database].Features)
+
+			if err != nil {
+				db.logger.Printf("Failed to create new feature cache for %s, %v", path, err)
+			}
+
+		} else {
+			// pass
 		}
+
 	}()
 
 	return fc[db.database].Features, nil
