@@ -3,8 +3,10 @@ module github.com/whosonfirst/go-whosonfirst-spatial-pmtiles
 go 1.19
 
 require (
+	github.com/jtacoma/uritemplates v1.0.0
 	github.com/paulmach/orb v0.7.1
 	github.com/protomaps/go-pmtiles v1.6.2
+	github.com/tidwall/gjson v1.14.4
 	github.com/whosonfirst/go-ioutil v1.0.2
 	github.com/whosonfirst/go-reader v1.0.2
 	github.com/whosonfirst/go-whosonfirst-feature v0.0.24
@@ -37,7 +39,6 @@ require (
 	github.com/googleapis/gax-go/v2 v2.4.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
-	github.com/jtacoma/uritemplates v1.0.0 // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/mattn/go-sqlite3 v1.14.16 // indirect
@@ -54,7 +55,6 @@ require (
 	github.com/sfomuseum/go-flags v0.10.0 // indirect
 	github.com/sfomuseum/go-timings v1.2.1 // indirect
 	github.com/sfomuseum/iso8601duration v1.1.0 // indirect
-	github.com/tidwall/gjson v1.14.4 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect

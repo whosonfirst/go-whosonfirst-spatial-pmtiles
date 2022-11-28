@@ -9,6 +9,7 @@ import (
 import (
 	"context"
 	"fmt"
+	"github.com/jtacoma/uritemplates"
 	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/encoding/mvt"
 	"github.com/paulmach/orb/geojson"
@@ -103,43 +104,98 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 
 	loop.Start()
 
-	enable_feature_cache := true
-	enable_tile_cache := true
-
-	feature_cache_uri := "mem://features/Id"
-	tile_cache_uri := "mem://tiles/Path"
-
-	cache_ttl := 300
-
-	feature_cache, err := docstore.OpenCollection(context.Background(), feature_cache_uri)
-
-	if err != nil {
-		return nil, fmt.Errorf("could not open collection: %w", err)
-	}
-
-	tile_cache, err := docstore.OpenCollection(context.Background(), tile_cache_uri)
-
-	if err != nil {
-		return nil, fmt.Errorf("could not open collection: %w", err)
-	}
-
-	cache_manager_opts := &CacheManagerOptions{
-		FeatureCollection: feature_cache,
-		TileCollection:    tile_cache,
-		Logger:            logger,
-		CacheTTL:          cache_ttl,
-	}
-
-	cache_manager := NewCacheManager(ctx, cache_manager_opts)
-
 	db := &PMTilesSpatialDatabase{
-		loop:                 loop,
-		database:             database,
-		logger:               logger,
-		cache_manager:        cache_manager,
-		enable_feature_cache: enable_feature_cache,
-		enable_tile_cache:    enable_tile_cache,
-		zoom:                 zoom,
+		loop:     loop,
+		database: database,
+		logger:   logger,
+		zoom:     zoom,
+	}
+
+	enable_cache := false
+
+	q_enable_cache := q.Get("enable-cache")
+
+	if q_enable_cache != "" {
+
+		enabled, err := strconv.ParseBool(q_enable_cache)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to parse ?enable-cache= parameter, %w", err)
+		}
+
+		enable_cache = enabled
+	}
+
+	if enable_cache {
+
+		feature_cache_uri_t := "mem://features/{key}"
+		tile_cache_uri_t := "mem://tiles/{key}"
+		cache_ttl := 300
+
+		q_cache_ttl := q.Get("cache-ttl")
+		q_feature_cache_uri_t := q.Get("feature-cache-uri")
+		q_tile_cache_uri_t := q.Get("tile-cache-uri")
+
+		if q_cache_ttl != "" {
+
+			ttl, err := strconv.Atoi(q_cache_ttl)
+
+			if err != nil {
+				return nil, fmt.Errorf("Failed to parse ?cache-ttl= parameter, %w", err)
+			}
+
+			if ttl < 0 {
+				return nil, fmt.Errorf("Invalid cache-ttl value")
+			}
+
+			cache_ttl = ttl
+		}
+
+		if q_feature_cache_uri_t != "" {
+			feature_cache_uri_t = q_feature_cache_uri_t
+		}
+
+		if q_tile_cache_uri_t != "" {
+			tile_cache_uri_t = q_tile_cache_uri_t
+		}
+
+		feature_cache_key := "Id"
+		tile_cache_key := "Path"
+
+		feature_cache_v := map[string]interface{}{
+			"key": feature_cache_key,
+		}
+
+		tile_cache_v := map[string]interface{}{
+			"key": tile_cache_key,
+		}
+
+		feature_cache, err := openCollection(ctx, feature_cache_uri_t, feature_cache_v)
+
+		if err != nil {
+			return nil, fmt.Errorf("could not open feature cache collection: %w", err)
+		}
+
+		tile_cache, err := openCollection(ctx, tile_cache_uri_t, tile_cache_v)
+
+		if err != nil {
+			return nil, fmt.Errorf("could not open tile cache collection: %w", err)
+		}
+
+		cache_manager_opts := &CacheManagerOptions{
+			FeatureCollection: feature_cache,
+			TileCollection:    tile_cache,
+			Logger:            logger,
+			CacheTTL:          cache_ttl,
+		}
+
+		cache_manager := NewCacheManager(ctx, cache_manager_opts)
+
+		db.cache_manager = cache_manager
+
+		db.enable_feature_cache = true
+		db.enable_tile_cache = true
+
 	}
 
 	return db, nil
@@ -396,4 +452,27 @@ func (db *PMTilesSpatialDatabase) featuresForTile(ctx context.Context, t maptile
 	}()
 
 	return fc[db.database].Features, nil
+}
+
+func openCollection(ctx context.Context, uri_t string, values map[string]interface{}) (*docstore.Collection, error) {
+
+	t, err := uritemplates.Parse(uri_t)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to parse URI template, %w", err)
+	}
+
+	col_uri, err := t.Expand(values)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to expand URI template values, %w", err)
+	}
+
+	col, err := docstore.OpenCollection(ctx, col_uri)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to open collection, %w", err)
+	}
+
+	return col, nil
 }

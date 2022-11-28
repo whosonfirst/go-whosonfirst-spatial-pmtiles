@@ -157,7 +157,22 @@ func (m *CacheManager) CacheTile(ctx context.Context, path string, features []*g
 
 	_, exists := m.keys_map.Load(tc.Path)
 
-	if !exists {
+	if exists {
+
+		go func() {
+
+			mod := docstore.Mods{
+				"Created": tc.Created,
+			}
+
+			err := m.tile_collection.Update(ctx, tc, mod)
+
+			if err != nil {
+				m.logger.Printf("Failed to update tile cache for %s, %v", tc.Path, err)
+			}
+		}()
+
+	} else {
 
 		m.logger.Printf("cache tile %s\n", tc.Path)
 
@@ -198,11 +213,26 @@ func (m *CacheManager) CacheFeature(ctx context.Context, feature *geojson.Featur
 		return nil, fmt.Errorf("Failed to create feature cache, %w", err)
 	}
 
-	m.logger.Printf("cache feature %s\n", fc.Id)
-
 	_, exists := m.keys_map.Load(fc.Id)
 
-	if !exists {
+	if exists {
+
+		go func() {
+
+			mod := docstore.Mods{
+				"Created": fc.Created,
+			}
+
+			err := m.feature_collection.Update(ctx, fc, mod)
+
+			if err != nil {
+				m.logger.Printf("Failed to update feature cache for %s, %v", fc.Id, err)
+			}
+		}()
+
+	} else {
+
+		m.logger.Printf("cache feature %s\n", fc.Id)
 
 		err = m.feature_collection.Put(ctx, fc)
 
