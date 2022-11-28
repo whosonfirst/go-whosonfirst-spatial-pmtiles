@@ -27,7 +27,6 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
 )
 
 func init() {
@@ -42,8 +41,7 @@ type PMTilesSpatialDatabase struct {
 	logger               *log.Logger
 	database             string
 	enable_feature_cache bool
-	feature_cache        *docstore.Collection
-	ticker               *time.Ticker
+	enable_tile_cache    bool
 	cache_manager        *CacheManager
 }
 
@@ -104,7 +102,7 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 		return nil, fmt.Errorf("could not open collection: %w", err)
 	}
 
-	cache_manager := NewCacheManager(feature_cache, tile_cache)
+	cache_manager := NewCacheManager(feature_cache, tile_cache, logger)
 
 	db := &PMTilesSpatialDatabase{
 		loop:          loop,
@@ -112,29 +110,6 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 		logger:        logger,
 		cache_manager: cache_manager,
 	}
-
-	/*
-				now := time.Now()
-				then := now.Add(time.Duration(-feature_cache_ttl) * time.Second)
-
-				db.pruneFeatureCache(ctx, then)
-
-				ticker := time.NewTicker(time.Duration(feature_cache_ttl) * time.Second)
-
-				go func() {
-
-					for {
-						select {
-						case t := <-ticker.C:
-							db.pruneFeatureCache(ctx, t)
-						}
-					}
-				}()
-
-				db.ticker = ticker
-			}
-		}
-	*/
 
 	return db, nil
 }
@@ -222,14 +197,7 @@ func (db *PMTilesSpatialDatabase) PointInPolygonCandidatesWithChannels(ctx conte
 
 func (db *PMTilesSpatialDatabase) Disconnect(ctx context.Context) error {
 
-	if db.feature_cache != nil {
-		db.feature_cache.Close()
-	}
-
-	if db.ticker != nil {
-		db.ticker.Stop()
-	}
-
+	db.cache_manager.Close(ctx)
 	return nil
 }
 
@@ -246,7 +214,9 @@ func (db *PMTilesSpatialDatabase) Read(ctx context.Context, path string) (io.Rea
 	if err != nil {
 		return nil, fmt.Errorf("Failed to derive filename from %s, %w", path, err)
 	}
-	
+
+	fname = strings.Replace(fname, ".geojson", "", 1)
+
 	fc, err := db.cache_manager.GetFeatureCache(ctx, fname)
 
 	if err != nil {
@@ -374,46 +344,4 @@ func (db *PMTilesSpatialDatabase) featuresForTile(ctx context.Context, t maptile
 	}()
 
 	return fc[db.database].Features, nil
-}
-
-func (db *PMTilesSpatialDatabase) pruneFeatureCache(ctx context.Context, t time.Time) error {
-
-	return nil
-
-	/*
-		db.logger.Printf("Prune feature cache older that %v\n", t)
-
-		ts := t.Unix()
-
-		q := db.feature_cache.Query()
-		q = q.Where("Created", "<=", ts)
-		q = q.Where("LastAccessed", "<=", ts)
-
-		iter := q.Get(ctx)
-
-		defer iter.Stop()
-
-		for {
-
-			var tc TileFeaturesCache
-
-			err := iter.Next(ctx, &tc)
-
-			if err == io.EOF {
-				break
-			} else if err != nil {
-				db.logger.Printf("Failed to get next iterator, %v", err)
-			} else {
-
-				db.logger.Printf("Prune %s\n", tc.Path)
-				err := db.feature_cache.Delete(ctx, &tc)
-
-				if err != nil {
-					db.logger.Printf("Failed to delete feature cache %s, %v", tc.Path, err)
-				}
-			}
-		}
-
-		return nil
-	*/
 }

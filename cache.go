@@ -7,6 +7,7 @@ import (
 	"github.com/paulmach/orb/geojson"
 	"github.com/whosonfirst/go-whosonfirst-feature/properties"
 	"gocloud.dev/docstore"
+	"log"
 	"strings"
 	"time"
 )
@@ -17,28 +18,53 @@ import (
 
 type FeatureCache struct {
 	Created int64  `json:"created"`
-	Id      string  `json:"id"`	// this is a string rather than int64 because it might include an alt label
+	Id      string `json:"id"` // this is a string rather than int64 because it might include an alt label
 	Body    string `json:"body"`
 }
 
 type TileCache struct {
-	Created      int64   `json:"created"`
-	LastAccessed int64   `json:"last_accessed"`
-	Path         string  `json:"path"`
+	Created      int64    `json:"created"`
+	LastAccessed int64    `json:"last_accessed"`
+	Path         string   `json:"path"`
 	Features     []string `json:"features"`
 }
 
 type CacheManager struct {
 	feature_collection *docstore.Collection
 	tile_collection    *docstore.Collection
+	logger             *log.Logger
+	ticker             *time.Ticker
 }
 
-func NewCacheManager(feature_collection *docstore.Collection, tile_collection *docstore.Collection) *CacheManager {
+func NewCacheManager(feature_collection *docstore.Collection, tile_collection *docstore.Collection, logger *log.Logger) *CacheManager {
+
+	ctx := context.Background()
 
 	m := &CacheManager{
 		feature_collection: feature_collection,
 		tile_collection:    tile_collection,
+		logger:             logger,
 	}
+
+	tile_cache_ttl := 300
+
+	now := time.Now()
+	then := now.Add(time.Duration(-tile_cache_ttl) * time.Second)
+
+	m.pruneTileCache(ctx, then)
+
+	ticker := time.NewTicker(time.Duration(tile_cache_ttl) * time.Second)
+	m.ticker = ticker
+
+	go func() {
+
+		for {
+			select {
+			case t := <-ticker.C:
+				m.pruneTileCache(ctx, t)
+			}
+		}
+	}()
 
 	return m
 }
@@ -112,6 +138,8 @@ func (m *CacheManager) CacheTile(ctx context.Context, path string, features []*g
 		return nil, fmt.Errorf("Failed to create new tile cache for %s, %w", path, err)
 	}
 
+	m.logger.Printf("cache tile %s\n", tc.Path)
+
 	err = m.tile_collection.Put(ctx, tc)
 
 	if err != nil {
@@ -123,19 +151,21 @@ func (m *CacheManager) CacheTile(ctx context.Context, path string, features []*g
 
 func (m *CacheManager) CacheFeature(ctx context.Context, feature *geojson.Feature) (*FeatureCache, error) {
 
-	c, err := NewFeatureCache(feature)
+	fc, err := NewFeatureCache(feature)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create feature cache, %w", err)
 	}
 
-	err = m.feature_collection.Put(ctx, c)
+	m.logger.Printf("cache feature %s\n", fc.Id)
+
+	err = m.feature_collection.Put(ctx, fc)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to store feature cache, %w", err)
 	}
 
-	return c, nil
+	return fc, nil
 }
 
 func (m *CacheManager) GetFeatureCache(ctx context.Context, id string) (*FeatureCache, error) {
@@ -143,6 +173,8 @@ func (m *CacheManager) GetFeatureCache(ctx context.Context, id string) (*Feature
 	fc := &FeatureCache{
 		Id: id,
 	}
+
+	m.logger.Printf("get feature %s\n", fc.Id)
 
 	err := m.feature_collection.Get(ctx, &fc)
 
@@ -158,6 +190,8 @@ func (m *CacheManager) GetTileCache(ctx context.Context, path string) (*TileCach
 	tc := &TileCache{
 		Path: path,
 	}
+
+	m.logger.Printf("get tile %s\n", tc.Path)
 
 	err := m.tile_collection.Get(ctx, &tc)
 
@@ -185,6 +219,8 @@ func (m *CacheManager) UnmarshalFeatureCache(ctx context.Context, fc *FeatureCac
 }
 
 func (m *CacheManager) UnmarshalTileCache(ctx context.Context, tc *TileCache) ([]*geojson.Feature, error) {
+
+	// cache this too?
 
 	features := make([]*geojson.Feature, len(tc.Features))
 
@@ -246,6 +282,55 @@ func (m *CacheManager) UnmarshalTileCache(ctx context.Context, tc *TileCache) ([
 	return features, nil
 }
 
+func (m *CacheManager) pruneTileCache(ctx context.Context, t time.Time) error {
+
+	return nil
+
+	/*
+		db.logger.Printf("Prune feature cache older that %v\n", t)
+
+		ts := t.Unix()
+
+		q := db.feature_cache.Query()
+		q = q.Where("Created", "<=", ts)
+		q = q.Where("LastAccessed", "<=", ts)
+
+		iter := q.Get(ctx)
+
+		defer iter.Stop()
+
+		for {
+
+			var tc TileFeaturesCache
+
+			err := iter.Next(ctx, &tc)
+
+			if err == io.EOF {
+				break
+			} else if err != nil {
+				db.logger.Printf("Failed to get next iterator, %v", err)
+			} else {
+
+				db.logger.Printf("Prune %s\n", tc.Path)
+				err := db.feature_cache.Delete(ctx, &tc)
+
+				if err != nil {
+					db.logger.Printf("Failed to delete feature cache %s, %v", tc.Path, err)
+				}
+			}
+		}
+
+		return nil
+	*/
+}
+
+func (m *CacheManager) Close(ctx context.Context) error {
+	m.ticker.Stop()
+	m.feature_collection.Close()
+	m.tile_collection.Close()
+	return nil
+}
+
 func NewFeatureCache(feature *geojson.Feature) (*FeatureCache, error) {
 
 	body, err := feature.MarshalJSON()
@@ -265,16 +350,16 @@ func NewFeatureCache(feature *geojson.Feature) (*FeatureCache, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Failed to derive alt label from feature, %w", err)
 	}
-	
+
 	str_id := fmt.Sprintf("%d", id)
 
 	if alt_label != "" {
 		str_id = fmt.Sprintf("%s-alt-%s", str_id, alt_label)
 	}
-	
+
 	now := time.Now()
 	ts := now.Unix()
-	
+
 	fc := &FeatureCache{
 		Created: ts,
 		Id:      str_id,
