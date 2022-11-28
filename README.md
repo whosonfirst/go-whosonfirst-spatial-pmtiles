@@ -53,9 +53,10 @@ pmtiles://?{QUERY_PARAMETERS}
 | database | The name of the Protomaps tiles database | yes | Ensure that this value does _not_ include a `.pmtiles` extension. |
 | pmtiles-cache-size | The size, in megabytes, of the pmtiles cache | no | Default is 64. |
 | zoom | The zoom level to perform point-in-polygon queries at | no | Default is 12. |
-| enable-feature-cache | Enable caching of WOF features associated with a tile path | no | Default is false. |
-| feature-cache-uri | A valid `gocloud.dev/docstore` collection URI | no | Support for `mem://` URIs is enabled by default. The primary key should be `Path`. For example: `feature-cache-uri=mem://features/Path`. |
-| feature-cache-ttl | The number of seconds that items in the feature cache should persist | no | Default is 300. |
+| enable-cache | Enable caching of WOF features and tiles | no | Default is false. |
+| cache-ttl | The number of seconds that items in the cache should persist | no | Default is 300. |
+| feature-cache-uri | A valid URI template containing a `gocloud.dev/docstore` collection URI where GeoJSON features should be cached | no | Support for `mem://` URIs is enabled by default. The template MUST contain a `{key}` element. For example: `feature-cache-uri=mem://features/{key}`. |
+| tile-cache-uri | A valid URI template containing a `gocloud.dev/docstore` collection URI where tiles should be cached | no | Support for `mem://` URIs is enabled by default. The template MUST contain a `{key}` element. For example: `feature-cache-uri=mem://tiles/{key}`. |
 
 For example:
 
