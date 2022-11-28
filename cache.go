@@ -5,12 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/paulmach/orb/geojson"
-	wof_id "github.com/whosonfirst/go-whosonfirst-id"
+	"github.com/whosonfirst/go-whosonfirst-feature/properties"
 	"gocloud.dev/docstore"
-	"strconv"
 	"strings"
 	"time"
-	"log"
 )
 
 // JSON-encoding features is not ideal given the known performance issues around marshaling
@@ -19,7 +17,7 @@ import (
 
 type FeatureCache struct {
 	Created int64  `json:"created"`
-	Id      int64  `json:"id"`
+	Id      string  `json:"id"`	// this is a string rather than int64 because it might include an alt label
 	Body    string `json:"body"`
 }
 
@@ -27,7 +25,7 @@ type TileCache struct {
 	Created      int64   `json:"created"`
 	LastAccessed int64   `json:"last_accessed"`
 	Path         string  `json:"path"`
-	Features     []int64 `json:"features"`
+	Features     []string `json:"features"`
 }
 
 type CacheManager struct {
@@ -45,13 +43,13 @@ func NewCacheManager(feature_collection *docstore.Collection, tile_collection *d
 	return m
 }
 
-func (m *CacheManager) CacheFeatures(ctx context.Context, features []*geojson.Feature) ([]int64, error) {
+func (m *CacheManager) CacheFeatures(ctx context.Context, features []*geojson.Feature) ([]string, error) {
 
-	feature_ids := make([]int64, len(features))
+	feature_ids := make([]string, len(features))
 
 	type cache_rsp struct {
 		offset int
-		id     int64
+		id     string
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
@@ -140,7 +138,7 @@ func (m *CacheManager) CacheFeature(ctx context.Context, feature *geojson.Featur
 	return c, nil
 }
 
-func (m *CacheManager) GetFeatureCache(ctx context.Context, id int64) (*FeatureCache, error) {
+func (m *CacheManager) GetFeatureCache(ctx context.Context, id string) (*FeatureCache, error) {
 
 	fc := &FeatureCache{
 		Id: id,
@@ -204,24 +202,20 @@ func (m *CacheManager) UnmarshalTileCache(ctx context.Context, tc *TileCache) ([
 
 	for idx, id := range tc.Features {
 
-		go func(idx int, id int64) {
+		go func(idx int, id string) {
 
 			defer func() {
 				done_ch <- true
 			}()
 
-			fc := FeatureCache{
-				Id: id,
-			}
-
-			err := m.feature_collection.Get(ctx, &fc)
+			fc, err := m.GetFeatureCache(ctx, id)
 
 			if err != nil {
 				err_ch <- fmt.Errorf("Failed to retrieve feature cache for %d, %w", id, err)
 				return
 			}
 
-			f, err := m.UnmarshalFeatureCache(ctx, &fc)
+			f, err := m.UnmarshalFeatureCache(ctx, fc)
 
 			if err != nil {
 				err_ch <- fmt.Errorf("Failed to unmarshal feature for %d, %w", id, err)
@@ -254,41 +248,43 @@ func (m *CacheManager) UnmarshalTileCache(ctx context.Context, tc *TileCache) ([
 
 func NewFeatureCache(feature *geojson.Feature) (*FeatureCache, error) {
 
-	var id int64
-
-	props := feature.Properties
-
-	props_id := fmt.Sprintf("%s", props["wof:id"])
-
-	id, err := strconv.ParseInt(props_id, 10, 64)
-
-	if err != nil {
-		return nil, fmt.Errorf("Failed to parse %s, %w", props_id, err)
-	}
-
-	if id < wof_id.EARTH {
-		return nil, fmt.Errorf("Invalid ID %d", id)
-	}
-
 	body, err := feature.MarshalJSON()
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to marshal JSON for ID %d, %w", id, err)
+		return nil, fmt.Errorf("Failed to marshal JSON for feature, %w", err)
 	}
 
+	id, err := properties.Id(body)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to derive ID from feature, %w", err)
+	}
+
+	alt_label, err := properties.AltLabel(body)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to derive alt label from feature, %w", err)
+	}
+	
+	str_id := fmt.Sprintf("%d", id)
+
+	if alt_label != "" {
+		str_id = fmt.Sprintf("%s-alt-%s", str_id, alt_label)
+	}
+	
 	now := time.Now()
 	ts := now.Unix()
-
+	
 	fc := &FeatureCache{
 		Created: ts,
-		Id:      id,
+		Id:      str_id,
 		Body:    string(body),
 	}
 
 	return fc, nil
 }
 
-func NewTileCache(path string, feature_ids []int64) (*TileCache, error) {
+func NewTileCache(path string, feature_ids []string) (*TileCache, error) {
 
 	now := time.Now()
 	ts := now.Unix()

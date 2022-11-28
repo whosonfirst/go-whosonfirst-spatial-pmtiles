@@ -235,13 +235,19 @@ func (db *PMTilesSpatialDatabase) Disconnect(ctx context.Context) error {
 
 func (db *PMTilesSpatialDatabase) Read(ctx context.Context, path string) (io.ReadSeekCloser, error) {
 
-	id, _, err := uri.ParseURI(path)
+	id, uri_args, err := uri.ParseURI(path)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to path %s, %w", path, err)
 	}
 
-	fc, err := db.cache_manager.GetFeatureCache(ctx, id)
+	fname, err := uri.Id2Fname(id, uri_args)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to derive filename from %s, %w", path, err)
+	}
+	
+	fc, err := db.cache_manager.GetFeatureCache(ctx, fname)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get feature cache for %s, %w", path, err)

@@ -5,37 +5,29 @@ go 1.19
 require (
 	github.com/paulmach/orb v0.7.1
 	github.com/protomaps/go-pmtiles v1.6.2
+	github.com/whosonfirst/go-ioutil v1.0.2
 	github.com/whosonfirst/go-reader v1.0.2
-	github.com/whosonfirst/go-whosonfirst-id v1.2.0
+	github.com/whosonfirst/go-whosonfirst-feature v0.0.24
 	github.com/whosonfirst/go-whosonfirst-spatial v0.5.1
 	github.com/whosonfirst/go-whosonfirst-spatial-pip v0.3.1
 	github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.5.5
 	github.com/whosonfirst/go-whosonfirst-spr/v2 v2.3.2
+	github.com/whosonfirst/go-whosonfirst-uri v1.2.0
 	gocloud.dev v0.27.0
 )
 
 require (
 	github.com/RoaringBitmap/roaring v1.2.1 // indirect
-	github.com/aaronland/go-artisanal-integers v0.9.1 // indirect
-	github.com/aaronland/go-brooklynintegers-api v1.2.6 // indirect
 	github.com/aaronland/go-http-sanitize v0.0.6 // indirect
 	github.com/aaronland/go-http-server v1.0.0 // indirect
 	github.com/aaronland/go-json-query v0.1.3 // indirect
 	github.com/aaronland/go-pagination v0.2.0 // indirect
 	github.com/aaronland/go-pagination-sql v0.2.0 // indirect
-	github.com/aaronland/go-pool/v2 v2.0.0 // indirect
 	github.com/aaronland/go-roster v1.0.0 // indirect
 	github.com/aaronland/go-sqlite v0.2.2 // indirect
-	github.com/aaronland/go-string v1.0.0 // indirect
-	github.com/aaronland/go-uid v0.3.0 // indirect
-	github.com/aaronland/go-uid-artisanal v0.0.2 // indirect
-	github.com/aaronland/go-uid-proxy v0.0.2 // indirect
-	github.com/aaronland/go-uid-whosonfirst v0.0.2 // indirect
 	github.com/akrylysov/algnhsa v0.12.1 // indirect
-	github.com/andres-erbsen/clock v0.0.0-20160526145045-9e14626cd129 // indirect
 	github.com/aws/aws-lambda-go v1.35.0 // indirect
 	github.com/bits-and-blooms/bitset v1.2.0 // indirect
-	github.com/cenkalti/backoff/v4 v4.1.3 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/g8rswimmer/error-chain v1.0.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
@@ -66,11 +58,9 @@ require (
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
-	github.com/whosonfirst/go-ioutil v1.0.2 // indirect
 	github.com/whosonfirst/go-rfc-5646 v0.1.0 // indirect
 	github.com/whosonfirst/go-sanitize v0.1.0 // indirect
 	github.com/whosonfirst/go-whosonfirst-crawl v0.2.1 // indirect
-	github.com/whosonfirst/go-whosonfirst-feature v0.0.24 // indirect
 	github.com/whosonfirst/go-whosonfirst-flags v0.4.4 // indirect
 	github.com/whosonfirst/go-whosonfirst-iterate/v2 v2.3.1 // indirect
 	github.com/whosonfirst/go-whosonfirst-names v0.1.0 // indirect
@@ -79,13 +69,11 @@ require (
 	github.com/whosonfirst/go-whosonfirst-spr-geojson v0.0.8 // indirect
 	github.com/whosonfirst/go-whosonfirst-sqlite-features v0.10.0 // indirect
 	github.com/whosonfirst/go-whosonfirst-sqlite-spr v0.3.2 // indirect
-	github.com/whosonfirst/go-whosonfirst-uri v1.2.0 // indirect
 	github.com/whosonfirst/go-writer-featurecollection/v3 v3.0.0-20220916180959-42588e308a3e // indirect
 	github.com/whosonfirst/go-writer/v3 v3.1.0 // indirect
 	github.com/whosonfirst/walk v0.0.1 // indirect
 	github.com/whosonfirst/warning v0.1.1 // indirect
 	go.opencensus.io v0.23.0 // indirect
-	go.uber.org/ratelimit v0.2.0 // indirect
 	golang.org/x/net v0.0.0-20220802222814-0bcc04d9c69b // indirect
 	golang.org/x/sys v0.0.0-20220829200755-d48e67d00261 // indirect
 	golang.org/x/term v0.0.0-20220722155259-a9ba230a4035 // indirect
