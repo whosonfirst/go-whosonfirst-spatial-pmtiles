@@ -44,6 +44,7 @@ type PMTilesSpatialDatabase struct {
 	enable_feature_cache bool
 	enable_tile_cache    bool
 	cache_manager        *CacheManager
+	zoom                 int
 }
 
 func NewPMTilesSpatialDatabaseReader(ctx context.Context, uri string) (reader.Reader, error) {
@@ -66,18 +67,32 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 	logger := log.Default()
 
 	cache_size := 64
+	zoom := 12
 
-	pm_cache_size := q.Get("pmtiles-cache-size")
+	q_cache_size := q.Get("pmtiles-cache-size")
 
-	if pm_cache_size != "" {
+	if q_cache_size != "" {
 
-		sz, err := strconv.Atoi(pm_cache_size)
+		sz, err := strconv.Atoi(q_cache_size)
 
 		if err != nil {
 			return nil, fmt.Errorf("Failed to parse ?pmtiles-cache-size= parameter, %w", err)
 		}
 
 		cache_size = sz
+	}
+
+	q_zoom := q.Get("zoom")
+
+	if q_zoom != "" {
+
+		z, err := strconv.Atoi(q_zoom)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to parse ?zoom= parameter, %w", err)
+		}
+
+		zoom = z
 	}
 
 	loop, err := pmtiles.NewLoop(tile_path, logger, cache_size, "")
@@ -94,6 +109,8 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 	feature_cache_uri := "mem://features/Id"
 	tile_cache_uri := "mem://tiles/Path"
 
+	cache_ttl := 300
+
 	feature_cache, err := docstore.OpenCollection(context.Background(), feature_cache_uri)
 
 	if err != nil {
@@ -106,7 +123,14 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 		return nil, fmt.Errorf("could not open collection: %w", err)
 	}
 
-	cache_manager := NewCacheManager(feature_cache, tile_cache, logger)
+	cache_manager_opts := &CacheManagerOptions{
+		FeatureCollection: feature_cache,
+		TileCollection:    tile_cache,
+		Logger:            logger,
+		CacheTTL:          cache_ttl,
+	}
+
+	cache_manager := NewCacheManager(ctx, cache_manager_opts)
 
 	db := &PMTilesSpatialDatabase{
 		loop:                 loop,
@@ -115,6 +139,7 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 		cache_manager:        cache_manager,
 		enable_feature_cache: enable_feature_cache,
 		enable_tile_cache:    enable_tile_cache,
+		zoom:                 zoom,
 	}
 
 	return db, nil
@@ -289,7 +314,9 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseFromTile(ctx context.Context, t
 
 func (db *PMTilesSpatialDatabase) spatialDatabaseFromCoord(ctx context.Context, coord *orb.Point) (database.SpatialDatabase, error) {
 
-	z := maptile.Zoom(uint32(11)) // fix me
+	zoom := uint32(db.zoom)
+
+	z := maptile.Zoom(zoom)
 	t := maptile.At(*coord, z)
 
 	return db.spatialDatabaseFromTile(ctx, t)

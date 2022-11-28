@@ -10,6 +10,7 @@ import (
 	"io"
 	"log"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -25,36 +26,44 @@ type FeatureCache struct {
 
 type TileCache struct {
 	Created      int64    `json:"created"`
-	LastAccessed int64    `json:"last_accessed"`
 	Path         string   `json:"path"`
 	Features     []string `json:"features"`
 }
 
 type CacheManager struct {
+	keys_map           *sync.Map
 	feature_collection *docstore.Collection
 	tile_collection    *docstore.Collection
 	logger             *log.Logger
 	ticker             *time.Ticker
 }
 
-func NewCacheManager(feature_collection *docstore.Collection, tile_collection *docstore.Collection, logger *log.Logger) *CacheManager {
+type CacheManagerOptions struct {
+	FeatureCollection *docstore.Collection
+	TileCollection    *docstore.Collection
+	Logger            *log.Logger
+	CacheTTL          int
+}
 
-	ctx := context.Background()
+func NewCacheManager(ctx context.Context, opts *CacheManagerOptions) *CacheManager {
+
+	keys_map := new(sync.Map)
 
 	m := &CacheManager{
-		feature_collection: feature_collection,
-		tile_collection:    tile_collection,
-		logger:             logger,
+		feature_collection: opts.FeatureCollection,
+		tile_collection:    opts.TileCollection,
+		logger:             opts.Logger,
+		keys_map:           keys_map,
 	}
 
-	tile_cache_ttl := 300
+	cache_ttl := opts.CacheTTL
 
 	now := time.Now()
-	then := now.Add(time.Duration(-tile_cache_ttl) * time.Second)
+	then := now.Add(time.Duration(-cache_ttl) * time.Second)
 
-	m.pruneTileCache(ctx, then)
+	m.pruneCaches(ctx, then)
 
-	ticker := time.NewTicker(time.Duration(tile_cache_ttl) * time.Second)
+	ticker := time.NewTicker(time.Duration(cache_ttl) * time.Second)
 	m.ticker = ticker
 
 	go func() {
@@ -62,7 +71,7 @@ func NewCacheManager(feature_collection *docstore.Collection, tile_collection *d
 		for {
 			select {
 			case t := <-ticker.C:
-				m.pruneTileCache(ctx, t)
+				m.pruneCaches(ctx, t)
 			}
 		}
 	}()
@@ -139,12 +148,19 @@ func (m *CacheManager) CacheTile(ctx context.Context, path string, features []*g
 		return nil, fmt.Errorf("Failed to create new tile cache for %s, %w", path, err)
 	}
 
-	m.logger.Printf("cache tile %s\n", tc.Path)
+	_, exists := m.keys_map.Load(tc.Path)
 
-	err = m.tile_collection.Put(ctx, tc)
+	if !exists {
 
-	if err != nil {
-		return nil, fmt.Errorf("Failed to store tile cache for %s, %w", path, err)
+		m.logger.Printf("cache tile %s\n", tc.Path)
+
+		err = m.tile_collection.Put(ctx, tc)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to store tile cache for %s, %w", path, err)
+		}
+
+		m.keys_map.Store(tc.Path, tc.Created)
 	}
 
 	return tc, err
@@ -160,10 +176,17 @@ func (m *CacheManager) CacheFeature(ctx context.Context, feature *geojson.Featur
 
 	m.logger.Printf("cache feature %s\n", fc.Id)
 
-	err = m.feature_collection.Put(ctx, fc)
+	_, exists := m.keys_map.Load(fc.Id)
 
-	if err != nil {
-		return nil, fmt.Errorf("Failed to store feature cache, %w", err)
+	if !exists {
+
+		err = m.feature_collection.Put(ctx, fc)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to store feature cache, %w", err)
+		}
+
+		m.keys_map.Store(fc.Id, fc.Created)
 	}
 
 	return fc, nil
@@ -283,9 +306,12 @@ func (m *CacheManager) UnmarshalTileCache(ctx context.Context, tc *TileCache) ([
 	return features, nil
 }
 
-func (m *CacheManager) pruneTileCache(ctx context.Context, t time.Time) error {
+func (m *CacheManager) pruneCaches(ctx context.Context, t time.Time) {
+	go m.pruneTileCache(ctx, t)
+	go m.pruneFeatureCache(ctx, t)
+}
 
-	return nil
+func (m *CacheManager) pruneTileCache(ctx context.Context, t time.Time) error {
 
 	m.logger.Printf("Prune feature cache older that %v\n", t)
 
@@ -293,7 +319,6 @@ func (m *CacheManager) pruneTileCache(ctx context.Context, t time.Time) error {
 
 	q := m.tile_collection.Query()
 	q = q.Where("Created", "<=", ts)
-	q = q.Where("LastAccessed", "<=", ts)
 
 	iter := q.Get(ctx)
 
@@ -318,11 +343,46 @@ func (m *CacheManager) pruneTileCache(ctx context.Context, t time.Time) error {
 				m.logger.Printf("Failed to delete feature cache %s, %v", tc.Path, err)
 			}
 
-			/*
-				for _, id := range tc.Features {
-					atomic.AddInt64(m.features[id], -1)
-				}
-			*/
+			m.keys_map.Delete(tc.Path)
+		}
+	}
+
+	return nil
+}
+
+func (m *CacheManager) pruneFeatureCache(ctx context.Context, t time.Time) error {
+
+	m.logger.Printf("Prune tile cache older that %v\n", t)
+
+	ts := t.Unix()
+
+	q := m.feature_collection.Query()
+	q = q.Where("Created", "<=", ts)
+
+	iter := q.Get(ctx)
+
+	defer iter.Stop()
+
+	for {
+
+		var fc FeatureCache
+
+		err := iter.Next(ctx, &fc)
+
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			m.logger.Printf("Failed to get next iterator, %v", err)
+		} else {
+
+			m.logger.Printf("Prune %s\n", fc.Id)
+			err := m.feature_collection.Delete(ctx, &fc)
+
+			if err != nil {
+				m.logger.Printf("Failed to delete feature cache %s, %v", fc.Id, err)
+			}
+
+			m.keys_map.Delete(fc.Id)
 		}
 	}
 
