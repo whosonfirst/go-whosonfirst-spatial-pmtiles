@@ -29,6 +29,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 func init() {
@@ -411,6 +412,14 @@ func (db *PMTilesSpatialDatabase) featuresForTile(ctx context.Context, t maptile
 		return nil, fmt.Errorf("Failed to get %s, unexpected status code %d", path, status_code)
 	}
 
+	// not sure what the semantics are here but it's not treated as an error in protomaps
+	// https://github.com/protomaps/go-pmtiles/blob/0ac8f97530b3367142cfd250585d60936d0ce643/pmtiles/loop.go#L296
+
+	if status_code == 204 {
+		features := make([]*geojson.Feature, 0)
+		return features, nil
+	}
+
 	layers, err := mvt.UnmarshalGzipped(body)
 
 	if err != nil {
@@ -427,7 +436,12 @@ func (db *PMTilesSpatialDatabase) featuresForTile(ctx context.Context, t maptile
 		return nil, fmt.Errorf("Missing %s layer", db.database)
 	}
 
+	wg := new(sync.WaitGroup)
+
 	go func() {
+
+		wg.Add(1)
+		defer wg.Done()
 
 		if db.enable_tile_cache {
 
@@ -450,6 +464,8 @@ func (db *PMTilesSpatialDatabase) featuresForTile(ctx context.Context, t maptile
 		}
 
 	}()
+
+	wg.Wait()
 
 	return fc[db.database].Features, nil
 }

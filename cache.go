@@ -217,18 +217,15 @@ func (m *CacheManager) CacheFeature(ctx context.Context, feature *geojson.Featur
 
 	if exists {
 
-		go func() {
+		mod := docstore.Mods{
+			"Created": fc.Created,
+		}
 
-			mod := docstore.Mods{
-				"Created": fc.Created,
-			}
+		err := m.feature_collection.Update(ctx, fc, mod)
 
-			err := m.feature_collection.Update(ctx, fc, mod)
-
-			if err != nil {
-				m.logger.Printf("Failed to update feature cache for %s, %v", fc.Id, err)
-			}
-		}()
+		if err != nil {
+			m.logger.Printf("Failed to update feature cache for %s, %v", fc.Id, err)
+		}
 
 	} else {
 
