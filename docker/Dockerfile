@@ -25,6 +25,8 @@ FROM alpine
 
 RUN mkdir /usr/local/data
 
+VOLUME /usr/local/data
+
 RUN apk update && apk upgrade \
     && apk add --no-cache git g++ make libgcc libstdc++ sqlite-libs sqlite-dev zlib-dev bash \
     #
