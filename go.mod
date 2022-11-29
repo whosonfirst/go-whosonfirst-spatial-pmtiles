@@ -9,11 +9,11 @@ require (
 	github.com/tidwall/gjson v1.14.4
 	github.com/whosonfirst/go-ioutil v1.0.2
 	github.com/whosonfirst/go-reader v1.0.2
-	github.com/whosonfirst/go-whosonfirst-feature v0.0.24
+	github.com/whosonfirst/go-whosonfirst-feature v0.0.25
 	github.com/whosonfirst/go-whosonfirst-spatial v0.5.1
 	github.com/whosonfirst/go-whosonfirst-spatial-pip v0.3.1
-	github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.5.5
-	github.com/whosonfirst/go-whosonfirst-spr/v2 v2.3.2
+	github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.5.6
+	github.com/whosonfirst/go-whosonfirst-spr/v2 v2.3.3
 	github.com/whosonfirst/go-whosonfirst-uri v1.2.0
 	gocloud.dev v0.27.0
 )
@@ -64,10 +64,10 @@ require (
 	github.com/whosonfirst/go-whosonfirst-flags v0.4.4 // indirect
 	github.com/whosonfirst/go-whosonfirst-iterate/v2 v2.3.1 // indirect
 	github.com/whosonfirst/go-whosonfirst-names v0.1.0 // indirect
-	github.com/whosonfirst/go-whosonfirst-placetypes v0.4.1 // indirect
+	github.com/whosonfirst/go-whosonfirst-placetypes v0.4.2 // indirect
 	github.com/whosonfirst/go-whosonfirst-sources v0.1.0 // indirect
 	github.com/whosonfirst/go-whosonfirst-spr-geojson v0.0.8 // indirect
-	github.com/whosonfirst/go-whosonfirst-sqlite-features v0.10.0 // indirect
+	github.com/whosonfirst/go-whosonfirst-sqlite-features v0.10.1 // indirect
 	github.com/whosonfirst/go-whosonfirst-sqlite-spr v0.3.2 // indirect
 	github.com/whosonfirst/go-writer-featurecollection/v3 v3.0.0-20220916180959-42588e308a3e // indirect
 	github.com/whosonfirst/go-writer/v3 v3.1.0 // indirect
