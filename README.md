@@ -14,6 +14,7 @@ There may be bugs. Notably, as written:
 * The `go-whosonfirst-spatial-pmtiles` package implements both the [whosonfirst/go-whosonfirst-spatial](https://github.com/whosonfirst/go-whosonfirst-spatial) and [whosonfirst/go-reader](https://github.com/whosonfirst/go-reader) interfaces however in order to support the latter caching must be enabled in the spatial database URI constructor (see below). Caching is necessary to maintain a local cache of features mapped to any given Who's On First ID. This is really only important if you need to to return GeoJSON responses (rather than the default Standard Place Response) or you are using an application derived from `go-whosonfirst-spatial-www` which tries to load GeoJSON features from itself.
 * GeoJSON features for large, administrative areas (states, countries, etc.) are likely to be clipped to the tile boundary that contains them. Likewise because features are cached so a read request for a place with a large surface area (say the United States) will return the geometry for the first tile that contains it. This can lead to bizarre results or potential information leakage or both.
 * As is often the case with any kind of caching there are probably still "edge cases" to account for and improvements to implement.
+* Alternate geometry files are not supported yet.
 
 ## Producing a Who's On First -enabled Protomaps tile database
 
