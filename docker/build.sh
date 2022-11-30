@@ -43,6 +43,6 @@ rm -f /usr/local/data/${NAME}.mbtiles
 
 if [ "${TARGET}" != "" ]
 then
-	copy -uri -source-uri file:///usr/local/data/${NAME}.pmtiles -target-uri ${TARGET}
+	copy-uri -source-uri file:///usr/local/data/${NAME}.pmtiles -target-uri ${TARGET}
 fi
 
