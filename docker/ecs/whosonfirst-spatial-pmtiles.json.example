@@ -1,0 +1,66 @@
+{
+    "executionRoleArn": "arn:aws:iam::{AWS_ACCOUNTID}:role/ecsTaskExecutionRole",
+    "containerDefinitions": [
+        {
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/ecs/whosonfirst-spatial-pmtiles",
+                    "awslogs-region": "{AWS_REGION}",
+                    "awslogs-stream-prefix": "ecs"
+                }
+            },
+            "entryPoint": [],
+            "portMappings": [],
+            "command": [
+                "/usr/local/bin/build.sh",
+                "-n",
+                "whosonfirst",
+                "-i",
+                "org:///usr/local/data",
+                "-s",
+                "whosonfirst-data://?prefix=whosonfirst-data-admin-",
+                "-t",
+                "s3blob://{S3_BUCKET}?prefix={S3_PREFIX}/&region={AWS_REGION}&credentials=iam:"
+            ],
+            "cpu": 0,
+            "environment": [],
+            "mountPoints": [
+		{
+		    "sourceVolume": "data",
+		    "containerPath": "/usr/local/data"
+		}
+	    ],
+            "volumesFrom": [],
+            "image": "{AWS_ACCOUNTID}.dkr.ecr.{AWS_REGION}.amazonaws.com/whosonfirst-spatial-pmtiles:latest",
+            "name": "whosonfirst-spatial-pmtiles"
+        }
+    ],
+    "memory": "16384",
+    "taskRoleArn": "arn:aws:iam::{AWS_ACCOUNTID}:role/{IAM_ROLE}",
+    "family": "whosonfirst-spatial-pmtiles",
+    "requiresCompatibilities": [
+        "FARGATE"
+    ],
+    "networkMode": "awsvpc",
+    "runtimePlatform": {
+        "operatingSystemFamily": "LINUX"
+    },
+    "cpu": "8192",
+	    "ephemeralStorage": {
+    		"sizeInGiB": 200
+	    },	    
+    
+    "inferenceAccelerators": [],
+    "volumes": [
+	{
+	    "name": "data"
+	}
+    ],
+    "tags": [
+	{
+            "key": "name",
+            "value": "whosonfirst-spatial-pmtiles"
+        }
+    ]
+}
