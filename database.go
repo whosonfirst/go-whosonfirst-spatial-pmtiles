@@ -340,10 +340,12 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseFromTile(ctx context.Context, t
 		return nil, fmt.Errorf("Failed to derive features for tile %s, %w", path, err)
 	}
 
-	spatial_db, err := database.NewSpatialDatabase(ctx, "sqlite://?dsn=:memory:")
+	spatial_db_uri := "sqlite://?dsn=modernc://mem"
+
+	spatial_db, err := database.NewSpatialDatabase(ctx, spatial_db_uri)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create spatial database, %w", err)
+		return nil, fmt.Errorf("Failed to create spatial database for '%s', %w", spatial_db_uri, err)
 	}
 
 	for idx, f := range features {

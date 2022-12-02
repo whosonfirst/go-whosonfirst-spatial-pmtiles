@@ -6,23 +6,23 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/aaronland/go-sqlite"
-	sqlite_database "github.com/aaronland/go-sqlite/database"
+	_ "github.com/aaronland/go-sqlite-modernc"
+	"github.com/aaronland/go-sqlite/v2"
 	gocache "github.com/patrickmn/go-cache"
 	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/encoding/wkt"
 	"github.com/paulmach/orb/planar"
 	"github.com/whosonfirst/go-ioutil"
 	"github.com/whosonfirst/go-reader"
-	"github.com/whosonfirst/go-writer/v3"	
 	"github.com/whosonfirst/go-whosonfirst-spatial"
 	"github.com/whosonfirst/go-whosonfirst-spatial/database"
 	"github.com/whosonfirst/go-whosonfirst-spatial/filter"
 	"github.com/whosonfirst/go-whosonfirst-spatial/timer"
 	"github.com/whosonfirst/go-whosonfirst-spr/v2"
-	"github.com/whosonfirst/go-whosonfirst-sqlite-features/tables"
-	sqlite_spr "github.com/whosonfirst/go-whosonfirst-sqlite-spr"
+	"github.com/whosonfirst/go-whosonfirst-sqlite-features/v2/tables"
+	sqlite_spr "github.com/whosonfirst/go-whosonfirst-sqlite-spr/v2"
 	"github.com/whosonfirst/go-whosonfirst-uri"
+	"github.com/whosonfirst/go-writer/v3"
 	"io"
 	"log"
 	"net/url"
@@ -36,7 +36,7 @@ func init() {
 	ctx := context.Background()
 	database.RegisterSpatialDatabase(ctx, "sqlite", NewSQLiteSpatialDatabase)
 	reader.RegisterReader(ctx, "sqlite", NewSQLiteSpatialDatabaseReader)
-	writer.RegisterWriter(ctx, "sqlite", NewSQLiteSpatialDatabaseWriter)	
+	writer.RegisterWriter(ctx, "sqlite", NewSQLiteSpatialDatabaseWriter)
 }
 
 // SQLiteSpatialDatabase is a struct that implements the `database.SpatialDatabase` for performing
@@ -47,7 +47,7 @@ type SQLiteSpatialDatabase struct {
 	Logger        *log.Logger
 	Timer         *timer.Timer
 	mu            *sync.RWMutex
-	db            *sqlite_database.SQLiteDatabase
+	db            sqlite.Database
 	rtree_table   sqlite.Table
 	spr_table     sqlite.Table
 	geojson_table sqlite.Table
@@ -119,7 +119,7 @@ func NewSQLiteSpatialDatabase(ctx context.Context, uri string) (database.Spatial
 		return nil, fmt.Errorf("Missing 'dsn' parameter")
 	}
 
-	sqlite_db, err := sqlite_database.NewDB(ctx, dsn)
+	sqlite_db, err := sqlite.NewDatabase(ctx, dsn)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create new SQLite database, %w", err)
@@ -131,7 +131,7 @@ func NewSQLiteSpatialDatabase(ctx context.Context, uri string) (database.Spatial
 // NewSQLiteSpatialDatabaseWithDatabase returns a new `whosonfirst/go-whosonfirst-spatial/database.database.SpatialDatabase`
 // instance for performing spatial operations derived from 'uri' and an existing `aaronland/go-sqlite/database.SQLiteDatabase`
 // instance defined by 'sqlite_db'.
-func NewSQLiteSpatialDatabaseWithDatabase(ctx context.Context, uri string, sqlite_db *sqlite_database.SQLiteDatabase) (database.SpatialDatabase, error) {
+func NewSQLiteSpatialDatabaseWithDatabase(ctx context.Context, uri string, sqlite_db sqlite.Database) (database.SpatialDatabase, error) {
 
 	u, err := url.Parse(uri)
 
@@ -192,7 +192,7 @@ func NewSQLiteSpatialDatabaseWithDatabase(ctx context.Context, uri string, sqlit
 
 // Disconnect will close the underlying database connection.
 func (r *SQLiteSpatialDatabase) Disconnect(ctx context.Context) error {
-	return r.db.Close()
+	return r.db.Close(ctx)
 }
 
 // IndexFeature will index a Who's On First GeoJSON Feature record, defined in 'body', in the spatial database.
@@ -234,7 +234,7 @@ func (r *SQLiteSpatialDatabase) RemoveFeature(ctx context.Context, str_id string
 		return fmt.Errorf("Failed to parse string ID '%s', %w", str_id, err)
 	}
 
-	conn, err := r.db.Conn()
+	conn, err := r.db.Conn(ctx)
 
 	if err != nil {
 		return fmt.Errorf("Failed to establish database connection, %w", err)
@@ -443,7 +443,7 @@ func (r *SQLiteSpatialDatabase) getIntersectsByCoord(ctx context.Context, coord 
 // defined in 'filters'.
 func (r *SQLiteSpatialDatabase) getIntersectsByRect(ctx context.Context, rect *orb.Bound, filters ...spatial.Filter) ([]*RTreeSpatialIndex, error) {
 
-	conn, err := r.db.Conn()
+	conn, err := r.db.Conn(ctx)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to establish database connection, %w", err)
@@ -700,7 +700,7 @@ func (r *SQLiteSpatialDatabase) Read(ctx context.Context, str_uri string) (io.Re
 		return nil, err
 	}
 
-	conn, err := r.db.Conn()
+	conn, err := r.db.Conn(ctx)
 
 	if err != nil {
 		return nil, err
