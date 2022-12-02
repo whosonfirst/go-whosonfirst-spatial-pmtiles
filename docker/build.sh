@@ -32,7 +32,10 @@ done
 
 echo "Import ${SOURCE} FROM ${ITERATOR} as ${NAME} and copy to ${TARGET}"
 
-wof-tippecanoe-features -as-spr -require-polygons \
+wof-tippecanoe-features \
+    -as-spr \
+    -require-polygons \
+    -spr-append-property wof:hierarchy \
     -writer-uri 'constant://?val=jsonl://?writer=stdout://' \
     -iterator-uri ${ITERATOR} ${SOURCE} \
     | tippecanoe -P -z ${ZOOM} -pf -pk -o /usr/local/data/${NAME}.mbtiles
