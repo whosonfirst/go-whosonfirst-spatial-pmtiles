@@ -23,6 +23,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-spr/v2"
 	"github.com/whosonfirst/go-whosonfirst-uri"
 	"gocloud.dev/docstore"
+	aa_docstore "github.com/aaronland/gocloud-docstore"
 	"gocloud.dev/gcerrors"
 	"io"
 	"log"
@@ -487,7 +488,7 @@ func openCollection(ctx context.Context, uri_t string, values map[string]interfa
 		return nil, fmt.Errorf("Failed to expand URI template values, %w", err)
 	}
 
-	col, err := docstore.OpenCollection(ctx, col_uri)
+	col, err := aa_docstore.OpenCollection(ctx, col_uri)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to open collection, %w", err)
