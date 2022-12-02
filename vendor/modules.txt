@@ -38,7 +38,7 @@ github.com/aaronland/go-sqlite/v2/database
 # github.com/aaronland/go-string v0.1.2
 ## explicit; go 1.12
 github.com/aaronland/go-string/dsn
-# github.com/aaronland/gocloud-docstore v0.0.1
+# github.com/aaronland/gocloud-docstore v0.0.2
 ## explicit; go 1.19
 github.com/aaronland/gocloud-docstore
 # github.com/akrylysov/algnhsa v0.12.1

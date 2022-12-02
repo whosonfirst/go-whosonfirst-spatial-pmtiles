@@ -9,6 +9,7 @@ import (
 import (
 	"context"
 	"fmt"
+	aa_docstore "github.com/aaronland/gocloud-docstore"
 	"github.com/jtacoma/uritemplates"
 	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/encoding/mvt"
@@ -23,7 +24,6 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-spr/v2"
 	"github.com/whosonfirst/go-whosonfirst-uri"
 	"gocloud.dev/docstore"
-	aa_docstore "github.com/aaronland/gocloud-docstore"
 	"gocloud.dev/gcerrors"
 	"io"
 	"log"
@@ -457,7 +457,7 @@ func (db *PMTilesSpatialDatabase) featuresForTile(ctx context.Context, t maptile
 
 		} else if db.enable_feature_cache {
 
-			_, err := db.cache_manager.CacheFeatures(ctx, fc[db.database].Features)
+			_, err := db.cache_manager.CacheFeatureCollection(ctx, fc[db.database])
 
 			if err != nil {
 				db.logger.Printf("Failed to create new feature cache for %s, %v", path, err)
@@ -488,6 +488,7 @@ func openCollection(ctx context.Context, uri_t string, values map[string]interfa
 		return nil, fmt.Errorf("Failed to expand URI template values, %w", err)
 	}
 
+	log.Println("OPEN", col_uri)
 	col, err := aa_docstore.OpenCollection(ctx, col_uri)
 
 	if err != nil {

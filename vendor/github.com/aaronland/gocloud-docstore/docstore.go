@@ -7,6 +7,7 @@ import (
 	"gocloud.dev/docstore"
 	"gocloud.dev/docstore/awsdynamodb"
 	"net/url"
+	"strconv"
 )
 
 func OpenCollection(ctx context.Context, uri string) (*docstore.Collection, error) {
@@ -25,11 +26,11 @@ func OpenCollection(ctx context.Context, uri string) (*docstore.Collection, erro
 
 		q := u.Query()
 
-		partition_key := q.Get("partition_key")
+		partition_key := q.Get("partition-key")
 		region := q.Get("region")
 		local := q.Get("local")
-
 		credentials := q.Get("credentials")
+		q_allow_scans := q.Get("allow-scans")
 
 		cl_uri := fmt.Sprintf("dynamodb://?region=%s&credentials=%s&local=%s", region, credentials, local)
 
@@ -39,9 +40,20 @@ func OpenCollection(ctx context.Context, uri string) (*docstore.Collection, erro
 			return nil, fmt.Errorf("Failed to create DynamoDB client, %w", err)
 		}
 
-		// opts := &awsdynamodb.Options{}
+		col_opts := &awsdynamodb.Options{}
 
-		c, err := awsdynamodb.OpenCollection(cl, table, partition_key, "", nil)
+		if q_allow_scans != "" {
+
+			allow, err := strconv.ParseBool(q_allow_scans)
+
+			if err != nil {
+				return nil, fmt.Errorf("Failed to parse ?allow-scans= parameter, %w", err)
+			}
+
+			col_opts.AllowScans = allow
+		}
+
+		c, err := awsdynamodb.OpenCollection(cl, table, partition_key, "", col_opts)
 
 		if err != nil {
 			return nil, fmt.Errorf("Failed to open collection, %w", err)

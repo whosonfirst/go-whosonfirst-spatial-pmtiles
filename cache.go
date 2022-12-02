@@ -90,7 +90,18 @@ func NewCacheManager(ctx context.Context, opts *CacheManagerOptions) *CacheManag
 	return m
 }
 
-func (m *CacheManager) CacheFeatures(ctx context.Context, features []*geojson.Feature) ([]string, error) {
+func (m *CacheManager) CacheFeatureCollection(ctx context.Context, fc *geojson.FeatureCollection) ([]string, error) {
+
+	features, err := UniqueFeatures(ctx, fc.Features)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to derive unique features for FeatureCollection, %w", err)
+	}
+
+	return m.CacheFeatures(ctx, features)
+}
+
+func (m *CacheManager) CacheFeatures(ctx context.Context, features [][]byte) ([]string, error) {
 
 	feature_ids := make([]string, len(features))
 
@@ -108,7 +119,7 @@ func (m *CacheManager) CacheFeatures(ctx context.Context, features []*geojson.Fe
 
 	for idx, f := range features {
 
-		go func(idx int, f *geojson.Feature) {
+		go func(idx int, f []byte) {
 
 			defer func() {
 				done_ch <- true
@@ -147,7 +158,13 @@ func (m *CacheManager) CacheFeatures(ctx context.Context, features []*geojson.Fe
 
 func (m *CacheManager) CacheTile(ctx context.Context, path string, features []*geojson.Feature) (*TileCache, error) {
 
-	feature_ids, err := m.CacheFeatures(ctx, features)
+	unique_features, err := UniqueFeatures(ctx, features)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to derive unique features for %s, %w", path, err)
+	}
+
+	feature_ids, err := m.CacheFeatures(ctx, unique_features)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to cache features for %s, %w", path, err)
@@ -160,6 +177,8 @@ func (m *CacheManager) CacheTile(ctx context.Context, path string, features []*g
 	}
 
 	_, exists := m.keys_map.Load(tc.Path)
+
+	m.logger.Printf("cache tile exists %s %t\n", tc.Path, exists)
 
 	if exists {
 
@@ -209,9 +228,9 @@ func (m *CacheManager) CacheTile(ctx context.Context, path string, features []*g
 	return tc, err
 }
 
-func (m *CacheManager) CacheFeature(ctx context.Context, feature *geojson.Feature) (*FeatureCache, error) {
+func (m *CacheManager) CacheFeature(ctx context.Context, body []byte) (*FeatureCache, error) {
 
-	fc, err := NewFeatureCache(feature)
+	fc, err := NewFeatureCache(body)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create feature cache, %w", err)
@@ -233,7 +252,7 @@ func (m *CacheManager) CacheFeature(ctx context.Context, feature *geojson.Featur
 
 	} else {
 
-		m.logger.Printf("cache feature %s\n", fc.Id)
+		// m.logger.Printf("cache feature %s\n", fc.Id)
 
 		err = m.feature_collection.Put(ctx, fc)
 
@@ -479,24 +498,109 @@ func (m *CacheManager) Close(ctx context.Context) error {
 	return nil
 }
 
-func NewFeatureCache(feature *geojson.Feature) (*FeatureCache, error) {
+func UniqueFeatures(ctx context.Context, features []*geojson.Feature) ([][]byte, error) {
+
+	seen := make(map[string]bool)
+	unique_features := make([][]byte, 0)
+
+	mu := new(sync.RWMutex)
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	done_ch := make(chan bool)
+	err_ch := make(chan error)
+	f_ch := make(chan []byte)
+
+	for idx, f := range features {
+
+		go func(idx int, f *geojson.Feature) {
+
+			defer func() {
+				done_ch <- true
+			}()
+
+			body, err := f.MarshalJSON()
+
+			if err != nil {
+				err_ch <- fmt.Errorf("Failed to marshal feature at offset %d, %w", idx, err)
+				return
+			}
+
+			f_id, err := FeatureIdFromBytes(body)
+
+			if err != nil {
+				err_ch <- fmt.Errorf("Failed to derive feature at offset %d, %w", idx, err)
+				return
+			}
+
+			if f_id == "0" {
+				return
+			}
+
+			mu.Lock()
+			defer mu.Unlock()
+
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				// pass
+			}
+
+			_, exists := seen[f_id]
+
+			if exists {
+				return
+			}
+
+			seen[f_id] = true
+
+			f_ch <- body
+			return
+
+		}(idx, f)
+	}
+
+	remaining := len(features)
+
+	for remaining > 0 {
+		select {
+		case <-done_ch:
+			remaining -= 1
+		case err := <-err_ch:
+			return nil, err
+		case f := <-f_ch:
+			unique_features = append(unique_features, f)
+		}
+	}
+
+	return unique_features, nil
+}
+
+func FeatureId(feature *geojson.Feature) (string, error) {
 
 	body, err := feature.MarshalJSON()
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to marshal JSON for feature, %w", err)
+		return "", fmt.Errorf("Failed to marshal JSON for feature, %w", err)
 	}
+
+	return FeatureIdFromBytes(body)
+}
+
+func FeatureIdFromBytes(body []byte) (string, error) {
 
 	id, err := properties.Id(body)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to derive ID from feature, %w", err)
+		return "", fmt.Errorf("Failed to derive ID from feature, %w", err)
 	}
 
 	alt_label, err := properties.AltLabel(body)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to derive alt label from feature, %w", err)
+		return "", fmt.Errorf("Failed to derive alt label from feature, %w", err)
 	}
 
 	str_id := fmt.Sprintf("%d", id)
@@ -505,12 +609,31 @@ func NewFeatureCache(feature *geojson.Feature) (*FeatureCache, error) {
 		str_id = fmt.Sprintf("%s-alt-%s", str_id, alt_label)
 	}
 
+	return str_id, nil
+}
+
+func NewFeatureCache(body []byte) (*FeatureCache, error) {
+
+	/*
+		body, err := feature.MarshalJSON()
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to marshal JSON for feature, %w", err)
+		}
+	*/
+
+	f_id, err := FeatureIdFromBytes(body)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to derive feature ID, %w", err)
+	}
+
 	now := time.Now()
 	ts := now.Unix()
 
 	fc := &FeatureCache{
 		Created: ts,
-		Id:      str_id,
+		Id:      f_id,
 		Body:    string(body),
 	}
 
