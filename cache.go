@@ -14,6 +14,10 @@ import (
 	"time"
 )
 
+const FEATURES_CACHE_TABLE string = "pmtiles_features"
+
+const TILES_CACHE_TABLE string = "pmtiles_tiles"
+
 // JSON-encoding features is not ideal given the known performance issues around marshaling
 // and unmarshaling JSON but everything else fails at some stage with type issues so this will
 // do for now.

@@ -129,8 +129,9 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 
 	if enable_cache {
 
-		feature_cache_uri_t := "mem://features/{key}"
-		tile_cache_uri_t := "mem://tiles/{key}"
+		feature_cache_uri_t := fmt.Sprintf("mem://%s/{key}", FEATURES_CACHE_TABLE)
+		tile_cache_uri_t := fmt.Sprintf("mem://%s/{key}", TILES_CACHE_TABLE)
+
 		cache_ttl := 300
 
 		q_cache_ttl := q.Get("cache-ttl")

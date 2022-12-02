@@ -60,8 +60,8 @@ pmtiles://?{QUERY_PARAMETERS}
 | zoom | The zoom level to perform point-in-polygon queries at | no | Default is 12. |
 | enable-cache | Enable caching of WOF features and tiles | no | Default is false. |
 | cache-ttl | The number of seconds that items in the cache should persist | no | Default is 300. |
-| feature-cache-uri | A valid URI template containing a `gocloud.dev/docstore` collection URI where GeoJSON features should be cached | no | Support for `mem://` URIs is enabled by default. The template MUST contain a `{key}` element. Default is `mem://features/{key}`. |
-| tile-cache-uri | A valid URI template containing a `gocloud.dev/docstore` collection URI where tiles should be cached | no | Support for `mem://` URIs is enabled by default. The template MUST contain a `{key}` element. Default is `mem://tiles/{key}`. |
+| feature-cache-uri | A valid URI template containing a `gocloud.dev/docstore` collection URI where GeoJSON features should be cached | no | Support for `mem://` URIs is enabled by default. The template MUST contain a `{key}` element. Default is `mem://pmtiles_features/{key}`. |
+| tile-cache-uri | A valid URI template containing a `gocloud.dev/docstore` collection URI where tiles should be cached | no | Support for `mem://` URIs is enabled by default. The template MUST contain a `{key}` element. Default is `mem://pmtiles_tiles/{key}`. |
 
 For example:
 
