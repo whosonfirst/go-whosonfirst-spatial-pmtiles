@@ -1,6 +1,6 @@
 #!/bin/sh
 
-SOURCE=""	# for example: -s 'sfomuseum-data://?prefix=sfomuseum-data-whosonfirst'
+SOURCES=""	# for example: -s 'sfomuseum-data://?prefix=sfomuseum-data-whosonfirst'
 NAME=""		# for example -n whosonfirst"
 TARGET=""	# for example: -t s3blob://bucket?region=us-east-1&credentials=iam:
 
@@ -21,7 +21,7 @@ while getopts "i:n:p:s:t:z:" opt; do
 	    PROPERTIES=$OPTARG
 	    ;;
 	s )
-	    SOURCE=$OPTARG
+	    SOURCES=$OPTARG
 	    ;;
 	t )
 	    TARGET=$OPTARG
@@ -37,14 +37,21 @@ done
 
 echo "Import ${SOURCE} FROM ${ITERATOR} as ${NAME} and copy to ${TARGET}"
 
-FEATURES_ARGS="-as-spt -require-polygons -writer-uri 'constant://?val=jsonl://?writer=stdout://' -iterator-uri ${ITERATOR} ${SOURCE}"
+FEATURES_ARGS="-as-spr -require-polygons -writer-uri 'constant://?val=jsonl%3A%2F%2F%3Fwriter%3Dstdout%3A%2F%2F' -iterator-uri '${ITERATOR}'"
 
 for PROP in ${PROPERTIES}
 do
-    FEATURES_ARGS="${FEATURES_ARGS} -spr-append-property ${PROP}"
+    FEATURES_ARGS="${FEATURES_ARGS} -spr-append-property '${PROP}'"
 done
 
-wof-tippecanoe-features ${FEATURE_ARGS} | tippecanoe -P -z ${ZOOM} -pf -pk -o /usr/local/data/${NAME}.mbtiles
+for SRC in ${SOURCES}
+do
+    FEATURES_ARGS="${FEATURES_ARGS} '${SRC}'"
+done
+
+echo "wof-tippecanoe-features ${FEATURES_ARGS} | tippecanoe -P -z ${ZOOM} -pf -pk -o /usr/local/data/${NAME}.mbtiles"
+
+wof-tippecanoe-features ${FEATURES_ARGS} | tippecanoe -P -z ${ZOOM} -pf -pk -o /usr/local/data/${NAME}.mbtiles
 
 pmtiles convert /usr/local/data/${NAME}.mbtiles /usr/local/data/${NAME}.pmtiles
 
