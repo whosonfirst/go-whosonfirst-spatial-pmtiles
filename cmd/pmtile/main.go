@@ -1,6 +1,6 @@
 package main
 
-// go run cmd/tile/main.go -tiles file:///tmp -database test -x 655 -y 1585 | jq
+// go run cmd/pmtile/main.go -tiles file:///tmp -database test -x 655 -y 1585 | jq
 
 import (
 	_ "gocloud.dev/blob/fileblob"
