@@ -8,6 +8,7 @@ import (
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	aa_docstore "github.com/aaronland/gocloud-docstore"
 	"github.com/jtacoma/uritemplates"
@@ -17,6 +18,7 @@ import (
 	"github.com/paulmach/orb/maptile"
 	"github.com/protomaps/go-pmtiles/pmtiles"
 	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
 	"github.com/whosonfirst/go-ioutil"
 	"github.com/whosonfirst/go-reader"
 	"github.com/whosonfirst/go-whosonfirst-spatial"
@@ -378,6 +380,12 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseFromTile(ctx context.Context, t
 
 		// END OF to remove once we've finished pruning layer data in featuresForTile
 
+		body, err = db.decodeMVT(ctx, body)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to unfurl MVT for feature %d at offset %d, %w", id, idx, err)
+		}
+
 		if db.enable_feature_cache {
 
 			wg.Add(1)
@@ -457,6 +465,61 @@ func (db *PMTilesSpatialDatabase) featuresForTile(ctx context.Context, t maptile
 	}
 
 	return features, nil
+}
+
+// Expand WOF values that were stringified in the process of encoding them as MVT. Customs decoders are not yet supported.
+// https://docs.mapbox.com/data/tilesets/guides/vector-tiles-standards/#how-to-encode-attributes-that-arent-strings-or-numbers
+func (db *PMTilesSpatialDatabase) decodeMVT(ctx context.Context, body []byte) ([]byte, error) {
+
+	props := gjson.GetBytes(body, "properties")
+
+	if !props.Exists() {
+		return body, nil
+	}
+
+	for k, v := range props.Map() {
+
+		switch k {
+		case "wof:superseded_by", "wof:supersedes", "wof:belongsto":
+
+			var values []int64
+
+			err := json.Unmarshal([]byte(v.String()), &values)
+
+			if err != nil {
+				return nil, fmt.Errorf("Failed to unmarshal %k value (%s), %w", k, v.String(), err)
+			}
+
+			path := fmt.Sprintf("properties.%s", k)
+			body, err = sjson.SetBytes(body, path, values)
+
+			if err != nil {
+				return nil, fmt.Errorf("Failed to set %s, %w", path, err)
+			}
+
+		case "wof:hierarchy":
+
+			var values []map[string]int64
+
+			err := json.Unmarshal([]byte(v.String()), &values)
+
+			if err != nil {
+				return nil, fmt.Errorf("Failed to unmarshal %k value (%s), %w", k, v.String(), err)
+			}
+
+			path := fmt.Sprintf("properties.%s", k)
+			body, err = sjson.SetBytes(body, path, values)
+
+			if err != nil {
+				return nil, fmt.Errorf("Failed to set %s, %w", path, err)
+			}
+
+		default:
+			// pass
+		}
+	}
+
+	return body, nil
 }
 
 func openCollection(ctx context.Context, uri_t string, values map[string]interface{}) (*docstore.Collection, error) {

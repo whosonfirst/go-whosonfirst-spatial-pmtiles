@@ -14,6 +14,7 @@ There may be bugs. Notably, as written:
 * The `go-whosonfirst-spatial-pmtiles` package implements both the [whosonfirst/go-whosonfirst-spatial](https://github.com/whosonfirst/go-whosonfirst-spatial) and [whosonfirst/go-reader](https://github.com/whosonfirst/go-reader) interfaces however in order to support the latter caching must be enabled in the spatial database URI constructor (see below). Caching is necessary to maintain a local cache of features mapped to any given Who's On First ID. This is really only important if you need to to return GeoJSON responses (rather than the default Standard Place Response) or you are using an application derived from `go-whosonfirst-spatial-www` which tries to load GeoJSON features from itself.
 * GeoJSON features for large, administrative areas (states, countries, etc.) are likely to be clipped to the tile boundary that contains them. Likewise because features are cached so a read request for a place with a large surface area (say the United States) will return the geometry for the first tile that contains it. This can lead to bizarre results or potential information leakage or both.
 * As is often the case with any kind of caching there are probably still "edge cases" to account for and improvements to implement.
+* The following WOF properties are decoded from their MVT encoding: `wof:belongsto`, `wof:supersedes`, `wof:superseded_by` and `wof:hierarchy`. The first three are core properties in the [standard place response](https://github.com/whosonfirst/go-whosonfirst-spr) definition; the third is an optional property that can be included in a PMTiles database using the `-append-spr-property` flag in the `features` tool discussed below. Support for custom decoders are not available yet.
 * Alternate geometry files are not supported yet.
 
 ## Producing a Who's On First -enabled Protomaps tile database
@@ -58,10 +59,9 @@ pmtiles://?{QUERY_PARAMETERS}
 | database | The name of the Protomaps tiles database | yes | Ensure that this value does _not_ include a `.pmtiles` extension. |
 | pmtiles-cache-size | The size, in megabytes, of the pmtiles cache | no | Default is 64. |
 | zoom | The zoom level to perform point-in-polygon queries at | no | Default is 12. |
-| enable-cache | Enable caching of WOF features and tiles | no | Default is false. |
+| enable-cache | Enable caching of WOF features. | no | Default is false however you will need to enable it if you want to use the `-property` flag to append additional properties to results emitted by the `query` tool (discussed below). |
 | cache-ttl | The number of seconds that items in the cache should persist | no | Default is 300. |
 | feature-cache-uri | A valid URI template containing a `gocloud.dev/docstore` collection URI where GeoJSON features should be cached | no | Support for `mem://` URIs is enabled by default. The template MUST contain a `{key}` element. Default is `mem://pmtiles_features/{key}`. |
-| tile-cache-uri | A valid URI template containing a `gocloud.dev/docstore` collection URI where tiles should be cached | no | Support for `mem://` URIs is enabled by default. The template MUST contain a `{key}` element. Default is `mem://pmtiles_tiles/{key}`. |
 
 For example:
 
