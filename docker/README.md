@@ -13,7 +13,7 @@ $> docker build -t whosonfirst-spatial-pmtiles .
 ### Writing data to a local file using Docker volumes
 
 ```
-$> docker run whosonfirst-spatial-pmtiles -v ${LOCAL_DIRECTORY}:/usr/local/data \   
+$> docker run -v ${LOCAL_DIRECTORY}:/usr/local/data whosonfirst-spatial-pmtiles  \   
 	/usr/local/bin/build.sh \
 	-n sfomuseum \
 	-s 'sfomuseum-data://?prefix=sfomuseum-data-maps'

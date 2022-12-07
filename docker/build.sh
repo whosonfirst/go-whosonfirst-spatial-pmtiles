@@ -1,9 +1,9 @@
 #!/bin/sh
 
-SOURCES=""	# for example: -s 'sfomuseum-data://?prefix=sfomuseum-data-whosonfirst'
-NAME=""		# for example -n whosonfirst"
-TARGET=""	# for example: -t s3blob://bucket?region=us-east-1&credentials=iam:
+SOURCES=""		# for example: -s 'sfomuseum-data://?prefix=sfomuseum-data-whosonfirst'
+TARGET=""		# for example: -t s3blob://bucket?region=us-east-1&credentials=iam:
 
+NAME="whosonfirst"	# for example -n whosonfirst"
 ITERATOR="org:///tmp"
 ZOOM="12"
 
