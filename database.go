@@ -316,6 +316,8 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseFromTile(ctx context.Context, t
 
 	path := fmt.Sprintf("/%s/%d/%d/%d.mvt", db.database, t.Z, t.X, t.Y)
 
+	db.logger.Printf("GET tile at %s", path)
+
 	features, err := db.featuresForTile(ctx, t)
 
 	if err != nil {
