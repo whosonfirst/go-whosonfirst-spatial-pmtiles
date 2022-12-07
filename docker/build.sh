@@ -37,16 +37,16 @@ done
 
 echo "Import ${SOURCE} FROM ${ITERATOR} as ${NAME} and copy to ${TARGET}"
 
-FEATURES_ARGS="-as-spr -require-polygons -writer-uri 'constant://?val=jsonl%3A%2F%2F%3Fwriter%3Dstdout%3A%2F%2F' -iterator-uri '${ITERATOR}'"
+FEATURES_ARGS="-as-spr -require-polygons -writer-uri constant://?val=jsonl://?writer=stdout:// -iterator-uri ${ITERATOR}"
 
 for PROP in ${PROPERTIES}
 do
-    FEATURES_ARGS="${FEATURES_ARGS} -spr-append-property '${PROP}'"
+    FEATURES_ARGS="${FEATURES_ARGS} -spr-append-property ${PROP}"
 done
 
 for SRC in ${SOURCES}
 do
-    FEATURES_ARGS="${FEATURES_ARGS} '${SRC}'"
+    FEATURES_ARGS="${FEATURES_ARGS} ${SRC}"
 done
 
 echo "wof-tippecanoe-features ${FEATURES_ARGS} | tippecanoe -P -z ${ZOOM} -pf -pk -o /usr/local/data/${NAME}.mbtiles"
