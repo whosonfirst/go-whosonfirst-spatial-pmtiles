@@ -26,11 +26,11 @@ func OpenCollection(ctx context.Context, uri string) (*docstore.Collection, erro
 
 		q := u.Query()
 
-		partition_key := q.Get("partition-key")
+		partition_key := q.Get("partition_key")
 		region := q.Get("region")
 		local := q.Get("local")
 		credentials := q.Get("credentials")
-		q_allow_scans := q.Get("allow-scans")
+		q_allow_scans := q.Get("allow_scans")
 
 		cl_uri := fmt.Sprintf("dynamodb://?region=%s&credentials=%s&local=%s", region, credentials, local)
 
@@ -47,7 +47,7 @@ func OpenCollection(ctx context.Context, uri string) (*docstore.Collection, erro
 			allow, err := strconv.ParseBool(q_allow_scans)
 
 			if err != nil {
-				return nil, fmt.Errorf("Failed to parse ?allow-scans= parameter, %w", err)
+				return nil, fmt.Errorf("Failed to parse ?allow_scans= parameter, %w", err)
 			}
 
 			col_opts.AllowScans = allow

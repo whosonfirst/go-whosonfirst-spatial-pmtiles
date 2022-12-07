@@ -33,7 +33,7 @@ func PropertiesResponseResultsWithStandardPlacesResults(ctx context.Context, opt
 		fh, err := opts.Reader.Read(ctx, path)
 
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("Failed to open %s for reading, %w", path, err)
 		}
 
 		defer fh.Close()
@@ -41,13 +41,13 @@ func PropertiesResponseResultsWithStandardPlacesResults(ctx context.Context, opt
 		source, err := io.ReadAll(fh)
 
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("Failed to read body from %s, %w", path, err)
 		}
 
 		target, err := json.Marshal(r)
 
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("Failed to marshal %s, %w", path, err)
 		}
 
 		target, err = AppendPropertiesWithJSON(ctx, opts, source, target)
@@ -60,7 +60,7 @@ func PropertiesResponseResultsWithStandardPlacesResults(ctx context.Context, opt
 		err = json.Unmarshal(target, &props)
 
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("Failed to unmarshal props for %s, %w", path, err)
 		}
 
 		new_results[idx] = props
@@ -132,7 +132,7 @@ func AppendPropertiesWithJSON(ctx context.Context, opts *PropertiesResponseOptio
 			target, err = sjson.SetBytes(target, set_path, v.Value())
 
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("Failed to set %s, %w", set_path, err)
 			}
 		}
 	}

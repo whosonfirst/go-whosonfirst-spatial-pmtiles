@@ -3,7 +3,7 @@ module github.com/whosonfirst/go-whosonfirst-spatial-pmtiles
 go 1.19
 
 require (
-	github.com/aaronland/gocloud-docstore v0.0.2
+	github.com/aaronland/gocloud-docstore v0.0.3
 	github.com/jtacoma/uritemplates v1.0.0
 	github.com/paulmach/orb v0.7.1
 	github.com/protomaps/go-pmtiles v1.6.2
@@ -11,7 +11,7 @@ require (
 	github.com/whosonfirst/go-ioutil v1.0.2
 	github.com/whosonfirst/go-reader v1.0.2
 	github.com/whosonfirst/go-whosonfirst-feature v0.0.25
-	github.com/whosonfirst/go-whosonfirst-spatial v0.5.1
+	github.com/whosonfirst/go-whosonfirst-spatial v0.5.2
 	github.com/whosonfirst/go-whosonfirst-spatial-pip v0.3.1
 	github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.6.0
 	github.com/whosonfirst/go-whosonfirst-spr/v2 v2.3.3

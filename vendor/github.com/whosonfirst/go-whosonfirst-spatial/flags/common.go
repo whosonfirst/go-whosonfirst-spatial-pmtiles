@@ -34,7 +34,7 @@ func AppendCommonFlags(fs *flag.FlagSet) error {
 	available_readers := reader.Schemes()
 	desc_readers := fmt.Sprintf("A valid whosonfirst/go-reader.Reader URI. Available options are: %s", available_readers)
 
-	fs.String(PROPERTIES_READER_URI, "", desc_readers)
+	fs.String(PROPERTIES_READER_URI, "", fmt.Sprintf("%s. If the value is {spatial-database-uri} then the value of the '-spatial-database-uri' implements the reader.Reader interface and will be used.", desc_readers))
 
 	fs.Bool(IS_WOF, true, "Input data is WOF-flavoured GeoJSON. (Pass a value of '0' or 'false' if you need to index non-WOF documents.")
 

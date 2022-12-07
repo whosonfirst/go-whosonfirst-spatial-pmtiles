@@ -257,9 +257,10 @@ func (m *CacheManager) CacheFeature(ctx context.Context, body []byte) (*FeatureC
 		err = m.feature_collection.Put(ctx, fc)
 
 		if err != nil {
-			return nil, fmt.Errorf("Failed to store feature cache, %w", err)
+			return nil, fmt.Errorf("Failed to store feature cache for %s, %w", fc.Id, err)
 		}
 
+		m.logger.Printf("cache feature %s\n", fc.Id)		
 		m.keys_map.Store(fc.Id, fc.Created)
 	}
 
@@ -277,7 +278,7 @@ func (m *CacheManager) GetFeatureCache(ctx context.Context, id string) (*Feature
 	err := m.feature_collection.Get(ctx, &fc)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get feature cache for %d, %w", id, err)
+		return nil, fmt.Errorf("Failed to get feature cache for %s, %w", id, err)
 	}
 
 	return &fc, nil
@@ -531,10 +532,6 @@ func UniqueFeatures(ctx context.Context, features []*geojson.Feature) ([][]byte,
 
 			if err != nil {
 				err_ch <- fmt.Errorf("Failed to derive feature at offset %d, %w", idx, err)
-				return
-			}
-
-			if f_id == "0" {
 				return
 			}
 
