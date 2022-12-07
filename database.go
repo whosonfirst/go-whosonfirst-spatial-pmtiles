@@ -24,7 +24,6 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-spr/v2"
 	"github.com/whosonfirst/go-whosonfirst-uri"
 	"gocloud.dev/docstore"
-	"gocloud.dev/gcerrors"
 	"io"
 	"log"
 	"net/url"
@@ -45,7 +44,6 @@ type PMTilesSpatialDatabase struct {
 	logger               *log.Logger
 	database             string
 	enable_feature_cache bool
-	enable_tile_cache    bool
 	cache_manager        *CacheManager
 	zoom                 int
 }
@@ -113,7 +111,7 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 		zoom:     zoom,
 	}
 
-	enable_cache := false
+	enable_feature_cache := false
 
 	q_enable_cache := q.Get("enable-cache")
 
@@ -125,19 +123,15 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 			return nil, fmt.Errorf("Failed to parse ?enable-cache= parameter, %w", err)
 		}
 
-		enable_cache = enabled
+		enable_feature_cache = enabled
+
 	}
 
-	if enable_cache {
-
-		feature_cache_uri_t := fmt.Sprintf("mem://%s/{key}", FEATURES_CACHE_TABLE)
-		tile_cache_uri_t := fmt.Sprintf("mem://%s/{key}", TILES_CACHE_TABLE)
+	if enable_feature_cache {
 
 		cache_ttl := 300
 
 		q_cache_ttl := q.Get("cache-ttl")
-		q_feature_cache_uri_t := q.Get("feature-cache-uri")
-		q_tile_cache_uri_t := q.Get("tile-cache-uri")
 
 		if q_cache_ttl != "" {
 
@@ -154,23 +148,18 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 			cache_ttl = ttl
 		}
 
+		feature_cache_uri_t := fmt.Sprintf("mem://%s/{key}", FEATURES_CACHE_TABLE)
+
+		q_feature_cache_uri_t := q.Get("feature-cache-uri")
+
 		if q_feature_cache_uri_t != "" {
 			feature_cache_uri_t = q_feature_cache_uri_t
 		}
 
-		if q_tile_cache_uri_t != "" {
-			tile_cache_uri_t = q_tile_cache_uri_t
-		}
-
 		feature_cache_key := "Id"
-		tile_cache_key := "Path"
 
 		feature_cache_v := map[string]interface{}{
 			"key": feature_cache_key,
-		}
-
-		tile_cache_v := map[string]interface{}{
-			"key": tile_cache_key,
 		}
 
 		feature_cache, err := openCollection(ctx, feature_cache_uri_t, feature_cache_v)
@@ -179,26 +168,16 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 			return nil, fmt.Errorf("could not open feature cache collection: %w", err)
 		}
 
-		tile_cache, err := openCollection(ctx, tile_cache_uri_t, tile_cache_v)
-
-		if err != nil {
-			return nil, fmt.Errorf("could not open tile cache collection: %w", err)
-		}
-
 		cache_manager_opts := &CacheManagerOptions{
 			FeatureCollection: feature_cache,
-			TileCollection:    tile_cache,
 			Logger:            logger,
 			CacheTTL:          cache_ttl,
 		}
 
 		cache_manager := NewCacheManager(ctx, cache_manager_opts)
-
 		db.cache_manager = cache_manager
 
-		db.enable_feature_cache = true
-		db.enable_tile_cache = true
-
+		db.enable_feature_cache = enable_feature_cache
 	}
 
 	return db, nil
@@ -291,6 +270,7 @@ func (db *PMTilesSpatialDatabase) Disconnect(ctx context.Context) error {
 	return nil
 }
 
+// Read implements the whosonfirst/go-reader.Reader interface
 func (db *PMTilesSpatialDatabase) Read(ctx context.Context, path string) (io.ReadSeekCloser, error) {
 
 	if !db.enable_feature_cache {
@@ -350,7 +330,28 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseFromTile(ctx context.Context, t
 		return nil, fmt.Errorf("Failed to create spatial database for '%s', %w", spatial_db_uri, err)
 	}
 
+	seen := make(map[string]bool)
+
+	wg := new(sync.WaitGroup)
+
 	for idx, f := range features {
+
+		// START OF to remove once we've finished pruning layer data in featuresForTile
+
+		str_id := fmt.Sprintf("%v", f.ID)
+
+		if str_id != "" {
+
+			_, ok := seen[str_id]
+
+			if ok {
+				continue
+			}
+		}
+
+		seen[str_id] = true
+
+		// END OF to remove once we've finished pruning layer data in featuresForTile
 
 		body, err := f.MarshalJSON()
 
@@ -361,6 +362,36 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseFromTile(ctx context.Context, t
 			return nil, fmt.Errorf("Failed to marshal JSON for feature %d at offset %d, %w", id, idx, err)
 		}
 
+		// START OF to remove once we've finished pruning layer data in featuresForTile
+
+		str_id = id_rsp.String()
+
+		_, ok := seen[str_id]
+
+		if ok {
+			continue
+		}
+
+		seen[str_id] = true
+
+		// END OF to remove once we've finished pruning layer data in featuresForTile
+
+		if db.enable_feature_cache {
+
+			wg.Add(1)
+
+			go func(body []byte) {
+
+				defer wg.Done()
+
+				_, err := db.cache_manager.CacheFeature(ctx, body)
+
+				if err != nil {
+					db.logger.Printf("Failed to create new feature cache for %s, %v", path, err)
+				}
+			}(body)
+		}
+
 		err = spatial_db.IndexFeature(ctx, body)
 
 		if err != nil {
@@ -368,7 +399,7 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseFromTile(ctx context.Context, t
 		}
 	}
 
-	// cache this?
+	wg.Wait()
 
 	return spatial_db, nil
 }
@@ -387,29 +418,6 @@ func (db *PMTilesSpatialDatabase) featuresForTile(ctx context.Context, t maptile
 
 	path := fmt.Sprintf("/%s/%d/%d/%d.mvt", db.database, t.Z, t.X, t.Y)
 
-	if db.enable_tile_cache {
-
-		tc, err := db.cache_manager.GetTileCache(ctx, path)
-
-		if err != nil {
-
-			if gcerrors.Code(err) != gcerrors.NotFound {
-				db.logger.Printf("Failed to retrieve cache for %s, %v", path, err)
-			}
-
-		} else {
-
-			features, err := db.cache_manager.UnmarshalTileCache(ctx, tc)
-
-			if err != nil {
-				db.logger.Printf("Failed to unmarshal features for %s, %v", path, err)
-			} else {
-
-				return features, nil
-			}
-		}
-	}
-
 	status_code, _, body := db.loop.Get(ctx, path)
 
 	if status_code != 200 {
@@ -419,59 +427,34 @@ func (db *PMTilesSpatialDatabase) featuresForTile(ctx context.Context, t maptile
 	// not sure what the semantics are here but it's not treated as an error in protomaps
 	// https://github.com/protomaps/go-pmtiles/blob/0ac8f97530b3367142cfd250585d60936d0ce643/pmtiles/loop.go#L296
 
+	var features []*geojson.Feature
+
 	if status_code == 204 {
-		features := make([]*geojson.Feature, 0)
-		return features, nil
-	}
+		features = make([]*geojson.Feature, 0)
+	} else {
 
-	layers, err := mvt.UnmarshalGzipped(body)
+		layers, err := mvt.UnmarshalGzipped(body)
 
-	if err != nil {
-		return nil, fmt.Errorf("Failed to unmarshal tile, %w", err)
-	}
-
-	layers.ProjectToWGS84(t)
-
-	fc := layers.ToFeatureCollections()
-
-	_, exists := fc[db.database]
-
-	if !exists {
-		return nil, fmt.Errorf("Missing %s layer", db.database)
-	}
-
-	wg := new(sync.WaitGroup)
-
-	go func() {
-
-		wg.Add(1)
-		defer wg.Done()
-
-		if db.enable_tile_cache {
-
-			_, err := db.cache_manager.CacheTile(ctx, path, fc[db.database].Features)
-
-			if err != nil {
-				db.logger.Printf("Failed to create new feature cache for %s, %v", path, err)
-			}
-
-		} else if db.enable_feature_cache {
-
-			_, err := db.cache_manager.CacheFeatureCollection(ctx, fc[db.database])
-
-			if err != nil {
-				db.logger.Printf("Failed to create new feature cache for %s, %v", path, err)
-			}
-
-		} else {
-			// pass
+		if err != nil {
+			return nil, fmt.Errorf("Failed to unmarshal tile, %w", err)
 		}
 
-	}()
+		// Prune layers here
 
-	wg.Wait()
+		layers.ProjectToWGS84(t)
 
-	return fc[db.database].Features, nil
+		fc := layers.ToFeatureCollections()
+
+		_, exists := fc[db.database]
+
+		if !exists {
+			return nil, fmt.Errorf("Missing %s layer", db.database)
+		}
+
+		features = fc[db.database].Features
+	}
+
+	return features, nil
 }
 
 func openCollection(ctx context.Context, uri_t string, values map[string]interface{}) (*docstore.Collection, error) {
@@ -488,7 +471,6 @@ func openCollection(ctx context.Context, uri_t string, values map[string]interfa
 		return nil, fmt.Errorf("Failed to expand URI template values, %w", err)
 	}
 
-	log.Println("OPEN", col_uri)
 	col, err := aa_docstore.OpenCollection(ctx, col_uri)
 
 	if err != nil {
