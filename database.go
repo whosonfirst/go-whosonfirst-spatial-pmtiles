@@ -394,11 +394,14 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseFromTile(ctx context.Context, t
 
 				defer wg.Done()
 
+				// TBD: Append/pass path to cache key here?
+
 				_, err := db.cache_manager.CacheFeature(ctx, body)
 
 				if err != nil {
 					db.logger.Printf("Failed to create new feature cache for %s, %v", path, err)
 				}
+
 			}(body)
 		}
 
@@ -427,6 +430,11 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseFromCoord(ctx context.Context, 
 func (db *PMTilesSpatialDatabase) featuresForTile(ctx context.Context, t maptile.Tile) ([]*geojson.Feature, error) {
 
 	path := fmt.Sprintf("/%s/%d/%d/%d.mvt", db.database, t.Z, t.X, t.Y)
+
+	// It's tempting to cache body (or the resultant FeatureCollection) here. Ancedotally
+	// at zoom level 12 it's very easy to blow past the 400kb size limit for items in DynamoDB.
+	// So, in an AWS context, we could write tile caches to a gocloud.dev/blob instance but
+	// will that read really be faster than reading from the PMTiles database also in S3? Maybe?
 
 	status_code, _, body := db.loop.Get(ctx, path)
 
