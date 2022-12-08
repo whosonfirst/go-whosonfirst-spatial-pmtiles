@@ -1,9 +1,14 @@
 package pmtiles
 
 import (
+)
+
+import (
 	_ "github.com/whosonfirst/go-whosonfirst-spatial-sqlite"
 	_ "gocloud.dev/blob/fileblob"
 	_ "gocloud.dev/docstore/memdocstore"
+        _ "gocloud.dev/docstore/awsdynamodb"
+	_ "github.com/aaronland/gocloud-blob-s3"	
 )
 
 import (
