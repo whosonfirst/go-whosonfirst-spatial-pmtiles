@@ -57,6 +57,7 @@ pmtiles://?{QUERY_PARAMETERS}
 | --- | --- | --- | --- |
 | tiles | A valid `gocloud.dev/blob` bucket URI | yes | Support for `file://` URIs is enabled by default. |
 | database | The name of the Protomaps tiles database | yes | Ensure that this value does _not_ include a `.pmtiles` extension. |
+| layer | The name of the MVT layer containing your tile data | no | Default is to assume the same name as the value of `database`. |
 | pmtiles-cache-size | The size, in megabytes, of the pmtiles cache | no | Default is 64. |
 | zoom | The zoom level to perform point-in-polygon queries at | no | Default is 12. |
 | enable-cache | Enable caching of WOF features. | no | Default is false however you will need to enable it if you want to use the `-property` flag to append additional properties to results emitted by the `query` tool (discussed below). |

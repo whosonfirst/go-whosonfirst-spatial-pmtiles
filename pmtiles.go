@@ -5,7 +5,7 @@ import (
 	"github.com/paulmach/orb/geojson"
 )
 
-func init(){
+func init() {
 
 	// https://pkg.go.dev/github.com/paulmach/orb/geojson#pkg-variables
 	// https://github.com/json-iterator/go
@@ -15,13 +15,13 @@ func init(){
 	//
 	// I have not verified that claim either way but since we're not trafficing in "big-volume" JSON files
 	// I am just going to see how this (json-iterator) goes for now.
-	
+
 	var c = jsoniter.Config{
 		EscapeHTML:              true,
 		SortMapKeys:             false,
 		MarshalFloatWith6Digits: true,
 	}.Froze()
-	
+
 	geojson.CustomJSONMarshaler = c
 	geojson.CustomJSONUnmarshaler = c
 }

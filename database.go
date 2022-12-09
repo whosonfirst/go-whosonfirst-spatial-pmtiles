@@ -1,14 +1,13 @@
 package pmtiles
 
-import (
-)
+import ()
 
 import (
+	_ "github.com/aaronland/gocloud-blob-s3"
 	_ "github.com/whosonfirst/go-whosonfirst-spatial-sqlite"
 	_ "gocloud.dev/blob/fileblob"
+	_ "gocloud.dev/docstore/awsdynamodb"
 	_ "gocloud.dev/docstore/memdocstore"
-        _ "gocloud.dev/docstore/awsdynamodb"
-	_ "github.com/aaronland/gocloud-blob-s3"	
 )
 
 import (
@@ -50,6 +49,7 @@ type PMTilesSpatialDatabase struct {
 	loop                 *pmtiles.Loop
 	logger               *log.Logger
 	database             string
+	layer                string
 	enable_feature_cache bool
 	cache_manager        *CacheManager
 	zoom                 int
@@ -69,8 +69,13 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 
 	q := u.Query()
 
-	tile_path := q.Get("tiles")
-	database := q.Get("database")
+	q_tile_path := q.Get("tiles")
+	q_database := q.Get("database")
+	q_layer := q.Get("layer")
+
+	if q_layer == "" {
+		q_layer = q_database
+	}
 
 	logger := log.Default()
 
@@ -103,7 +108,7 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 		zoom = z
 	}
 
-	loop, err := pmtiles.NewLoop(tile_path, logger, cache_size, "")
+	loop, err := pmtiles.NewLoop(q_tile_path, logger, cache_size, "")
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create pmtiles.Loop, %w", err)
@@ -113,7 +118,8 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 
 	db := &PMTilesSpatialDatabase{
 		loop:     loop,
-		database: database,
+		database: q_database,
+		layer:    q_layer,
 		logger:   logger,
 		zoom:     zoom,
 	}
@@ -468,13 +474,13 @@ func (db *PMTilesSpatialDatabase) featuresForTile(ctx context.Context, t maptile
 
 		fc := layers.ToFeatureCollections()
 
-		_, exists := fc[db.database]
+		_, exists := fc[db.layer]
 
 		if !exists {
-			return nil, fmt.Errorf("Missing %s layer", db.database)
+			return nil, fmt.Errorf("Missing %s layer", db.layer)
 		}
 
-		features = fc[db.database].Features
+		features = fc[db.layer].Features
 	}
 
 	return features, nil
