@@ -1,10 +1,10 @@
 module github.com/whosonfirst/go-whosonfirst-spatial-pmtiles
 
-go 1.19
+go 1.18
 
 require (
 	github.com/aaronland/gocloud-blob-s3 v0.2.1
-	github.com/aaronland/gocloud-docstore v0.0.3
+	github.com/aaronland/gocloud-docstore v0.0.4
 	github.com/json-iterator/go v1.1.12
 	github.com/jtacoma/uritemplates v1.0.0
 	github.com/paulmach/orb v0.7.1
@@ -14,9 +14,9 @@ require (
 	github.com/whosonfirst/go-ioutil v1.0.2
 	github.com/whosonfirst/go-reader v1.0.2
 	github.com/whosonfirst/go-whosonfirst-feature v0.0.25
-	github.com/whosonfirst/go-whosonfirst-spatial v0.5.2
-	github.com/whosonfirst/go-whosonfirst-spatial-pip v0.3.1
-	github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.6.0
+	github.com/whosonfirst/go-whosonfirst-spatial v0.5.4
+	github.com/whosonfirst/go-whosonfirst-spatial-pip v0.3.2
+	github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.6.4
 	github.com/whosonfirst/go-whosonfirst-spr/v2 v2.3.3
 	github.com/whosonfirst/go-whosonfirst-uri v1.2.0
 	gocloud.dev v0.27.0
@@ -36,7 +36,7 @@ require (
 	github.com/aaronland/go-sqlite/v2 v2.2.0 // indirect
 	github.com/aaronland/go-string v0.1.2 // indirect
 	github.com/akrylysov/algnhsa v0.12.1 // indirect
-	github.com/aws/aws-lambda-go v1.35.0 // indirect
+	github.com/aws/aws-lambda-go v1.36.0 // indirect
 	github.com/aws/aws-sdk-go v1.44.151 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.16.8 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.4.3 // indirect

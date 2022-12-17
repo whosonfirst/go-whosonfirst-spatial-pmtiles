@@ -17,7 +17,6 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-spatial"
 	"github.com/whosonfirst/go-whosonfirst-spatial/database"
 	"github.com/whosonfirst/go-whosonfirst-spatial/filter"
-	"github.com/whosonfirst/go-whosonfirst-spatial/timer"
 	"github.com/whosonfirst/go-whosonfirst-spr/v2"
 	"github.com/whosonfirst/go-whosonfirst-sqlite-features/v2/tables"
 	sqlite_spr "github.com/whosonfirst/go-whosonfirst-sqlite-spr/v2"
@@ -45,7 +44,6 @@ func init() {
 type SQLiteSpatialDatabase struct {
 	database.SpatialDatabase
 	Logger        *log.Logger
-	Timer         *timer.Timer
 	mu            *sync.RWMutex
 	db            sqlite.Database
 	rtree_table   sqlite.Table
@@ -173,11 +171,8 @@ func NewSQLiteSpatialDatabaseWithDatabase(ctx context.Context, uri string, sqlit
 
 	mu := new(sync.RWMutex)
 
-	t := timer.NewTimer()
-
 	spatial_db := &SQLiteSpatialDatabase{
 		Logger:        logger,
-		Timer:         t,
 		db:            sqlite_db,
 		rtree_table:   rtree_table,
 		spr_table:     spr_table,
@@ -550,12 +545,6 @@ func (r *SQLiteSpatialDatabase) inflateSpatialIndexWithChannels(ctx context.Cont
 	sp_id := fmt.Sprintf("%s:%s", sp.Id, sp.AltLabel)
 	feature_id := fmt.Sprintf("%s:%s", sp.FeatureId, sp.AltLabel)
 
-	t1 := time.Now()
-
-	defer func() {
-		r.Timer.Add(ctx, sp_id, "time to inflate", time.Since(t1))
-	}()
-
 	// have we already looked up the filters for this ID?
 	// see notes below
 
@@ -566,8 +555,6 @@ func (r *SQLiteSpatialDatabase) inflateSpatialIndexWithChannels(ctx context.Cont
 	if ok {
 		return
 	}
-
-	t2 := time.Now()
 
 	// START OF maybe move all this code in to whosonfirst/go-whosonfirst-sqlite-features/tables/rtree.go
 
@@ -587,20 +574,9 @@ func (r *SQLiteSpatialDatabase) inflateSpatialIndexWithChannels(ctx context.Cont
 
 	// END OF maybe move all this code in to whosonfirst/go-whosonfirst-sqlite-features/tables/rtree.go
 
-	r.Timer.Add(ctx, sp_id, "time to unmarshal geometry", time.Since(t2))
-
-	if err != nil {
-		err_ch <- fmt.Errorf("Failed to unmarshal geometry, %w", err)
-		return
-	}
-
-	t3 := time.Now()
-
 	if !planar.PolygonContains(poly, *c) {
 		return
 	}
-
-	r.Timer.Add(ctx, sp_id, "time to perform contains test", time.Since(t3))
 
 	// there is at least one ring that contains the coord
 	// now we check the filters - whether or not they pass
@@ -619,8 +595,6 @@ func (r *SQLiteSpatialDatabase) inflateSpatialIndexWithChannels(ctx context.Cont
 
 	seen[feature_id] = true
 
-	t4 := time.Now()
-
 	s, err := r.retrieveSPR(ctx, sp.Path())
 
 	if err != nil {
@@ -628,14 +602,10 @@ func (r *SQLiteSpatialDatabase) inflateSpatialIndexWithChannels(ctx context.Cont
 		return
 	}
 
-	r.Timer.Add(ctx, sp_id, "time to retrieve SPR", time.Since(t4))
-
 	if err != nil {
 		r.Logger.Printf("Failed to retrieve feature cache for %s, %v", sp_id, err)
 		return
 	}
-
-	t5 := time.Now()
 
 	for _, f := range filters {
 
@@ -646,8 +616,6 @@ func (r *SQLiteSpatialDatabase) inflateSpatialIndexWithChannels(ctx context.Cont
 			return
 		}
 	}
-
-	r.Timer.Add(ctx, sp_id, "time to filter SPR", time.Since(t5))
 
 	rsp_ch <- s
 }

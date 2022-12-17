@@ -18,7 +18,7 @@ func NewPropertiesReaderWithFlagsSet(ctx context.Context, fs *flag.FlagSet) (rea
 	}
 
 	use_spatial_uri := fmt.Sprintf("{%s}", flags.SPATIAL_DATABASE_URI)
-	
+
 	if reader_uri == use_spatial_uri {
 
 		spatial_database_uri, err := lookup.StringVar(fs, flags.SPATIAL_DATABASE_URI)
@@ -29,6 +29,6 @@ func NewPropertiesReaderWithFlagsSet(ctx context.Context, fs *flag.FlagSet) (rea
 
 		reader_uri = spatial_database_uri
 	}
-	
+
 	return reader.NewReader(ctx, reader_uri)
 }

@@ -16,7 +16,7 @@ func CommonFlags() (*flag.FlagSet, error) {
 	err := AppendCommonFlags(fs)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to append common application flags, %w", err)
 	}
 
 	return fs, nil
@@ -29,44 +29,44 @@ func AppendCommonFlags(fs *flag.FlagSet) error {
 	available_databases := database.Schemes()
 	desc_databases := fmt.Sprintf("A valid whosonfirst/go-whosonfirst-spatial/data.SpatialDatabase URI. options are: %s", available_databases)
 
-	fs.String(SPATIAL_DATABASE_URI, "", desc_databases)
+	fs.String(SpatialDatabaseURIFlag, "", desc_databases)
 
 	available_readers := reader.Schemes()
 	desc_readers := fmt.Sprintf("A valid whosonfirst/go-reader.Reader URI. Available options are: %s", available_readers)
 
-	fs.String(PROPERTIES_READER_URI, "", fmt.Sprintf("%s. If the value is {spatial-database-uri} then the value of the '-spatial-database-uri' implements the reader.Reader interface and will be used.", desc_readers))
+	fs.String(PropertiesReaderURIFlag, "", fmt.Sprintf("%s. If the value is {spatial-database-uri} then the value of the '-spatial-database-uri' implements the reader.Reader interface and will be used.", desc_readers))
 
 	fs.Bool(IS_WOF, true, "Input data is WOF-flavoured GeoJSON. (Pass a value of '0' or 'false' if you need to index non-WOF documents.")
 
-	fs.Bool(ENABLE_CUSTOM_PLACETYPES, false, "Enable wof:placetype values that are not explicitly defined in the whosonfirst/go-whosonfirst-placetypes repository.")
+	fs.Bool(EnableCustomPlacetypesFlag, false, "Enable wof:placetype values that are not explicitly defined in the whosonfirst/go-whosonfirst-placetypes repository.")
 
 	// Pending changes in the app/placetypes.go package to support
 	// alternate sources (20210324/thisisaaronland)
 	// fs.String(CUSTOM_PLACETYPES_SOURCE, "", "...")
 
-	fs.String(CUSTOM_PLACETYPES, "", "A JSON-encoded string containing custom placetypes defined using the syntax described in the whosonfirst/go-whosonfirst-placetypes repository.")
+	fs.String(CustomPlacetypesFlag, "", "A JSON-encoded string containing custom placetypes defined using the syntax described in the whosonfirst/go-whosonfirst-placetypes repository.")
 
-	fs.Bool(VERBOSE, false, "Be chatty.")
+	fs.Bool(VerboseFlag, false, "Be chatty.")
 
 	return nil
 }
 
 func ValidateCommonFlags(fs *flag.FlagSet) error {
 
-	spatial_database_uri, err := lookup.StringVar(fs, SPATIAL_DATABASE_URI)
+	spatial_database_uri, err := lookup.StringVar(fs, SpatialDatabaseURIFlag)
 
 	if err != nil {
-		return err
+		return fmt.Errorf("Failed to lookup %s flag, %w", SpatialDatabaseURIFlag, err)
 	}
 
 	if spatial_database_uri == "" {
-		return fmt.Errorf("Invalid or missing -%s flag", SPATIAL_DATABASE_URI)
+		return fmt.Errorf("Invalid or missing -%s flag", SpatialDatabaseURIFlag)
 	}
 
-	_, err = lookup.StringVar(fs, PROPERTIES_READER_URI)
+	_, err = lookup.StringVar(fs, PropertiesReaderURIFlag)
 
 	if err != nil {
-		return err
+		return fmt.Errorf("Failed to lookup %s flag, %w", PropertiesReaderURIFlag, err)
 	}
 
 	return nil

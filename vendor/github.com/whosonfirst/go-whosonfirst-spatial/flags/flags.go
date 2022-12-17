@@ -1,43 +1,89 @@
 package flags
 
-const ALTERNATE_GEOMETRIES string = "alternate-geometry"
+const AlternateGeometriesFlag string = "alternate-geometry"
 
-const CESSATION_DATE string = "cessation-date"
+const CessationDateFlag string = "cessation-date"
 
-const CUSTOM_PLACETYPES string = "custom-placetypes"
+const CustomPlacetypesFlag string = "custom-placetypes"
 
-const CUSTOM_PLACETYPES_SOURCE string = "custom-placetypes-source"
+const CustomPlacetypesSourceFlag string = "custom-placetypes-source"
 
-const ENABLE_CUSTOM_PLACETYPES string = "enable-custom-placetypes"
+const EnableCustomPlacetypesFlag string = "enable-custom-placetypes"
 
-const GEOMETRIES string = "geometries"
+const GeometriesFlag string = "geometries"
 
-const INCEPTION_DATE string = "inception-date"
+const InceptionDateFlag string = "inception-date"
 
-const IS_CEASED string = "is-ceased"
+const IsCeasedFlag string = "is-ceased"
 
-const IS_CURRENT string = "is-current"
+const IsCurrentFlag string = "is-current"
 
-const IS_DEPRECATED string = "is-deprecated"
+const IsDeprecatedFlag string = "is-deprecated"
 
-const IS_SUPERSEDED string = "is-superseded"
+const IsSupersededFlag string = "is-superseded"
 
-const IS_SUPERSEDING string = "is-superseding"
+const IsSupersedingFlag string = "is-superseding"
 
-const ITERATOR_URI string = "iterator-uri"
+const IteratorURIFlag string = "iterator-uri"
 
-const LATITUDE string = "latitude"
+const LatitudeFlag string = "latitude"
 
-const LONGITUDE string = "longitude"
+const LongitudeFlag string = "longitude"
 
-const PLACETYPES string = "placetype"
+const PlacetypeFlag string = "placetype"
 
-const PROPERTIES string = "property"
+const PropertyFlag string = "property"
 
-const SPATIAL_DATABASE_URI string = "spatial-database-uri"
+const SpatialDatabaseURIFlag string = "spatial-database-uri"
 
-const PROPERTIES_READER_URI string = "properties-reader-uri"
+const PropertiesReaderURIFlag string = "properties-reader-uri"
 
-const VERBOSE string = "verbose"
+const VerboseFlag string = "verbose"
+
+const SortURIFlag string = "sort-uri"
+
+// Deprecated. These will be removed once this package reaches v1.0.0
+
+const ALTERNATE_GEOMETRIES string = AlternateGeometriesFlag
+
+const CESSATION_DATE string = CessationDateFlag
+
+const CUSTOM_PLACETYPES string = CustomPlacetypesFlag
+
+const CUSTOM_PLACETYPES_SOURCE string = CustomPlacetypesSourceFlag
+
+const ENABLE_CUSTOM_PLACETYPES string = EnableCustomPlacetypesFlag
+
+const GEOMETRIES string = GeometriesFlag
+
+const INCEPTION_DATE string = InceptionDateFlag
+
+const IS_CEASED string = IsCeasedFlag
+
+const IS_CURRENT string = IsCurrentFlag
+
+const IS_DEPRECATED string = IsDeprecatedFlag
+
+const IS_SUPERSEDED string = IsSupersededFlag
+
+const IS_SUPERSEDING string = IsSupersedingFlag
+
+const ITERATOR_URI string = IteratorURIFlag
+
+const LATITUDE string = LatitudeFlag
+
+const LONGITUDE string = LongitudeFlag
+
+const PLACETYPES string = PlacetypeFlag
+
+const PROPERTIES string = PropertyFlag
+
+const SPATIAL_DATABASE_URI string = SpatialDatabaseURIFlag
+
+const PROPERTIES_READER_URI string = PropertiesReaderURIFlag
+
+const VERBOSE string = VerboseFlag
 
 const IS_WOF string = "is-wof"
+
+const SORT string = SortURIFlag

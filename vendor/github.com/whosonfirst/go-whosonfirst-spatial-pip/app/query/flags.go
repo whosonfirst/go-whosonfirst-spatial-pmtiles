@@ -37,10 +37,8 @@ func DefaultFlagSet(ctx context.Context) (*flag.FlagSet, error) {
 		return nil, err
 	}
 
-	fs.StringVar(&mode, "mode", "cli", "...")
-	fs.StringVar(&server_uri, "server-uri", "http://localhost:8080", "...")
-	fs.BoolVar(&enable_geojson, "enable-geojson", false, "...")
+	fs.StringVar(&mode, "mode", "cli", "Valid options are: cli")
+	fs.StringVar(&server_uri, "server-uri", "http://localhost:8080", "A valid aaronland/go-http-server URI.")
 
-	fs.Var(&sort_uris, "sort-uri", "Zero or more whosonfirst/go-whosonfirst-spr/v2/sort URIs.")
 	return fs, nil
 }

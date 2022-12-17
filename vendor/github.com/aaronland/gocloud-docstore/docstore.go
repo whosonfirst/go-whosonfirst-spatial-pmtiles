@@ -10,6 +10,8 @@ import (
 	"strconv"
 )
 
+const DYNAMODB_FALLBACK_FUNC_KEY string = "aaronland-dynamodb-fallback-func"
+
 func OpenCollection(ctx context.Context, uri string) (*docstore.Collection, error) {
 
 	var col *docstore.Collection
@@ -51,6 +53,24 @@ func OpenCollection(ctx context.Context, uri string) (*docstore.Collection, erro
 			}
 
 			col_opts.AllowScans = allow
+
+			v := ctx.Value(DYNAMODB_FALLBACK_FUNC_KEY)
+
+			if v != nil {
+
+				switch v.(type) {
+				case func() interface{}:
+					// pass
+				default:
+					return nil, fmt.Errorf("Invalid fallback func %T", v)
+				}
+
+				fn := v.(func() interface{})
+
+				fallback_func := awsdynamodb.InMemorySortFallback(fn)
+				col_opts.RunQueryFallback = fallback_func
+			}
+
 		}
 
 		c, err := awsdynamodb.OpenCollection(cl, table, partition_key, "", col_opts)

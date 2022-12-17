@@ -41,13 +41,13 @@ github.com/aaronland/go-string/dsn
 # github.com/aaronland/gocloud-blob-s3 v0.2.1
 ## explicit; go 1.16
 github.com/aaronland/gocloud-blob-s3
-# github.com/aaronland/gocloud-docstore v0.0.3
+# github.com/aaronland/gocloud-docstore v0.0.4
 ## explicit; go 1.19
 github.com/aaronland/gocloud-docstore
 # github.com/akrylysov/algnhsa v0.12.1
 ## explicit; go 1.12
 github.com/akrylysov/algnhsa
-# github.com/aws/aws-lambda-go v1.35.0
+# github.com/aws/aws-lambda-go v1.36.0
 ## explicit; go 1.18
 github.com/aws/aws-lambda-go/events
 github.com/aws/aws-lambda-go/lambda
@@ -403,7 +403,7 @@ github.com/whosonfirst/go-whosonfirst-placetypes
 ## explicit; go 1.12
 github.com/whosonfirst/go-whosonfirst-sources
 github.com/whosonfirst/go-whosonfirst-sources/sources
-# github.com/whosonfirst/go-whosonfirst-spatial v0.5.2
+# github.com/whosonfirst/go-whosonfirst-spatial v0.5.4
 ## explicit; go 1.18
 github.com/whosonfirst/go-whosonfirst-spatial
 github.com/whosonfirst/go-whosonfirst-spatial/app
@@ -411,13 +411,12 @@ github.com/whosonfirst/go-whosonfirst-spatial/database
 github.com/whosonfirst/go-whosonfirst-spatial/filter
 github.com/whosonfirst/go-whosonfirst-spatial/flags
 github.com/whosonfirst/go-whosonfirst-spatial/geo
-github.com/whosonfirst/go-whosonfirst-spatial/timer
-# github.com/whosonfirst/go-whosonfirst-spatial-pip v0.3.1
+# github.com/whosonfirst/go-whosonfirst-spatial-pip v0.3.2
 ## explicit; go 1.18
 github.com/whosonfirst/go-whosonfirst-spatial-pip
 github.com/whosonfirst/go-whosonfirst-spatial-pip/app/query
 github.com/whosonfirst/go-whosonfirst-spatial-pip/http/api
-# github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.6.0
+# github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.6.4
 ## explicit; go 1.18
 github.com/whosonfirst/go-whosonfirst-spatial-sqlite
 # github.com/whosonfirst/go-whosonfirst-spr-geojson v0.0.8
