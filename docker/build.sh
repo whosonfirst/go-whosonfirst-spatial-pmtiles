@@ -51,14 +51,23 @@ done
 
 echo "wof-tippecanoe-features ${FEATURES_ARGS} | tippecanoe -P -z ${ZOOM} -pf -pk -o /usr/local/data/${NAME}.mbtiles"
 
-wof-tippecanoe-features ${FEATURES_ARGS} | tippecanoe -P -z ${ZOOM} -pf -pk -o /usr/local/data/${NAME}.mbtiles
+# wof-tippecanoe-features ${FEATURES_ARGS} | tippecanoe -P -z ${ZOOM} -pf -pk -o /usr/local/data/${NAME}.mbtiles
+
+wof-tippecanoe-features ${FEATURES_ARGS} > /usr/local/data/features.jsonl
+
+COUNT=`cat /usr/local/data/features.jsonl | wc -l`
+echo "${COUNT} features"
+
+tippecanoe -P -z ${ZOOM} -pf -pk -o /usr/local/data/${NAME}.mbtiles /usr/local/data/features.jsonl
 
 pmtiles convert -tmpdir /usr/local/data /usr/local/data/${NAME}.mbtiles /usr/local/data/${NAME}.pmtiles
 
-rm -f /usr/local/data/${NAME}.mbtiles
+# rm -f /usr/local/data/${NAME}.mbtiles
 
 if [ "${TARGET}" != "" ]
 then
-	copy-uri -source-uri file:///usr/local/data/${NAME}.pmtiles -target-uri ${TARGET}
+    copy-uri -source-uri file:///usr/local/data/${NAME}.pmtiles -target-uri ${TARGET}
+    copy-uri -source-uri file:///usr/local/data/${NAME}.mbtiles -target-uri ${TARGET}
+    copy-uri -source-uri file:///usr/local/data/features.jsonl -target-uri ${TARGET}        
 fi
 
