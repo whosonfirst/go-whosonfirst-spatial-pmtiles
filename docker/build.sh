@@ -53,7 +53,7 @@ echo "wof-tippecanoe-features ${FEATURES_ARGS} | tippecanoe -P -z ${ZOOM} -pf -p
 
 wof-tippecanoe-features ${FEATURES_ARGS} | tippecanoe -P -z ${ZOOM} -pf -pk -o /usr/local/data/${NAME}.mbtiles
 
-pmtiles convert /usr/local/data/${NAME}.mbtiles /usr/local/data/${NAME}.pmtiles
+pmtiles convert -tmpdir /usr/local/data /usr/local/data/${NAME}.mbtiles /usr/local/data/${NAME}.pmtiles
 
 rm -f /usr/local/data/${NAME}.mbtiles
 

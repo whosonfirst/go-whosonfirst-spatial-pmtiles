@@ -3,8 +3,11 @@ FROM golang:1.19-alpine as builder
 RUN apk update && apk upgrade \
     && apk add --no-cache git gcc libc-dev \
     #
-    && git clone https://github.com/protomaps/go-pmtiles.git go-pmtiles \
+    # && git clone https://github.com/protomaps/go-pmtiles.git go-pmtiles \
+    && git clone https://github.com/sfomuseum/go-pmtiles.git go-pmtiles \    
     && cd go-pmtiles \
+    && git fetch -a \
+    && git checkout tmp \
     && go build -o /usr/local/bin/pmtiles main.go \
     && cd - \
     && rm -rf /go-pmtiles \
