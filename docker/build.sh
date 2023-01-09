@@ -82,7 +82,6 @@ then
     
     tippecanoe -P -z ${ZOOM} -pf -pk -o /usr/local/data/${NAME}.pmtiles /usr/local/data/features.jsonl
 
-    # pmtiles convert -tmpdir /usr/local/data /usr/local/data/${NAME}.mbtiles /usr/local/data/${NAME}.pmtiles
 else 
     wof-tippecanoe-features ${FEATURES_ARGS} | tippecanoe -P -z ${ZOOM} -pf -pk -o /usr/local/data/${NAME}.pmtiles
 fi

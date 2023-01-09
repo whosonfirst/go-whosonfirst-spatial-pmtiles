@@ -3,15 +3,6 @@ FROM golang:1.19-alpine as builder
 RUN apk update && apk upgrade \
     && apk add --no-cache git gcc libc-dev \
     #
-    # && git clone https://github.com/protomaps/go-pmtiles.git go-pmtiles \
-    && git clone https://github.com/sfomuseum/go-pmtiles.git go-pmtiles \    
-    && cd go-pmtiles \
-    && git fetch -a \
-    && git checkout tmp \
-    && go build -o /usr/local/bin/pmtiles main.go \
-    && cd - \
-    && rm -rf /go-pmtiles \
-    #
     && git clone https://github.com/whosonfirst/go-whosonfirst-tippecanoe.git go-whosonfirst-tippecanoe \
     && cd go-whosonfirst-tippecanoe \
     && go build -mod vendor -o /usr/local/bin/wof-tippecanoe-features cmd/features/main.go \
@@ -41,7 +32,6 @@ RUN apk update && apk upgrade \
     && rm -rf /tippecanoe \
     && apk del git g++ make sqlite-dev
 
-COPY --from=builder /usr/local/bin/pmtiles /usr/local/bin/pmtiles
 COPY --from=builder /usr/local/bin/wof-tippecanoe-features /usr/local/bin/wof-tippecanoe-features
 COPY --from=builder /usr/local/bin/copy-uri /usr/local/bin/copy-uri
 
