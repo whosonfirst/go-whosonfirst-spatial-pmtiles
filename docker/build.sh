@@ -64,7 +64,7 @@ do
     FEATURES_ARGS="${FEATURES_ARGS} ${SRC}"
 done
 
-echo "wof-tippecanoe-features ${FEATURES_ARGS} | tippecanoe -P -z ${ZOOM} -pf -pk -o /usr/local/data/${NAME}.pmtiles"
+echo "wof-tippecanoe-features ${FEATURES_ARGS} | tippecanoe -Q -P -z ${ZOOM} -pf -pk -t /usr/local/data -o /usr/local/data/${NAME}.pmtiles"
 
 if [ "${WRITE_FEATURES}" = "1" ]
 then
@@ -80,10 +80,10 @@ then
 	exit 1;
     fi
     
-    tippecanoe -P -z ${ZOOM} -pf -pk -o /usr/local/data/${NAME}.pmtiles /usr/local/data/features.jsonl
+    tippecanoe -Q -P -z ${ZOOM} -pf -pk -t /usr/local/data -o /usr/local/data/${NAME}.pmtiles /usr/local/data/features.jsonl
 
 else 
-    wof-tippecanoe-features ${FEATURES_ARGS} | tippecanoe -P -z ${ZOOM} -pf -pk -o /usr/local/data/${NAME}.pmtiles
+    wof-tippecanoe-features ${FEATURES_ARGS} | tippecanoe -Q -P -z ${ZOOM} -pf -pk -t /usr/local/data -o /usr/local/data/${NAME}.pmtiles
 fi
 
 if [ $? -ne 0 ]
@@ -97,7 +97,6 @@ if [ "${TARGET}" != "" ]
 then
     
     copy-uri -source-uri file:///usr/local/data/${NAME}.pmtiles -target-uri ${TARGET}
-    # copy-uri -source-uri file:///usr/local/data/${NAME}.mbtiles -target-uri ${TARGET}
 
     if [ -f /usr/local/data/features.jsonl ]
     then
