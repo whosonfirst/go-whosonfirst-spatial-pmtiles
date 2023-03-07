@@ -14,6 +14,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"log"
+	"net/url"
+	"strconv"
+	"strings"
+	"sync"
+
 	aa_docstore "github.com/aaronland/gocloud-docstore"
 	"github.com/jtacoma/uritemplates"
 	"github.com/paulmach/orb"
@@ -30,12 +37,6 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-spr/v2"
 	"github.com/whosonfirst/go-whosonfirst-uri"
 	"gocloud.dev/docstore"
-	"io"
-	"log"
-	"net/url"
-	"strconv"
-	"strings"
-	"sync"
 )
 
 func init() {
@@ -46,7 +47,7 @@ func init() {
 
 type PMTilesSpatialDatabase struct {
 	database.SpatialDatabase
-	loop                 *pmtiles.Loop
+	server               *pmtiles.Server
 	logger               *log.Logger
 	database             string
 	layer                string
@@ -108,16 +109,16 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 		zoom = z
 	}
 
-	loop, err := pmtiles.NewLoop(q_tile_path, logger, cache_size, "")
+	server, err := pmtiles.NewServer(q_tile_path, "", logger, cache_size, "")
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create pmtiles.Loop, %w", err)
 	}
 
-	loop.Start()
+	server.Start()
 
 	db := &PMTilesSpatialDatabase{
-		loop:     loop,
+		server:   server,
 		database: q_database,
 		layer:    q_layer,
 		logger:   logger,
@@ -447,7 +448,7 @@ func (db *PMTilesSpatialDatabase) featuresForTile(ctx context.Context, t maptile
 	// So, in an AWS context, we could write tile caches to a gocloud.dev/blob instance but
 	// will that read really be faster than reading from the PMTiles database also in S3? Maybe?
 
-	status_code, _, body := db.loop.Get(ctx, path)
+	status_code, _, body := db.server.Get(ctx, path)
 
 	if status_code != 200 {
 		return nil, fmt.Errorf("Failed to get %s, unexpected status code %d", path, status_code)

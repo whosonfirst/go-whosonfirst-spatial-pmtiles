@@ -13,6 +13,11 @@ import (
 	"strconv"
 )
 
+// It would be nice to be able to omit zero-length arrays (wof:belongsto, etc)
+// but apparently it's harder than you think...
+// https://github.com/golang/go/issues/45669
+// https://github.com/golang/go/issues/22480
+
 // WOFStandardPlacesResult is a struct that implements the `StandardPlacesResult` for
 // Who's On First GeoJSON Feature records.
 type WOFStandardPlacesResult struct {

@@ -4,14 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/paulmach/orb/geojson"
-	"github.com/whosonfirst/go-whosonfirst-feature/properties"
-	"gocloud.dev/docstore"
 	"io"
 	"log"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/paulmach/orb/geojson"
+	"github.com/whosonfirst/go-whosonfirst-feature/properties"
+	"gocloud.dev/docstore"
 )
 
 const FEATURES_CACHE_TABLE string = "pmtiles_features"

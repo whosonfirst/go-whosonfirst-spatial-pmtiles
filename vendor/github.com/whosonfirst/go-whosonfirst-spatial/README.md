@@ -18,6 +18,8 @@ These interfaces are then implemented in full or in part by provider-specific cl
 * https://github.com/whosonfirst/go-whosonfirst-spatial-sqlite
 * https://github.com/whosonfirst/go-whosonfirst-spatial-pmtiles
 
+_You may have noticed the absence of an equivalent `go-whosonfirst-spatial-postgis` or even `go-whosonfirst-spatial-mysql` implementation. That's only because I've been focusing on implementations with fewer requirements, dependencies and less overhead to set up and maintain. There is no reason there couldn't be implementations for either database and some day I hope there will be._
+
 Building on that there are equivalent base packages for "server" implementations, like:
 
 * https://github.com/whosonfirst/go-whosonfirst-spatial-www

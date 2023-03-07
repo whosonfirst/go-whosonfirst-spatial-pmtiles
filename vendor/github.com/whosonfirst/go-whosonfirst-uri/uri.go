@@ -95,6 +95,32 @@ func NewAlternateURIArgs(source string, function string, extras ...string) *URIA
 	return &u
 }
 
+// Return a `URIArgs` struct representing an alternate geometry derive from 'label' (which is expected to
+// be the value of a valid "src:alt_label" or "src:geom_alt" property.
+func NewAlternateURIArgsFromAltLabel(label string) (*URIArgs, error) {
+
+	parts := strings.Split(label, "-")
+
+	if len(parts) < 1 {
+		return nil, fmt.Errorf("Invalid alt label")
+	}
+
+	source := parts[0]
+	function := ""
+	extras := make([]string, 0)
+
+	if len(parts) > 1 {
+		function = parts[1]
+	}
+
+	if len(parts) > 2 {
+		extras = parts[2:]
+	}
+
+	uri_args := NewAlternateURIArgs(source, function, extras...)
+	return uri_args, nil
+}
+
 // See also: https://github.com/whosonfirst/whosonfirst-cookbook/blob/master/how_to/creating_alt_geometries.md
 
 // Id2Fname parses a Who's On First ID and one or more URIArgs instances (in practice just one instance) in to a filename.

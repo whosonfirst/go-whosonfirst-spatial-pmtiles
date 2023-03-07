@@ -2,14 +2,21 @@
 
 Go package for working with Who's On First placetypes.
 
+## Documentation
+
+[![Go Reference](https://pkg.go.dev/badge/github.com/whosonfirst/go-whosonfirst-placetypes.svg)](https://pkg.go.dev/github.com/whosonfirst/go-whosonfirst-placetypes)
+
+Documentation is incomplete at this time.
+
 ## Example
 
 ### Simple
 
 ```
 import (
-       "github.com/whosonfirst/go-whosonfirst-placetypes"
        "log"
+
+       "github.com/whosonfirst/go-whosonfirst-placetypes"
 )
 
 log.Println(placetypes.IsValidPlacetype("county"))

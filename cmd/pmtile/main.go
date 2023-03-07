@@ -14,11 +14,12 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"log"
+	"os"
+
 	"github.com/paulmach/orb/encoding/mvt"
 	"github.com/paulmach/orb/maptile"
 	"github.com/protomaps/go-pmtiles/pmtiles"
-	"log"
-	"os"
 )
 
 func main() {
@@ -44,20 +45,20 @@ func main() {
 	logger := log.Default()
 	cache_size := 64
 
-	loop, err := pmtiles.NewLoop(tile_path, logger, cache_size, "")
+	server, err := pmtiles.NewServer(tile_path, "", logger, cache_size, "")
 
 	if err != nil {
-		log.Fatalf("Failed to create pmtiles.Loop, %v", err)
+		log.Fatalf("Failed to create pmtiles.Server, %v", err)
 	}
 
-	loop.Start()
+	server.Start()
 
 	zm := maptile.Zoom(uint32(z))
 	t := maptile.New(uint32(x), uint32(y), zm)
 
 	path := fmt.Sprintf("/%s/%d/%d/%d.mvt", database, z, x, y)
 
-	status_code, _, body := loop.Get(ctx, path)
+	status_code, _, body := server.Get(ctx, path)
 
 	if status_code != 200 {
 		log.Fatalf("%s returns status code %d\n", path, status_code)

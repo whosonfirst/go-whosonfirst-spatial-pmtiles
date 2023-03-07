@@ -104,7 +104,7 @@ func NewSpatialApplicationWithFlagSet(ctx context.Context, fl *flag.FlagSet) (*S
 				err := json.Unmarshal(body, &tr)
 
 				if err != nil {
-					logger.Printf("Failed to decoder since response, %w", err)
+					logger.Printf("Failed to decoder since response, %v", err)
 					return
 				}
 

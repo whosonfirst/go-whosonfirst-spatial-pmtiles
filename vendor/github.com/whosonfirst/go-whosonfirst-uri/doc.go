@@ -32,7 +32,7 @@
 //	rel_path, _ := uri.Id2RelPath(101736545, args)
 //	abs_path, _ := uri.Id2AbsPath("/usr/local/data", 101736545, args)
 //
-//Produces:
+// Produces:
 //
 //	101736545-alt-mapzen-display-1024.geojson
 //	101/736/545/101736545-alt-mapzen-display-1024.geojson
