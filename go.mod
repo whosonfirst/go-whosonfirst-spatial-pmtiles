@@ -3,6 +3,7 @@ module github.com/whosonfirst/go-whosonfirst-spatial-pmtiles
 go 1.18
 
 require (
+	github.com/aaronland/go-log/v2 v2.0.0
 	github.com/aaronland/gocloud-blob-s3 v0.2.2
 	github.com/aaronland/gocloud-docstore v0.0.4
 	github.com/json-iterator/go v1.1.12
@@ -17,7 +18,7 @@ require (
 	github.com/whosonfirst/go-whosonfirst-spatial v0.5.6
 	github.com/whosonfirst/go-whosonfirst-spatial-pip v0.3.2
 	github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.6.4
-	github.com/whosonfirst/go-whosonfirst-spr/v2 v2.3.5
+	github.com/whosonfirst/go-whosonfirst-spr/v2 v2.3.6
 	github.com/whosonfirst/go-whosonfirst-uri v1.3.0
 	gocloud.dev v0.29.0
 )
@@ -93,7 +94,7 @@ require (
 	github.com/whosonfirst/go-rfc-5646 v0.1.0 // indirect
 	github.com/whosonfirst/go-sanitize v0.1.0 // indirect
 	github.com/whosonfirst/go-whosonfirst-crawl v0.2.1 // indirect
-	github.com/whosonfirst/go-whosonfirst-flags v0.5.0 // indirect
+	github.com/whosonfirst/go-whosonfirst-flags v0.5.1 // indirect
 	github.com/whosonfirst/go-whosonfirst-iterate/v2 v2.3.1 // indirect
 	github.com/whosonfirst/go-whosonfirst-names v0.1.0 // indirect
 	github.com/whosonfirst/go-whosonfirst-placetypes v0.7.0 // indirect

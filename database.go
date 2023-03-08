@@ -21,6 +21,7 @@ import (
 	"strings"
 	"sync"
 
+	aa_log "github.com/aaronland/go-log/v2"
 	aa_docstore "github.com/aaronland/gocloud-docstore"
 	"github.com/jtacoma/uritemplates"
 	"github.com/paulmach/orb"
@@ -330,7 +331,7 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseFromTile(ctx context.Context, t
 
 	path := fmt.Sprintf("/%s/%d/%d/%d.mvt", db.database, t.Z, t.X, t.Y)
 
-	db.logger.Printf("GET tile at %s", path)
+	aa_log.Debug(db.logger, "Get tile at %s", path)
 
 	features, err := db.featuresForTile(ctx, t)
 
@@ -411,7 +412,7 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseFromTile(ctx context.Context, t
 				_, err := db.cache_manager.CacheFeature(ctx, body)
 
 				if err != nil {
-					db.logger.Printf("Failed to create new feature cache for %s, %v", path, err)
+					aa_log.Warning(db.logger, "Failed to create new feature cache for %s, %v", path, err)
 				}
 
 			}(body)

@@ -4,10 +4,36 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/whosonfirst/go-whosonfirst-flags"
 	wof_placetypes "github.com/whosonfirst/go-whosonfirst-placetypes"
 )
+
+// placetype_definitions is a local cache of go-whosonfirst-placetypes.Definition instances.
+// It is used in by the NewPlacetypeFlag so we don't have to incur the overhead of populating
+// placetype relationships multiple times.
+var placetype_definitions *sync.Map
+
+func init() {
+
+	placetype_definitions = new(sync.Map)
+
+	// Be proactive about fetching and caching "core" Who's On First placetypes
+
+	go func() {
+		ctx := context.Background()
+
+		def_uri := "whosonfirst://"
+		def, err := wof_placetypes.NewDefinition(ctx, def_uri)
+
+		if err != nil {
+			panic(err)
+		}
+
+		placetype_definitions.Store(def_uri, def)
+	}()
+}
 
 type PlacetypeFlag struct {
 	flags.PlacetypeFlag
@@ -44,16 +70,28 @@ func NewPlacetypeFlag(placetype_fl string) (flags.PlacetypeFlag, error) {
 		definition_uri = parts[1]
 	}
 
-	ctx := context.Background()
-	def, err := wof_placetypes.NewDefinition(ctx, definition_uri)
+	var placetype_def wof_placetypes.Definition
 
-	if err != nil {
-		return nil, fmt.Errorf("Failed to derive new foo, %w", err)
+	v, exists := placetype_definitions.Load(definition_uri)
+
+	if exists {
+		placetype_def = v.(wof_placetypes.Definition)
+	} else {
+
+		ctx := context.Background()
+		def, err := wof_placetypes.NewDefinition(ctx, definition_uri)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to derive new foo, %w", err)
+		}
+
+		placetype_definitions.Store(definition_uri, def)
+		placetype_def = def
 	}
 
-	spec := def.Specification()
+	placetype_spec := placetype_def.Specification()
 
-	pt, err := spec.GetPlacetypeByName(placetype_name)
+	pt, err := placetype_spec.GetPlacetypeByName(placetype_name)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to retrieve placetype with name '%s', %w", placetype_name, err)
