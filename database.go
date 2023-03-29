@@ -71,21 +71,11 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 
 	q := u.Query()
 
-	q_tile_path := q.Get("tiles")
-	q_database := q.Get("database")
-	q_layer := q.Get("layer")
-
-	if q_layer == "" {
-		q_layer = q_database
-	}
-
-	logger := log.Default()
-
-	cache_size := 64
-	zoom := 12
-
 	q_cache_size := q.Get("pmtiles-cache-size")
-
+	q_tile_path := q.Get("tiles")
+	
+	cache_size := 64	
+	
 	if q_cache_size != "" {
 
 		sz, err := strconv.Atoi(q_cache_size)
@@ -96,6 +86,39 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 
 		cache_size = sz
 	}
+
+	logger := log.Default()
+	
+	server, err := pmtiles.NewServer(q_tile_path, "", logger, cache_size, "")
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create pmtiles.Loop, %w", err)
+	}
+
+	return NewPMTilesSpatialDatabaseWithServer(ctx, uri, server)
+}
+
+func NewPMTilesSpatialDatabaseWithServer(ctx context.Context, uri string, server *pmtiles.Server) (database.SpatialDatabase, error) {
+	
+	u, err := url.Parse(uri)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to parse URI, %w", err)
+	}
+
+	q := u.Query()
+
+	q_database := q.Get("database")
+	q_layer := q.Get("layer")
+
+	if q_layer == "" {
+		q_layer = q_database
+	}
+
+	logger := log.Default()
+
+
+	zoom := 12
 
 	q_zoom := q.Get("zoom")
 
@@ -108,12 +131,6 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 		}
 
 		zoom = z
-	}
-
-	server, err := pmtiles.NewServer(q_tile_path, "", logger, cache_size, "")
-
-	if err != nil {
-		return nil, fmt.Errorf("Failed to create pmtiles.Loop, %w", err)
 	}
 
 	server.Start()
@@ -508,7 +525,7 @@ func (db *PMTilesSpatialDatabase) decodeMVT(ctx context.Context, body []byte) ([
 			err := json.Unmarshal([]byte(v.String()), &values)
 
 			if err != nil {
-				return nil, fmt.Errorf("Failed to unmarshal %k value (%s), %w", k, v.String(), err)
+				return nil, fmt.Errorf("Failed to unmarshal %v value (%s), %w", k, v.String(), err)
 			}
 
 			path := fmt.Sprintf("properties.%s", k)
@@ -525,7 +542,7 @@ func (db *PMTilesSpatialDatabase) decodeMVT(ctx context.Context, body []byte) ([
 			err := json.Unmarshal([]byte(v.String()), &values)
 
 			if err != nil {
-				return nil, fmt.Errorf("Failed to unmarshal %k value (%s), %w", k, v.String(), err)
+				return nil, fmt.Errorf("Failed to unmarshal %v value (%s), %w", k, v.String(), err)
 			}
 
 			path := fmt.Sprintf("properties.%s", k)

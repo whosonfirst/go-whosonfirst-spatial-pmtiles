@@ -434,7 +434,7 @@ github.com/whosonfirst/go-whosonfirst-spatial/geo
 github.com/whosonfirst/go-whosonfirst-spatial-pip
 github.com/whosonfirst/go-whosonfirst-spatial-pip/app/query
 github.com/whosonfirst/go-whosonfirst-spatial-pip/http/api
-# github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.6.4
+# github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.6.5
 ## explicit; go 1.18
 github.com/whosonfirst/go-whosonfirst-spatial-sqlite
 # github.com/whosonfirst/go-whosonfirst-spr-geojson v0.0.8

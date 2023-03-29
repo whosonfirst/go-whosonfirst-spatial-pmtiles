@@ -17,7 +17,7 @@ require (
 	github.com/whosonfirst/go-whosonfirst-feature v0.0.26
 	github.com/whosonfirst/go-whosonfirst-spatial v0.5.6
 	github.com/whosonfirst/go-whosonfirst-spatial-pip v0.3.2
-	github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.6.4
+	github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.6.5
 	github.com/whosonfirst/go-whosonfirst-spr/v2 v2.3.6
 	github.com/whosonfirst/go-whosonfirst-uri v1.3.0
 	gocloud.dev v0.29.0

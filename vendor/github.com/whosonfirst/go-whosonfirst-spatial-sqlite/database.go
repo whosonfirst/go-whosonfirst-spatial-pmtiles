@@ -6,6 +6,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"log"
+	"net/url"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
 	_ "github.com/aaronland/go-sqlite-modernc"
 	"github.com/aaronland/go-sqlite/v2"
 	gocache "github.com/patrickmn/go-cache"
@@ -21,14 +29,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-sqlite-features/v2/tables"
 	sqlite_spr "github.com/whosonfirst/go-whosonfirst-sqlite-spr/v2"
 	"github.com/whosonfirst/go-whosonfirst-uri"
-	"github.com/whosonfirst/go-writer/v3"
-	"io"
-	"log"
-	"net/url"
-	"strconv"
-	"strings"
-	"sync"
-	"time"
+	"github.com/whosonfirst/go-writer/v3"	
 )
 
 func init() {
