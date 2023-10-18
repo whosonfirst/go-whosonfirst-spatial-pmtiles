@@ -1,5 +1,5 @@
 docker:
-	docker build -t whosonfirst-spatial-pmtiles .
+	docker buildx build --platform=linux/amd64 -t whosonfirst-spatial-pmtiles .
 
 docker-nc:
-	docker build --no-cache=true -t whosonfirst-spatial-pmtiles .
+	docker buildx build --platform=linux/amd64 --no-cache=true -t whosonfirst-spatial-pmtiles .
