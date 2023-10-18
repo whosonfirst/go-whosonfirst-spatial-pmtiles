@@ -61,11 +61,10 @@ const ptrSize = types.Size_t(unsafe.Sizeof(uintptr(0)))
 // OpenConn opens a single SQLite database connection with the given flags.
 // No flags or a value of 0 defaults to the following:
 //
-//	OpenReadWrite
-//	OpenCreate
-//	OpenWAL
-//	OpenURI
-//	OpenNoMutex
+//   - [OpenReadWrite]
+//   - [OpenCreate]
+//   - [OpenWAL]
+//   - [OpenURI]
 //
 // https://www.sqlite.org/c3ref/open.html
 func OpenConn(path string, flags ...OpenFlags) (*Conn, error) {
@@ -74,10 +73,10 @@ func OpenConn(path string, flags ...OpenFlags) (*Conn, error) {
 		openFlags |= f
 	}
 	if openFlags == 0 {
-		openFlags = OpenReadWrite | OpenCreate | OpenWAL | OpenURI | OpenNoMutex
+		openFlags = OpenReadWrite | OpenCreate | OpenWAL | OpenURI
 	}
 
-	c, err := openConn(path, openFlags&^OpenWAL)
+	c, err := openConn(path, openFlags&^(OpenWAL|OpenFullMutex)|OpenNoMutex)
 	if err != nil {
 		return nil, err
 	}
@@ -98,6 +97,7 @@ func OpenConn(path string, flags ...OpenFlags) (*Conn, error) {
 	if err := res.ToError(); err != nil {
 		// Making error opaque because it's not part of the primary connection
 		// opening and reflects an internal error.
+		c.Close()
 		return nil, fmt.Errorf("sqlite: open %q: disable double-quoted string literals: %v", path, err)
 	}
 	res = ResultCode(lib.Xsqlite3_db_config(
@@ -109,6 +109,7 @@ func OpenConn(path string, flags ...OpenFlags) (*Conn, error) {
 	if err := res.ToError(); err != nil {
 		// Making error opaque because it's not part of the primary connection
 		// opening and reflects an internal error.
+		c.Close()
 		return nil, fmt.Errorf("sqlite: open %q: disable double-quoted string literals: %v", path, err)
 	}
 
@@ -362,20 +363,7 @@ func (c *Conn) setBusyHandler(handler func(count int) bool) {
 		return
 	}
 	busyHandlers.Store(c.conn, handler)
-	// The following is a conversion from function value to uintptr.
-	// It assumes the memory representation described in https://golang.org/s/go11func.
-	//
-	// It does this by doing the following in order:
-	// 1) Create a Go struct containing a pointer to a pointer to busyHandlerCallback.
-	//    It is assumed that the pointer to busyHandlerCallback
-	//    will be stored in the read-only data section and thus will not move.
-	// 2) Convert the pointer to the Go struct to a pointer to uintptr through
-	//    unsafe.Pointer. This is permitted via Rule #1 of unsafe.Pointer.
-	// 3) Dereference the pointer to uintptr to obtain the function value as a
-	//    uintptr. This is safe as long as function values are passed as pointers.
-	xBusy := *(*uintptr)(unsafe.Pointer(&struct {
-		f func(*libc.TLS, uintptr, int32) int32
-	}{busyHandlerCallback}))
+	xBusy := cFuncPointer(busyHandlerCallback)
 	lib.Xsqlite3_busy_handler(c.tls, c.conn, xBusy, c.conn)
 }
 
@@ -565,6 +553,67 @@ func (c *Conn) LastInsertRowID() int64 {
 	return lib.Xsqlite3_last_insert_rowid(c.tls, c.conn)
 }
 
+// Serialize serializes the database with the given name (e.g. "main" or "temp").
+func (c *Conn) Serialize(dbName string) ([]byte, error) {
+	if c == nil {
+		return nil, fmt.Errorf("sqlite: serialize %q: nil connection", dbName)
+	}
+	zSchema, cleanup, err := cDBName(dbName)
+	if err != nil {
+		return nil, fmt.Errorf("sqlite: serialize %q: %v", dbName, err)
+	}
+	defer cleanup()
+	piSize := lib.Xsqlite3_malloc(c.tls, int32(unsafe.Sizeof(int64(0))))
+	if piSize == 0 {
+		return nil, fmt.Errorf("sqlite: serialize %q: memory allocation failure", dbName)
+	}
+	defer lib.Xsqlite3_free(c.tls, piSize)
+
+	// Optimization: avoid copying if possible.
+	p := lib.Xsqlite3_serialize(c.tls, c.conn, zSchema, piSize, lib.SQLITE_SERIALIZE_NOCOPY)
+	if p == 0 {
+		// Optimization impossible. Have SQLite allocate memory.
+		p = lib.Xsqlite3_serialize(c.tls, c.conn, zSchema, piSize, 0)
+		if p == 0 {
+			return nil, fmt.Errorf("sqlite: serialize %q: unable to serialize", dbName)
+		}
+		defer lib.Xsqlite3_free(c.tls, p)
+	}
+
+	// Copy data into a Go byte slice.
+	n := *(*int64)(unsafe.Pointer(piSize))
+	goCopy := make([]byte, n)
+	copy(goCopy, libc.GoBytes(p, int(n)))
+	return goCopy, nil
+}
+
+// Deserialize disconnects the database with the given name (e.g. "main")
+// and reopens it as an in-memory database based on the serialized data.
+// The database name must already exist.
+// It is not possible to deserialize into the TEMP database.
+func (c *Conn) Deserialize(dbName string, data []byte) error {
+	if c == nil {
+		return fmt.Errorf("sqlite: deserialize to %q: nil connection", dbName)
+	}
+	zSchema, cleanup, err := cDBName(dbName)
+	if err != nil {
+		return fmt.Errorf("sqlite: deserialize to %q: %v", dbName, err)
+	}
+	defer cleanup()
+
+	n := int64(len(data))
+	pData := lib.Xsqlite3_malloc64(c.tls, uint64(n))
+	if pData == 0 {
+		return fmt.Errorf("sqlite: deserialize to %q: memory allocation failure", dbName)
+	}
+	copy(libc.GoBytes(pData, len(data)), data)
+	res := ResultCode(lib.Xsqlite3_deserialize(c.tls, c.conn, zSchema, pData, n, n, lib.SQLITE_DESERIALIZE_FREEONCLOSE|lib.SQLITE_DESERIALIZE_RESIZEABLE))
+	if !res.IsSuccess() {
+		return fmt.Errorf("sqlite: deserialize to %q: %w", dbName, res.ToError())
+	}
+	return nil
+}
+
 // extreserr asks SQLite for a string explaining the error.
 // Only called for errors that are probably program bugs.
 func (c *Conn) extreserr(res ResultCode) error {
@@ -676,10 +725,9 @@ func (stmt *Stmt) ClearBindings() error {
 //
 // https://www.sqlite.org/c3ref/step.html
 //
-// Shared cache
+// # Shared cache
 //
-// As the sqlite package enables shared cache mode by default
-// and multiple writers are common in multi-threaded programs,
+// As multiple writers are common in multi-threaded programs,
 // this Step method uses sqlite3_unlock_notify to handle any
 // SQLITE_LOCKED errors.
 //
@@ -863,20 +911,7 @@ func (stmt *Stmt) BindBytes(param int, value []byte) {
 	stmt.handleBindErr("bind bytes", res)
 }
 
-// freeFuncPtr is a conversion from function value to uintptr. It assumes
-// the memory representation described in https://golang.org/s/go11func.
-//
-// It does this by doing the following in order:
-// 1) Create a Go struct containing a pointer to a pointer to
-//    libc.Xfree. It is assumed that the pointer to libc.Xfree will be stored
-//    in the read-only data section and thus will not move.
-// 2) Convert the pointer to the Go struct to a pointer to uintptr through
-//    unsafe.Pointer. This is permitted via Rule #1 of unsafe.Pointer.
-// 3) Dereference the pointer to uintptr to obtain the function value as a
-//    uintptr. This is safe as long as function values are passed as pointers.
-var freeFuncPtr = *(*uintptr)(unsafe.Pointer(&struct {
-	f func(*libc.TLS, uintptr)
-}{libc.Xfree}))
+var freeFuncPtr = cFuncPointer(libc.Xfree)
 
 // BindText binds value to a numbered stmt parameter.
 //
@@ -1066,11 +1101,11 @@ func (stmt *Stmt) columnBytes(col int) []byte {
 
 // ColumnType are codes for each of the SQLite fundamental datatypes:
 //
-//   64-bit signed integer
-//   64-bit IEEE floating point number
-//   string
-//   BLOB
-//   NULL
+//   - 64-bit signed integer
+//   - 64-bit IEEE floating point number
+//   - string
+//   - BLOB
+//   - NULL
 //
 // https://www.sqlite.org/c3ref/c_blob.html
 type ColumnType int
@@ -1105,11 +1140,11 @@ func (t ColumnType) String() string {
 // ColumnType returns the datatype code for the initial data
 // type of the result column. The returned value is one of:
 //
-//   SQLITE_INTEGER
-//   SQLITE_FLOAT
-//   SQLITE_TEXT
-//   SQLITE_BLOB
-//   SQLITE_NULL
+//   - SQLITE_INTEGER
+//   - SQLITE_FLOAT
+//   - SQLITE_TEXT
+//   - SQLITE_BLOB
+//   - SQLITE_NULL
 //
 // Column indices start at 0.
 //
@@ -1257,6 +1292,22 @@ func goStringN(s uintptr, n int) string {
 	return buf.String()
 }
 
+// cFuncPointer converts a function defined by a function declaration to a C pointer.
+// The result of using cFuncPointer on closures is undefined.
+func cFuncPointer[T any](f T) uintptr {
+	// This assumes the memory representation described in https://golang.org/s/go11func.
+	//
+	// cFuncPointer does its conversion by doing the following in order:
+	// 1) Create a Go struct containing a pointer to a pointer to
+	//    the function. It is assumed that the pointer to the function will be
+	//    stored in the read-only data section and thus will not move.
+	// 2) Convert the pointer to the Go struct to a pointer to uintptr through
+	//    unsafe.Pointer. This is permitted via Rule #1 of unsafe.Pointer.
+	// 3) Dereference the pointer to uintptr to obtain the function value as a
+	//    uintptr. This is safe as long as function values are passed as pointers.
+	return *(*uintptr)(unsafe.Pointer(&struct{ f T }{f}))
+}
+
 // Limit is a category of performance limits.
 //
 // https://sqlite.org/c3ref/c_limit_attached.html
@@ -1327,10 +1378,10 @@ func (c *Conn) Limit(id Limit, value int32) int32 {
 // deliberately corrupt the database file are disabled. The disabled features
 // include but are not limited to the following:
 //
-//   The PRAGMA writable_schema=ON statement.
-//   The PRAGMA journal_mode=OFF statement.
-//   Writes to the sqlite_dbpage virtual table.
-//   Direct writes to shadow tables.
+//   - The PRAGMA writable_schema=ON statement.
+//   - The PRAGMA journal_mode=OFF statement.
+//   - Writes to the sqlite_dbpage virtual table.
+//   - Direct writes to shadow tables.
 func (c *Conn) SetDefensive(enabled bool) error {
 	if c == nil {
 		return fmt.Errorf("sqlite: set defensive=%t: nil connection", enabled)

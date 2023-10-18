@@ -45,7 +45,7 @@ func main() {
 	logger := log.Default()
 	cache_size := 64
 
-	server, err := pmtiles.NewServer(tile_path, "", logger, cache_size, "")
+	server, err := pmtiles.NewServer(tile_path, "", logger, cache_size, "", "")
 
 	if err != nil {
 		log.Fatalf("Failed to create pmtiles.Server, %v", err)

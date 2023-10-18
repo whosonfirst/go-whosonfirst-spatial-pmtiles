@@ -3,9 +3,10 @@ package database
 import (
 	"context"
 	"fmt"
-	"github.com/whosonfirst/go-whosonfirst-feature/geometry"
-	"github.com/whosonfirst/go-whosonfirst-iterate/v2/iterator"
 	"io"
+
+	"github.com/whosonfirst/go-whosonfirst-feature/geometry"
+	"github.com/whosonfirst/go-whosonfirst-iterate/v2/iterator"	
 )
 
 // IndexDatabaseWithIterator is a general-purpose method for indexing a `database.Spatial.Database` instance with a

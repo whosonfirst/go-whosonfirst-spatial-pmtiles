@@ -5,9 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+
 	"github.com/whosonfirst/go-ioutil"
 	"github.com/whosonfirst/go-whosonfirst-iterate/v2/filters"
-	"io"
 )
 
 func init() {

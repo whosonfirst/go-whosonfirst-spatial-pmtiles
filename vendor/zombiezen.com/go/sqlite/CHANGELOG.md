@@ -5,7 +5,86 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-[Unreleased]: https://github.com/zombiezen/go-sqlite/compare/v0.10.1...main
+[Unreleased]: https://github.com/zombiezen/go-sqlite/compare/v0.13.1...main
+
+## [0.13.1][] - 2023-08-15
+
+Version 0.13.1 fixed a bug with the `sqlitemigration` package.
+
+[0.13.1]: https://github.com/zombiezen/go-sqlite/releases/tag/v0.13.1
+
+### Fixed
+
+- `sqlitemigration` will no longer disable foreign keys during operation
+  ([#54](https://github.com/zombiezen/go-sqlite/issues/54)).
+
+## [0.13.0][] - 2023-03-28
+
+Version 0.13 added support for
+user-defined [collating sequences](https://www.sqlite.org/datatype3.html#collation)
+and user-defined [virtual tables](https://sqlite.org/vtab.html).
+
+[0.13.0]: https://github.com/zombiezen/go-sqlite/releases/tag/v0.13.0
+
+### Added
+
+- Support user-defined collating sequences
+  ([#21](https://github.com/zombiezen/go-sqlite/issues/21)).
+- Support user-defined virtual tables
+  ([#15](https://github.com/zombiezen/go-sqlite/issues/15)).
+- New package `ext/generateseries` provides
+  an optional `generate_series` table-valued function extension.
+- Exported the `regexp` function example as a new `ext/refunc` package.
+- Add `*Conn.Serialize` and `*Conn.Deserialize` methods
+  ([#52](https://github.com/zombiezen/go-sqlite/issues/52)).
+
+### Changed
+
+- The minimum supported Go version for this library is now Go 1.19.
+
+### Fixed
+
+- The documentation for `AggregateFunction.WindowValue`
+  incorrectly stated that it would not be called in non-window contexts.
+  The sentence has been removed, but the behavior has not changed.
+
+## [0.12.0][] - 2023-02-08
+
+Version 0.12 added support for the [online backup API](https://www.sqlite.org/backup.html).
+
+[0.12.0]: https://github.com/zombiezen/go-sqlite/releases/tag/v0.12.0
+
+### Added
+
+- Added support for the online backup API
+  ([#47](https://github.com/zombiezen/go-sqlite/issues/47)).
+- Documented the `OpenFlags`.
+
+### Changed
+
+- `OpenNoMutex` and `OpenFullMutex` no longer have an effect on `sqlite.OpenConn`.
+  `OpenNoMutex` (i.e. [multi-thread mode](https://www.sqlite.org/threadsafe.html))
+  is now the only supported mode.
+  `*sqlite.Conn` has never been safe to use concurrently from multiple goroutines,
+  so this is mostly to prevent unnecessary locking and to avoid confusion.
+  ([#32](https://github.com/zombiezen/go-sqlite/issues/32)).
+
+## [0.11.0][] - 2022-12-11
+
+Version 0.11 changes the aggregate function API.
+
+[0.11.0]: https://github.com/zombiezen/go-sqlite/releases/tag/v0.11.0
+
+### Changed
+
+- User-defined aggregate functions are now encapsulated
+  with a new interface, `AggregateFunction`.
+  The previous 4-callback approach has been removed
+  and replaced with a single `MakeAggregate` callback.
+  Not only was the previous API unwieldy,
+  but it failed to handle concurrent aggregate function calls
+  in a single query.
+- Minimum `modernc.org/sqlite` version updated to 1.20.0.
 
 ## [0.10.1][] - 2022-07-17
 

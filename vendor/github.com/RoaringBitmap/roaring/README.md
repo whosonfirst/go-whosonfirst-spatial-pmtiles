@@ -1,5 +1,7 @@
-roaring [![GoDoc](https://godoc.org/github.com/RoaringBitmap/roaring/roaring64?status.svg)](https://godoc.org/github.com/RoaringBitmap/roaring/roaring64) [![Go Report Card](https://goreportcard.com/badge/RoaringBitmap/roaring)](https://goreportcard.com/report/github.com/RoaringBitmap/roaring)
-[![Build Status](https://cloud.drone.io/api/badges/RoaringBitmap/roaring/status.svg)](https://cloud.drone.io/RoaringBitmap/roaring)
+# roaring 
+
+[![GoDoc](https://godoc.org/github.com/RoaringBitmap/roaring?status.svg)](https://godoc.org/github.com/RoaringBitmap/roaring) [![Go Report Card](https://goreportcard.com/badge/RoaringBitmap/roaring)](https://goreportcard.com/report/github.com/RoaringBitmap/roaring)
+
 ![Go-CI](https://github.com/RoaringBitmap/roaring/workflows/Go-CI/badge.svg)
 ![Go-ARM-CI](https://github.com/RoaringBitmap/roaring/workflows/Go-ARM-CI/badge.svg)
 ![Go-Windows-CI](https://github.com/RoaringBitmap/roaring/workflows/Go-Windows-CI/badge.svg)
@@ -35,6 +37,7 @@ The ``roaring`` Go library is used by
 * [InfluxDB](https://www.influxdata.com)
 * [Pilosa](https://www.pilosa.com/)
 * [Bleve](http://www.blevesearch.com)
+* [Weaviate](https://github.com/weaviate/weaviate)
 * [lindb](https://github.com/lindb/lindb)
 * [Elasticell](https://github.com/deepfabric/elasticell)
 * [SourceGraph](https://github.com/sourcegraph/sourcegraph)
@@ -147,10 +150,8 @@ formats like WAH, EWAH, Concise... Maybe surprisingly, Roaring also generally of
 - Daniel Lemire, Owen Kaser, Nathan Kurz, Luca Deri, Chris O'Hara, François Saint-Jacques, Gregory Ssi-Yan-Kai, Roaring Bitmaps: Implementation of an Optimized Software Library, Software: Practice and Experience 48 (4), 2018 [arXiv:1709.07821](https://arxiv.org/abs/1709.07821)
 -  Samy Chambi, Daniel Lemire, Owen Kaser, Robert Godin,
 Better bitmap performance with Roaring bitmaps,
-Software: Practice and Experience 46 (5), 2016.
-http://arxiv.org/abs/1402.6407 This paper used data from http://lemire.me/data/realroaring2014.html
-- Daniel Lemire, Gregory Ssi-Yan-Kai, Owen Kaser, Consistently faster and smaller compressed bitmaps with Roaring, Software: Practice and Experience 46 (11), 2016. http://arxiv.org/abs/1603.06549
-
+Software: Practice and Experience 46 (5), 2016.[arXiv:1402.6407](http://arxiv.org/abs/1402.6407) This paper used data from http://lemire.me/data/realroaring2014.html
+- Daniel Lemire, Gregory Ssi-Yan-Kai, Owen Kaser, Consistently faster and smaller compressed bitmaps with Roaring, Software: Practice and Experience 46 (11), 2016. [arXiv:1603.06549](http://arxiv.org/abs/1603.06549)
 
 ### Dependencies
 
@@ -169,6 +170,15 @@ Note that the smat library requires Go 1.6 or better.
 
   - go get -t github.com/RoaringBitmap/roaring
 
+### Instructions for contributors
+
+Using bash or other common shells:
+```
+$ git clone git@github.com:RoaringBitmap/roaring.git
+$ export GO111MODULE=on 
+$ go mod tidy
+$ go test -v
+```
 
 ### Example
 
@@ -324,7 +334,7 @@ Only the 32-bit roaring format is standard and cross-operable between Java, C++,
 
 ### Documentation
 
-Current documentation is available at http://godoc.org/github.com/RoaringBitmap/roaring and http://godoc.org/github.com/RoaringBitmap/roaring64
+Current documentation is available at https://pkg.go.dev/github.com/RoaringBitmap/roaring and https://pkg.go.dev/github.com/RoaringBitmap/roaring/roaring64
 
 ### Goroutine safety
 

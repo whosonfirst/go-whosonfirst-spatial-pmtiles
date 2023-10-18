@@ -6,7 +6,6 @@ package iterator
 import (
 	"context"
 	"fmt"
-	"github.com/whosonfirst/go-whosonfirst-iterate/v2/emitter"
 	"io"
 	"log"
 	"net/url"
@@ -15,6 +14,8 @@ import (
 	"strconv"
 	"sync/atomic"
 	"time"
+
+	"github.com/whosonfirst/go-whosonfirst-iterate/v2/emitter"
 )
 
 // type Iterator provides a struct that can be used for iterating over a collection of records

@@ -2,16 +2,17 @@ package filter
 
 import (
 	"fmt"
+	_ "log"
+	"strconv"
+	"strings"
+
 	"github.com/whosonfirst/go-sanitize"
 	"github.com/whosonfirst/go-whosonfirst-flags"
 	"github.com/whosonfirst/go-whosonfirst-flags/date"
 	"github.com/whosonfirst/go-whosonfirst-flags/existential"
 	"github.com/whosonfirst/go-whosonfirst-flags/geometry"
 	"github.com/whosonfirst/go-whosonfirst-flags/placetypes"
-	"github.com/whosonfirst/go-whosonfirst-spatial"
-	_ "log"
-	"strconv"
-	"strings"
+	"github.com/whosonfirst/go-whosonfirst-spatial"	
 )
 
 var sanitizeOpts *sanitize.Options

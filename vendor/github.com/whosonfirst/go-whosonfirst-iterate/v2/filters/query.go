@@ -3,9 +3,10 @@ package filters
 import (
 	"context"
 	"fmt"
-	"github.com/aaronland/go-json-query"
 	"io"
 	"net/url"
+
+	"github.com/aaronland/go-json-query"
 )
 
 // type QueryFilters implements the `Filters` interface for filtering documents using `aaronland/go-json-query` query strings.
@@ -50,8 +51,33 @@ func NewQueryFiltersFromQuery(ctx context.Context, q url.Values) (Filters, error
 
 	f := &QueryFilters{}
 
-	includes := q["include"]
-	excludes := q["exclude"]
+	q_includes := q["include"]
+	q_excludes := q["exclude"]
+
+	includes := make([]string, len(q_includes))
+	excludes := make([]string, len(q_excludes))
+
+	for idx, q_enc := range q_includes {
+
+		q, err := url.QueryUnescape(q_enc)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to unescape '%s' include parameter, %w", q_enc, err)
+		}
+
+		includes[idx] = q
+	}
+
+	for idx, q_enc := range q_excludes {
+
+		q, err := url.QueryUnescape(q_enc)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to unescape '%s' exclude parameter, %w", q_enc, err)
+		}
+
+		excludes[idx] = q
+	}
 
 	if len(includes) > 0 {
 

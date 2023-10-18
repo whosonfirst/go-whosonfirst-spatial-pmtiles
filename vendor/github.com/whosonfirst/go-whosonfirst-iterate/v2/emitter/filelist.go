@@ -4,8 +4,9 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"github.com/whosonfirst/go-whosonfirst-iterate/v2/filters"
 	"path/filepath"
+
+	"github.com/whosonfirst/go-whosonfirst-iterate/v2/filters"
 )
 
 func init() {

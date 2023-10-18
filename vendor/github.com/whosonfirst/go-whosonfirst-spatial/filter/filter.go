@@ -3,12 +3,14 @@ package filter
 import (
 	"errors"
 	"fmt"
+	"log"
+	"runtime"
+	
 	"github.com/whosonfirst/go-whosonfirst-flags/date"
 	"github.com/whosonfirst/go-whosonfirst-flags/geometry"
 	"github.com/whosonfirst/go-whosonfirst-flags/placetypes"
 	"github.com/whosonfirst/go-whosonfirst-spatial"
-	"github.com/whosonfirst/go-whosonfirst-spr/v2"
-	"log"
+	"github.com/whosonfirst/go-whosonfirst-spr/v2"	
 )
 
 func FilterSPR(filters spatial.Filter, s spr.StandardPlacesResult) error {
@@ -85,6 +87,11 @@ func FilterSPR(filters spatial.Filter, s spr.StandardPlacesResult) error {
 		return errors.New("Failed 'is superseding' test")
 	}
 
+	switch runtime.GOOS {
+	case "js":
+		// This will always fail under JS (WASM)
+	default:
+		
 	af, err := geometry.NewAlternateGeometryFlag(s.Path())
 
 	if err != nil {
@@ -106,6 +113,7 @@ func FilterSPR(filters spatial.Filter, s spr.StandardPlacesResult) error {
 			return errors.New("Failed 'has alternate geometry' test")
 		}
 	}
-
+	}
+	
 	return nil
 }

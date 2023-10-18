@@ -4,14 +4,15 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
+	"log"
+
 	"github.com/sfomuseum/go-flags/lookup"
 	"github.com/whosonfirst/go-whosonfirst-feature/geometry"
 	"github.com/whosonfirst/go-whosonfirst-iterate/v2/iterator"
 	"github.com/whosonfirst/go-whosonfirst-spatial/database"
 	"github.com/whosonfirst/go-whosonfirst-spatial/flags"
-	"github.com/whosonfirst/warning"
-	"io"
-	"log"
+	"github.com/whosonfirst/warning"	
 )
 
 func NewIteratorWithFlagSet(ctx context.Context, fl *flag.FlagSet, spatial_db database.SpatialDatabase) (*iterator.Iterator, error) {

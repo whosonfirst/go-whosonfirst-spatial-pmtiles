@@ -3,11 +3,12 @@ package app
 import (
 	"context"
 	"flag"
-	"github.com/sfomuseum/go-flags/lookup"
-	"github.com/whosonfirst/go-whosonfirst-placetypes"
-	"github.com/whosonfirst/go-whosonfirst-spatial/flags"
 	"io"
 	"strings"
+
+	"github.com/sfomuseum/go-flags/lookup"
+	"github.com/whosonfirst/go-whosonfirst-placetypes"
+	"github.com/whosonfirst/go-whosonfirst-spatial/flags"	
 )
 
 func AppendCustomPlacetypesWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {

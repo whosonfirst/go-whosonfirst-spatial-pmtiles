@@ -6,15 +6,16 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/sfomuseum/go-timings"
-	"github.com/whosonfirst/go-reader"
-	"github.com/whosonfirst/go-whosonfirst-iterate/v2/iterator"
-	"github.com/whosonfirst/go-whosonfirst-spatial/database"
 	"io"
 	"log"
 	"runtime/debug"
 	"sync"
 	"time"
+
+	"github.com/sfomuseum/go-timings"
+	"github.com/whosonfirst/go-reader"
+	"github.com/whosonfirst/go-whosonfirst-iterate/v2/iterator"
+	"github.com/whosonfirst/go-whosonfirst-spatial/database"	
 )
 
 type SpatialApplication struct {

@@ -3,10 +3,11 @@ package emitter
 import (
 	"context"
 	"fmt"
-	"github.com/whosonfirst/go-whosonfirst-crawl"
-	"github.com/whosonfirst/go-whosonfirst-iterate/v2/filters"
 	"os"
 	"path/filepath"
+
+	"github.com/whosonfirst/go-whosonfirst-crawl"
+	"github.com/whosonfirst/go-whosonfirst-iterate/v2/filters"
 )
 
 func init() {
@@ -98,7 +99,7 @@ func (idx *DirectoryEmitter) WalkURI(ctx context.Context, index_cb EmitterCallba
 		err = index_cb(ctx, path, fh)
 
 		if err != nil {
-			return fmt.Errorf("Failed to invoke callback fir '%s', %w", abs_path, err)
+			return fmt.Errorf("Failed to invoke callback for '%s', %w", abs_path, err)
 		}
 
 		return nil

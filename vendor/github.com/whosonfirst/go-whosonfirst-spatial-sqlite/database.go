@@ -6,22 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	_ "github.com/aaronland/go-sqlite-modernc"
-	"github.com/aaronland/go-sqlite/v2"
-	gocache "github.com/patrickmn/go-cache"
-	"github.com/paulmach/orb"
-	"github.com/paulmach/orb/encoding/wkt"
-	"github.com/paulmach/orb/planar"
-	"github.com/whosonfirst/go-ioutil"
-	"github.com/whosonfirst/go-reader"
-	"github.com/whosonfirst/go-whosonfirst-spatial"
-	"github.com/whosonfirst/go-whosonfirst-spatial/database"
-	"github.com/whosonfirst/go-whosonfirst-spatial/filter"
-	"github.com/whosonfirst/go-whosonfirst-spr/v2"
-	"github.com/whosonfirst/go-whosonfirst-sqlite-features/v2/tables"
-	sqlite_spr "github.com/whosonfirst/go-whosonfirst-sqlite-spr/v2"
-	"github.com/whosonfirst/go-whosonfirst-uri"
-	"github.com/whosonfirst/go-writer/v3"
 	"io"
 	"log"
 	"net/url"
@@ -29,6 +13,24 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	_ "github.com/aaronland/go-sqlite-modernc"
+	"github.com/aaronland/go-sqlite/v2"
+	gocache "github.com/patrickmn/go-cache"
+	"github.com/paulmach/orb"
+	_ "github.com/paulmach/orb/encoding/wkt"
+	"github.com/paulmach/orb/planar"
+	"github.com/whosonfirst/go-ioutil"
+	"github.com/whosonfirst/go-reader"
+	"github.com/whosonfirst/go-whosonfirst-spatial"
+	"github.com/whosonfirst/go-whosonfirst-spatial-sqlite/wkttoorb"	
+	"github.com/whosonfirst/go-whosonfirst-spatial/database"
+	"github.com/whosonfirst/go-whosonfirst-spatial/filter"
+	"github.com/whosonfirst/go-whosonfirst-spr/v2"
+	"github.com/whosonfirst/go-whosonfirst-sqlite-features/v2/tables"
+	sqlite_spr "github.com/whosonfirst/go-whosonfirst-sqlite-spr/v2"
+	"github.com/whosonfirst/go-whosonfirst-uri"
+	"github.com/whosonfirst/go-writer/v3"	
 )
 
 func init() {
@@ -438,6 +440,13 @@ func (r *SQLiteSpatialDatabase) getIntersectsByCoord(ctx context.Context, coord 
 // defined in 'filters'.
 func (r *SQLiteSpatialDatabase) getIntersectsByRect(ctx context.Context, rect *orb.Bound, filters ...spatial.Filter) ([]*RTreeSpatialIndex, error) {
 
+	/*
+	t1 := time.Now()
+	defer func(){
+		log.Printf("Time to rect, %v\n", time.Since(t1))
+	}()
+	*/
+	
 	conn, err := r.db.Conn(ctx)
 
 	if err != nil {
@@ -512,8 +521,15 @@ func (r *SQLiteSpatialDatabase) getIntersectsByRect(ctx context.Context, rect *o
 // to 'rsp_ch' (on succcess) and 'err_ch' (if there was an error).
 func (r *SQLiteSpatialDatabase) inflateResultsWithChannels(ctx context.Context, rsp_ch chan spr.StandardPlacesResult, err_ch chan error, possible []*RTreeSpatialIndex, c *orb.Point, filters ...spatial.Filter) {
 
-	seen := make(map[string]bool)
-	mu := new(sync.RWMutex)
+	/*
+	t1 := time.Now()
+
+	defer func(){
+		log.Printf("Time to inflate, %v\n", time.Since(t1))
+	}()
+	*/
+	
+	seen := new(sync.Map)
 
 	wg := new(sync.WaitGroup)
 
@@ -523,7 +539,7 @@ func (r *SQLiteSpatialDatabase) inflateResultsWithChannels(ctx context.Context, 
 
 		go func(sp *RTreeSpatialIndex) {
 			defer wg.Done()
-			r.inflateSpatialIndexWithChannels(ctx, rsp_ch, err_ch, seen, mu, sp, c, filters...)
+			r.inflateSpatialIndexWithChannels(ctx, rsp_ch, err_ch, seen, sp, c, filters...)
 		}(sp)
 	}
 
@@ -533,8 +549,9 @@ func (r *SQLiteSpatialDatabase) inflateResultsWithChannels(ctx context.Context, 
 // inflateSpatialIndexWithChannels creates `spr.StandardPlacesResult` instance for 'sp' applying any filters defined in 'filters'
 // emitting results to 'rsp_ch' (on succcess) and 'err_ch' (if there was an error). If a given record is already found in 'seen' it
 // will be skipped; if not it will be added (to 'seen') once the spatial index has been successfully inflated.
-func (r *SQLiteSpatialDatabase) inflateSpatialIndexWithChannels(ctx context.Context, rsp_ch chan spr.StandardPlacesResult, err_ch chan error, seen map[string]bool, mu *sync.RWMutex, sp *RTreeSpatialIndex, c *orb.Point, filters ...spatial.Filter) {
+func (r *SQLiteSpatialDatabase) inflateSpatialIndexWithChannels(ctx context.Context, rsp_ch chan spr.StandardPlacesResult, err_ch chan error, seen *sync.Map, sp *RTreeSpatialIndex, c *orb.Point, filters ...spatial.Filter) {
 
+	
 	select {
 	case <-ctx.Done():
 		return
@@ -545,13 +562,19 @@ func (r *SQLiteSpatialDatabase) inflateSpatialIndexWithChannels(ctx context.Cont
 	sp_id := fmt.Sprintf("%s:%s", sp.Id, sp.AltLabel)
 	feature_id := fmt.Sprintf("%s:%s", sp.FeatureId, sp.AltLabel)
 
+	/*
+	t1 := time.Now()
+	
+	defer func(){
+		log.Printf("[%s] Time to inflate w/ channel, %v\n", sp_id, time.Since(t1))
+	}()
+	*/
+	
 	// have we already looked up the filters for this ID?
 	// see notes below
 
-	mu.RLock()
-	_, ok := seen[feature_id]
-	mu.RUnlock()
-
+	_, ok := seen.Load(feature_id)
+	
 	if ok {
 		return
 	}
@@ -565,15 +588,39 @@ func (r *SQLiteSpatialDatabase) inflateSpatialIndexWithChannels(ctx context.Cont
 	// package < 0.10.0 that stored geometries as JSON-encoded strings. Subsequent versions
 	// use WKT encoding.
 
+	// This is the bottleneck. It appears to be this:
+	// https://github.com/paulmach/orb/issues/132
+	// maybe... https://github.com/Succo/wktToOrb/ ?
+	
 	if strings.HasPrefix(sp.geometry, "[[[") {
 		// Investigate https://github.com/paulmach/orb/tree/master/geojson#performance
 		err = json.Unmarshal([]byte(sp.geometry), &poly)
 	} else {
-		poly, err = wkt.UnmarshalPolygon(sp.geometry)
+
+		/*
+
+	2023/08/21 22:23:01 [102087463#2084:] orb 20.368308ms
+2023/08/21 22:23:01 [102087463#2084:] not-orb 4.206974ms
+
+*/
+		
+		// poly, err = wkt.UnmarshalPolygon(sp.geometry)
+
+		o, err := wkttoorb.Scan(sp.geometry)
+
+		if err != nil {
+			return
+		}
+
+		poly = o.(orb.Polygon)
 	}
 
+	if err != nil {
+		return
+	}
+	
 	// END OF maybe move all this code in to whosonfirst/go-whosonfirst-sqlite-features/tables/rtree.go
-
+	
 	if !planar.PolygonContains(poly, *c) {
 		return
 	}
@@ -583,24 +630,13 @@ func (r *SQLiteSpatialDatabase) inflateSpatialIndexWithChannels(ctx context.Cont
 	// we can skip every subsequent polygon with the same
 	// ID
 
-	mu.Lock()
-	defer mu.Unlock()
+	_, ok = seen.LoadOrStore(feature_id, true)
 
-	// Check to see whether seen[feature_id] has been assigned by another process
-	// while waiting for mu to become available
-
-	if seen[feature_id] {
+	if ok {
 		return
 	}
-
-	seen[feature_id] = true
-
+	
 	s, err := r.retrieveSPR(ctx, sp.Path())
-
-	if err != nil {
-		r.Logger.Printf("Failed to retrieve feature cache for %s, %v", sp_id, err)
-		return
-	}
 
 	if err != nil {
 		r.Logger.Printf("Failed to retrieve feature cache for %s, %v", sp_id, err)

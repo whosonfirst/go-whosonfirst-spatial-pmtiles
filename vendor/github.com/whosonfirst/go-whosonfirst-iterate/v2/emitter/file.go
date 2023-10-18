@@ -3,6 +3,7 @@ package emitter
 import (
 	"context"
 	"fmt"
+
 	"github.com/whosonfirst/go-whosonfirst-iterate/v2/filters"
 )
 

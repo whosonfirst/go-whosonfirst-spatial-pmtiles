@@ -2,6 +2,7 @@ package geo
 
 import (
 	"errors"
+	
 	"github.com/paulmach/orb"
 )
 

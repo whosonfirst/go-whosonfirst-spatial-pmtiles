@@ -1,9 +1,10 @@
 package filter
 
 import (
-	"github.com/whosonfirst/go-whosonfirst-spatial"
 	"net/url"
 	"strconv"
+
+	"github.com/whosonfirst/go-whosonfirst-spatial"	
 )
 
 func NewSPRFilterFromQuery(query url.Values) (spatial.Filter, error) {

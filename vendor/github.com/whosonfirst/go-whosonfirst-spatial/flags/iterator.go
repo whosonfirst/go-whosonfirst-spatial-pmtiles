@@ -3,10 +3,11 @@ package flags
 import (
 	"flag"
 	"fmt"
-	"github.com/sfomuseum/go-flags/lookup"
-	"github.com/whosonfirst/go-whosonfirst-iterate/v2/emitter"
 	"sort"
 	"strings"
+
+	"github.com/sfomuseum/go-flags/lookup"
+	"github.com/whosonfirst/go-whosonfirst-iterate/v2/emitter"	
 )
 
 func AppendIndexingFlags(fs *flag.FlagSet) error {

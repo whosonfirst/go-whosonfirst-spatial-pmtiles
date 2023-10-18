@@ -3,8 +3,6 @@ package app
 import (
 	"context"
 	"flag"
-	_ "github.com/sfomuseum/go-flags/lookup"
-	_ "github.com/whosonfirst/go-whosonfirst-spatial/flags"
 	"io"
 	"log"
 	"os"
