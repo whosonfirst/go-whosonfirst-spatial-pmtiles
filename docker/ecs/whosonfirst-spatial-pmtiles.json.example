@@ -16,6 +16,8 @@
                 "/usr/local/bin/build.sh",
                 "-n",
                 "whosonfirst",
+		"-l",
+		"whosonfirst",
                 "-i",
                 "org:///usr/local/data",
                 "-s",

@@ -10,9 +10,10 @@ NAME="whosonfirst"	# for example -n whosonfirst"
 ITERATOR="org:///tmp"
 ZOOM="12"
 
+LAYER_NAME=""	# tippecanoe layer name
 PROPERTIES=""	# for example: -p 'wof:hierarchy wof:concordances'
 
-while getopts "i:n:p:s:t:z:fh" opt; do
+while getopts "i:l:n:p:s:t:z:fh" opt; do
     case "$opt" in
 	f)
 	    WRITE_FEATURES=1
@@ -22,6 +23,9 @@ while getopts "i:n:p:s:t:z:fh" opt; do
 	    ;;
 	i)
 	    ITERATOR=$OPTARG
+	    ;;
+	l)
+	    LAYER_NAME=$OPTARG
 	    ;;
 	n)
 	    NAME=$OPTARG
@@ -64,7 +68,16 @@ do
     FEATURES_ARGS="${FEATURES_ARGS} ${SRC}"
 done
 
-echo "wof-tippecanoe-features ${FEATURES_ARGS} | tippecanoe -Q -P -z ${ZOOM} -pf -pk -t /usr/local/data -o /usr/local/data/${NAME}.pmtiles"
+TIPPECANOE_ARGS="-Q -P -z ${ZOOM} -pf -pk"
+
+if [ "${LAYER_NAME}" != "" ]
+then
+	TIPPECANOE_ARGS="${TIPPECANOE_ARGS} -n ${LAYER_NAME}"
+fi
+
+TIPPECANOE_ARGS="${TIPPECANOE_ARGS} /usr/local/data -o /usr/local/data/${NAME}.pmtiles"
+
+echo "wof-tippecanoe-features ${FEATURES_ARGS} | tippecanoe ${TIPPECANOE_ARGS}"
 
 if [ "${WRITE_FEATURES}" = "1" ]
 then
@@ -80,10 +93,10 @@ then
 	exit 1;
     fi
     
-    tippecanoe -Q -P -z ${ZOOM} -pf -pk -t /usr/local/data -o /usr/local/data/${NAME}.pmtiles /usr/local/data/features.jsonl
+    tippecanoe ${TIPPECANOE_ARGS} /usr/local/data/features.jsonl
 
 else 
-    wof-tippecanoe-features ${FEATURES_ARGS} | tippecanoe -Q -P -z ${ZOOM} -pf -pk -t /usr/local/data -o /usr/local/data/${NAME}.pmtiles
+    wof-tippecanoe-features ${FEATURES_ARGS} | tippecanoe ${TIPPECANOE_ARGS}
 fi
 
 if [ $? -ne 0 ]

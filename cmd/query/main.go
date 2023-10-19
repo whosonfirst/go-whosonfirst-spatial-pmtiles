@@ -2,6 +2,8 @@ package main
 
 import (
 	_ "github.com/whosonfirst/go-whosonfirst-spatial-pmtiles"
+	_ "gocloud.dev/blob/s3blob"
+	_ "github.com/aaronland/gocloud-blob-s3"
 )
 
 import (
