@@ -75,7 +75,7 @@ then
 	TIPPECANOE_ARGS="${TIPPECANOE_ARGS} -n ${LAYER_NAME}"
 fi
 
-TIPPECANOE_ARGS="${TIPPECANOE_ARGS} /usr/local/data -o /usr/local/data/${NAME}.pmtiles"
+TIPPECANOE_ARGS="${TIPPECANOE_ARGS} -t /usr/local/data -o /usr/local/data/${NAME}.pmtiles"
 
 echo "wof-tippecanoe-features ${FEATURES_ARGS} | tippecanoe ${TIPPECANOE_ARGS}"
 
