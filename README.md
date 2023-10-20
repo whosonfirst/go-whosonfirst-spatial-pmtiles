@@ -6,6 +6,10 @@ Go package to implement the `whosonfirst/go-whosonfirst-spatial` interfaces usin
 
 Documentation is incomplete at this time.
 
+## Background
+
+[A global point-in-polygon service using a static 8GB data file](https://millsfield.sfomuseum.org/blog/2022/12/19/pmtiles-pip/)
+
 ## This is work in progress
 
 There may be bugs. Notably, as written:
