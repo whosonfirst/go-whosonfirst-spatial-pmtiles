@@ -1,0 +1,14 @@
+CREATE TABLE {{ .Name }} (
+	id INTEGER NOT NULL,
+	type TEXT,
+	is_alt TINYINT,
+	alt_label TEXT,
+	lastmodified INTEGER
+);
+
+SELECT InitSpatialMetaData();
+SELECT AddGeometryColumn('{{ .Name }}', 'geom', 4326, 'GEOMETRY', 'XY');
+SELECT CreateSpatialIndex('{{ .Name }}', 'geom');
+
+CREATE UNIQUE INDEX by_id ON {{ .Name }} (id, alt_label);
+CREATE INDEX geometries_by_lastmod ON {{ .Name }} (lastmodified);`

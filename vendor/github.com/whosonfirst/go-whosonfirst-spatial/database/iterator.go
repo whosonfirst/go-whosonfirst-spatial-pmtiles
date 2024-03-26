@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/whosonfirst/go-whosonfirst-feature/geometry"
-	"github.com/whosonfirst/go-whosonfirst-iterate/v2/iterator"	
+	"github.com/whosonfirst/go-whosonfirst-iterate/v2/iterator"
 )
 
 // IndexDatabaseWithIterator is a general-purpose method for indexing a `database.Spatial.Database` instance with a
@@ -14,7 +13,7 @@ import (
 // will be indexed.
 func IndexDatabaseWithIterator(ctx context.Context, db SpatialDatabase, iterator_uri string, iterator_sources ...string) error {
 
-	iter_cb := func(ctx context.Context, path string, fh io.ReadSeeker, args ...interface{}) error {
+	iter_cb := func(ctx context.Context, path string, r io.ReadSeeker, args ...interface{}) error {
 
 		select {
 		case <-ctx.Done():
@@ -23,24 +22,7 @@ func IndexDatabaseWithIterator(ctx context.Context, db SpatialDatabase, iterator
 			// pass
 		}
 
-		body, err := io.ReadAll(fh)
-
-		if err != nil {
-			return fmt.Errorf("Failed to read %s, %w", path, err)
-		}
-
-		geom_type, err := geometry.Type(body)
-
-		if err != nil {
-			return fmt.Errorf("Failed to derive geometry type for %s, %w", path, err)
-		}
-
-		switch geom_type {
-		case "Polygon", "MultiPolygon":
-			return db.IndexFeature(ctx, body)
-		default:
-			return nil
-		}
+		return IndexDatabaseWithReader(ctx, db, r)
 	}
 
 	iter, err := iterator.NewIterator(ctx, iterator_uri, iter_cb)

@@ -2,7 +2,7 @@ package filter
 
 import (
 	"flag"
-	
+
 	"github.com/sfomuseum/go-flags/lookup"
 	"github.com/whosonfirst/go-whosonfirst-spatial"
 	"github.com/whosonfirst/go-whosonfirst-spatial/flags"

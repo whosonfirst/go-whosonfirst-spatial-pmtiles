@@ -1,0 +1,22 @@
+CREATE TABLE {{ .Name }} (
+       id INTEGER NOT NULL,
+       placetype TEXT,
+       country TEXT,
+       language TEXT,
+       extlang TEXT,
+       script TEXT,
+       region TEXT,
+       variant TEXT,
+       extension TEXT,
+       privateuse TEXT,
+       name TEXT,
+       lastmodified INTEGER
+);
+
+CREATE INDEX names_by_lastmod ON {{ .Name }} (lastmodified);
+CREATE INDEX names_by_country ON {{ .Name }} (country,privateuse,placetype);
+CREATE INDEX names_by_language ON {{ .Name }} (language,privateuse,placetype);
+CREATE INDEX names_by_placetype ON {{ .Name }} (placetype,country,privateuse);
+CREATE INDEX names_by_name ON {{ .Name }} (name, placetype, country);
+CREATE INDEX names_by_name_private ON {{ .Name }} (name, privateuse, placetype, country);
+CREATE INDEX names_by_wofid ON {{ .Name }} (id);

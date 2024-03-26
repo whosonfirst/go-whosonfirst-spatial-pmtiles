@@ -3,9 +3,11 @@ package tables
 import (
 	"context"
 	"fmt"
+
 	"github.com/aaronland/go-sqlite/v2"
 	"github.com/whosonfirst/go-whosonfirst-feature/alt"
 	"github.com/whosonfirst/go-whosonfirst-feature/properties"
+	sql_tables "github.com/whosonfirst/go-whosonfirst-sql/tables"
 	"github.com/whosonfirst/go-whosonfirst-sqlite-features/v2"
 )
 
@@ -41,7 +43,7 @@ func NewConcordancesTableWithDatabase(ctx context.Context, db sqlite.Database) (
 func NewConcordancesTable(ctx context.Context) (sqlite.Table, error) {
 
 	t := ConcordancesTable{
-		name: "concordances",
+		name: sql_tables.CONCORDANCES_TABLE_NAME,
 	}
 
 	return &t, nil
@@ -52,20 +54,8 @@ func (t *ConcordancesTable) Name() string {
 }
 
 func (t *ConcordancesTable) Schema() string {
-
-	sql := `CREATE TABLE %s (
-		id INTEGER NOT NULL,
-		other_id INTEGER NOT NULL,
-		other_source TEXT,
-		lastmodified INTEGER
-	);
-
-	CREATE INDEX concordances_by_id ON %s (id,lastmodified);
-	CREATE INDEX concordances_by_other_id ON %s (other_source,other_id);	
-	CREATE INDEX concordances_by_other_lastmod ON %s (other_source,other_id,lastmodified);
-	CREATE INDEX concordances_by_lastmod ON %s (lastmodified);`
-
-	return fmt.Sprintf(sql, t.Name(), t.Name(), t.Name(), t.Name(), t.Name())
+	schema, _ := sql_tables.LoadSchema("sqlite", sql_tables.CONCORDANCES_TABLE_NAME)
+	return schema
 }
 
 func (t *ConcordancesTable) InitializeTable(ctx context.Context, db sqlite.Database) error {

@@ -1,88 +1,98 @@
 module github.com/whosonfirst/go-whosonfirst-spatial-pmtiles
 
-go 1.18
+go 1.22
+
+toolchain go1.22.1
 
 require (
 	github.com/aaronland/go-log/v2 v2.0.0
-	github.com/aaronland/gocloud-blob-s3 v0.2.3
+	github.com/aaronland/gocloud-blob-s3 v0.2.4
 	github.com/aaronland/gocloud-docstore v0.0.5
 	github.com/json-iterator/go v1.1.12
 	github.com/jtacoma/uritemplates v1.0.0
-	github.com/paulmach/orb v0.10.0
-	github.com/protomaps/go-pmtiles v1.10.4
-	github.com/tidwall/gjson v1.17.0
+	github.com/paulmach/orb v0.11.1
+	github.com/protomaps/go-pmtiles v1.19.1
+	github.com/tidwall/gjson v1.17.1
 	github.com/tidwall/sjson v1.2.5
 	github.com/whosonfirst/go-ioutil v1.0.2
 	github.com/whosonfirst/go-reader v1.0.2
-	github.com/whosonfirst/go-whosonfirst-feature v0.0.26
-	github.com/whosonfirst/go-whosonfirst-spatial v0.5.8
-	github.com/whosonfirst/go-whosonfirst-spatial-pip v0.3.2
-	github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.6.8
-	github.com/whosonfirst/go-whosonfirst-spr/v2 v2.3.6
+	github.com/whosonfirst/go-whosonfirst-feature v0.0.27
+	github.com/whosonfirst/go-whosonfirst-spatial v0.7.3
+	github.com/whosonfirst/go-whosonfirst-spatial-pip v0.3.3
+	github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.6.9
+	github.com/whosonfirst/go-whosonfirst-spr/v2 v2.3.7
 	github.com/whosonfirst/go-whosonfirst-uri v1.3.0
-	gocloud.dev v0.34.0
+	gocloud.dev v0.37.0
 )
 
 require (
 	github.com/RoaringBitmap/roaring v1.5.0 // indirect
 	github.com/aaronland/go-aws-dynamodb v0.0.5 // indirect
 	github.com/aaronland/go-aws-session v0.2.1 // indirect
-	github.com/aaronland/go-http-sanitize v0.0.6 // indirect
-	github.com/aaronland/go-http-server v1.0.0 // indirect
+	github.com/aaronland/go-http-sanitize v0.0.8 // indirect
+	github.com/aaronland/go-http-server v1.4.1 // indirect
 	github.com/aaronland/go-json-query v0.1.4 // indirect
 	github.com/aaronland/go-pagination v0.2.0 // indirect
 	github.com/aaronland/go-pagination-sql v0.2.0 // indirect
 	github.com/aaronland/go-roster v1.0.0 // indirect
-	github.com/aaronland/go-sqlite-modernc v0.0.2 // indirect
+	github.com/aaronland/go-sqlite-modernc v0.0.3 // indirect
 	github.com/aaronland/go-sqlite/v2 v2.2.0 // indirect
 	github.com/aaronland/go-string v1.0.0 // indirect
-	github.com/akrylysov/algnhsa v0.12.1 // indirect
-	github.com/aws/aws-lambda-go v1.36.0 // indirect
-	github.com/aws/aws-sdk-go v1.45.12 // indirect
-	github.com/aws/aws-sdk-go-v2 v1.20.0 // indirect
-	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.4.11 // indirect
-	github.com/aws/aws-sdk-go-v2/config v1.18.32 // indirect
-	github.com/aws/aws-sdk-go-v2/credentials v1.13.31 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.13.7 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.11.76 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.37 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.4.31 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/ini v1.3.38 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/v4a v1.1.0 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.9.12 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.1.32 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.9.31 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.15.0 // indirect
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.38.1 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sso v1.13.1 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.15.1 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.21.1 // indirect
-	github.com/aws/smithy-go v1.14.0 // indirect
+	github.com/akrylysov/algnhsa v1.1.0 // indirect
+	github.com/aws/aws-lambda-go v1.46.0 // indirect
+	github.com/aws/aws-sdk-go v1.50.36 // indirect
+	github.com/aws/aws-sdk-go-v2 v1.25.3 // indirect
+	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.1 // indirect
+	github.com/aws/aws-sdk-go-v2/config v1.27.7 // indirect
+	github.com/aws/aws-sdk-go-v2/credentials v1.17.7 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.15.3 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.16.9 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.3 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.3 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.0 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/v4a v1.3.3 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.11.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.3.5 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.11.5 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.17.3 // indirect
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.51.4 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.20.2 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.23.2 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.28.4 // indirect
+	github.com/aws/smithy-go v1.20.1 // indirect
+	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.2.0 // indirect
-	github.com/dominikbraun/graph v0.16.1 // indirect
+	github.com/cespare/xxhash/v2 v2.2.0 // indirect
+	github.com/dominikbraun/graph v0.23.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/g8rswimmer/error-chain v1.0.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
-	github.com/golang/protobuf v1.5.3 // indirect
-	github.com/google/uuid v1.3.1 // indirect
-	github.com/google/wire v0.5.0 // indirect
-	github.com/googleapis/gax-go/v2 v2.12.0 // indirect
+	github.com/golang/protobuf v1.5.4 // indirect
+	github.com/google/uuid v1.6.0 // indirect
+	github.com/google/wire v0.6.0 // indirect
+	github.com/googleapis/gax-go/v2 v2.12.2 // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
+	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
-	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/mattn/go-isatty v0.0.17 // indirect
 	github.com/mattn/go-runewidth v0.0.14 // indirect
+	github.com/matttproud/golang_protobuf_extensions/v2 v2.0.0 // indirect
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
-	github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421 // indirect
+	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/mschoch/smat v0.2.0 // indirect
 	github.com/natefinch/atomic v1.0.1 // indirect
+	github.com/ncruces/go-strftime v0.1.9 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/paulmach/go.geojson v1.4.0 // indirect
 	github.com/paulmach/protoscan v0.2.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/prometheus/client_golang v1.18.0 // indirect
+	github.com/prometheus/client_model v0.5.0 // indirect
+	github.com/prometheus/common v0.45.0 // indirect
+	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/schollz/progressbar/v3 v3.13.1 // indirect
@@ -98,10 +108,11 @@ require (
 	github.com/whosonfirst/go-whosonfirst-flags v0.5.1 // indirect
 	github.com/whosonfirst/go-whosonfirst-iterate/v2 v2.3.4 // indirect
 	github.com/whosonfirst/go-whosonfirst-names v0.1.0 // indirect
-	github.com/whosonfirst/go-whosonfirst-placetypes v0.7.0 // indirect
+	github.com/whosonfirst/go-whosonfirst-placetypes v0.7.2 // indirect
 	github.com/whosonfirst/go-whosonfirst-sources v0.1.0 // indirect
 	github.com/whosonfirst/go-whosonfirst-spr-geojson v0.0.8 // indirect
-	github.com/whosonfirst/go-whosonfirst-sqlite-features/v2 v2.0.0 // indirect
+	github.com/whosonfirst/go-whosonfirst-sql v0.0.3 // indirect
+	github.com/whosonfirst/go-whosonfirst-sqlite-features/v2 v2.0.3 // indirect
 	github.com/whosonfirst/go-whosonfirst-sqlite-spr/v2 v2.0.0 // indirect
 	github.com/whosonfirst/go-writer-featurecollection/v3 v3.0.0-20220916180959-42588e308a3e // indirect
 	github.com/whosonfirst/go-writer/v3 v3.1.0 // indirect
@@ -109,27 +120,22 @@ require (
 	github.com/whosonfirst/warning v0.1.1 // indirect
 	go.mongodb.org/mongo-driver v1.11.4 // indirect
 	go.opencensus.io v0.24.0 // indirect
-	golang.org/x/mod v0.11.0 // indirect
-	golang.org/x/net v0.17.0 // indirect
-	golang.org/x/sync v0.4.0 // indirect
-	golang.org/x/sys v0.13.0 // indirect
-	golang.org/x/term v0.13.0 // indirect
-	golang.org/x/text v0.13.0 // indirect
-	golang.org/x/tools v0.10.0 // indirect
-	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
-	google.golang.org/api v0.142.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20230920204549-e6e6cdab5c13 // indirect
-	google.golang.org/grpc v1.58.2 // indirect
-	google.golang.org/protobuf v1.31.0 // indirect
-	lukechampine.com/uint128 v1.2.0 // indirect
-	modernc.org/cc/v3 v3.40.0 // indirect
-	modernc.org/ccgo/v3 v3.16.13 // indirect
-	modernc.org/libc v1.24.1 // indirect
-	modernc.org/mathutil v1.5.0 // indirect
-	modernc.org/memory v1.6.0 // indirect
-	modernc.org/opt v0.1.3 // indirect
-	modernc.org/sqlite v1.25.0 // indirect
-	modernc.org/strutil v1.1.3 // indirect
-	modernc.org/token v1.0.1 // indirect
-	zombiezen.com/go/sqlite v0.13.1 // indirect
+	golang.org/x/net v0.22.0 // indirect
+	golang.org/x/sync v0.6.0 // indirect
+	golang.org/x/sys v0.18.0 // indirect
+	golang.org/x/term v0.18.0 // indirect
+	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028 // indirect
+	google.golang.org/api v0.169.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240311173647-c811ad7063a7 // indirect
+	google.golang.org/grpc v1.62.1 // indirect
+	google.golang.org/protobuf v1.33.0 // indirect
+	modernc.org/gc/v3 v3.0.0-20240107210532-573471604cb6 // indirect
+	modernc.org/libc v1.41.0 // indirect
+	modernc.org/mathutil v1.6.0 // indirect
+	modernc.org/memory v1.7.2 // indirect
+	modernc.org/sqlite v1.29.1 // indirect
+	modernc.org/strutil v1.2.0 // indirect
+	modernc.org/token v1.1.0 // indirect
+	zombiezen.com/go/sqlite v1.1.2 // indirect
 )

@@ -1,0 +1,11 @@
+CREATE TABLE {{ .Name }} (
+	id INTEGER NOT NULL,
+	body TEXT,
+	is_alt BOOLEAN,
+	alt_label TEXT,
+	lastmodified INTEGER
+);
+
+CREATE UNIQUE INDEX properties_by_id ON {{ .Name }} (id, alt_label);
+CREATE INDEX properties_by_alt ON {{ .Name }} (id, is_alt, alt_label);
+CREATE INDEX properties_by_lastmod ON {{ .Name }} (lastmodified);

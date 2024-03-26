@@ -41,8 +41,6 @@ const (
 	CodePipelineActionStateCanceled  CodePipelineActionState = "CANCELED"
 )
 
-// CodePipelineEvent is documented at:
-// https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/EventTypes.html#codepipeline_event_type
 type CodePipelineCloudWatchEvent struct {
 	// Version is the version of the event's schema.
 	Version string `json:"version"`
@@ -76,6 +74,8 @@ type CodePipelineCloudWatchEvent struct {
 	Detail CodePipelineEventDetail `json:"detail"`
 }
 
+type CodePipelineEventBridgeEvent = CodePipelineCloudWatchEvent
+
 type CodePipelineEventDetail struct {
 	Pipeline string `json:"pipeline"`
 
@@ -93,6 +93,8 @@ type CodePipelineEventDetail struct {
 	Region string `json:"region"`
 
 	Type CodePipelineEventDetailType `json:"type,omitempty"`
+
+	ExecutionResult CodePipelineEventDetailExecutionResult `json:"execution-result,omitempty"`
 }
 
 type CodePipelineEventDetailType struct {
@@ -104,4 +106,14 @@ type CodePipelineEventDetailType struct {
 
 	// From published EventBridge schema registry this is always int64 not string as documented
 	Version int64 `json:"version"`
+}
+
+type CodePipelineEventDetailExecutionResult struct {
+	ExternalExecutionURL string `json:"external-execution-url"`
+
+	ExternalExecutionSummary string `json:"external-execution-summary"`
+
+	ExternalExecutionID string `json:"external-execution-id"`
+
+	ErrorCode string `json:"error-code,omitempty"`
 }

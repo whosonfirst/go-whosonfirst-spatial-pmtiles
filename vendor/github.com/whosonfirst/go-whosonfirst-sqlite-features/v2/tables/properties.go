@@ -3,10 +3,12 @@ package tables
 import (
 	"context"
 	"fmt"
+
 	"github.com/aaronland/go-sqlite/v2"
 	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-whosonfirst-feature/alt"
 	"github.com/whosonfirst/go-whosonfirst-feature/properties"
+	sql_tables "github.com/whosonfirst/go-whosonfirst-sql/tables"
 	"github.com/whosonfirst/go-whosonfirst-sqlite-features/v2"
 )
 
@@ -77,7 +79,7 @@ func NewPropertiesTable(ctx context.Context) (sqlite.Table, error) {
 func NewPropertiesTableWithOptions(ctx context.Context, opts *PropertiesTableOptions) (sqlite.Table, error) {
 
 	t := PropertiesTable{
-		name:    "properties",
+		name:    sql_tables.PROPERTIES_TABLE_NAME,
 		options: opts,
 	}
 
@@ -89,21 +91,8 @@ func (t *PropertiesTable) Name() string {
 }
 
 func (t *PropertiesTable) Schema() string {
-
-	sql := `CREATE TABLE %s (
-		id INTEGER NOT NULL,
-		body TEXT,
-		is_alt BOOLEAN,
-		alt_label TEXT,
-		lastmodified INTEGER
-	);
-
-	CREATE UNIQUE INDEX properties_by_id ON %s (id, alt_label);
-	CREATE INDEX properties_by_alt ON %s (id, is_alt, alt_label);
-	CREATE INDEX properties_by_lastmod ON %s (lastmodified);
-	`
-
-	return fmt.Sprintf(sql, t.Name(), t.Name(), t.Name(), t.Name())
+	schema, _ := sql_tables.LoadSchema("sqlite", sql_tables.PROPERTIES_TABLE_NAME)
+	return schema
 }
 
 func (t *PropertiesTable) InitializeTable(ctx context.Context, db sqlite.Database) error {

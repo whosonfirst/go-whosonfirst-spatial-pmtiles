@@ -1,0 +1,12 @@
+CREATE VIRTUAL TABLE {{ .Name }} USING rtree (
+	id,
+	min_x,
+	max_x,
+	min_y,
+	max_y,
+	+wof_id INTEGER,
+	+is_alt TINYINT,
+	+alt_label TEXT,
+	+geometry BLOB,
+	+lastmodified INTEGER
+);

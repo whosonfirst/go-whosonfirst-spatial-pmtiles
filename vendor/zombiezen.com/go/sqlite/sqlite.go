@@ -20,7 +20,6 @@ package sqlite
 import (
 	"bytes"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 	"unsafe"
@@ -42,7 +41,7 @@ const VersionNumber = lib.SQLITE_VERSION_NUMBER
 
 // Conn is an open connection to an SQLite3 database.
 //
-// A Conn can only be used by goroutine at a time.
+// A Conn can only be used by one goroutine at a time.
 type Conn struct {
 	tls    *libc.TLS
 	conn   uintptr
@@ -337,18 +336,18 @@ func (c *Conn) SetBlockOnBusy() {
 }
 
 var busyDelays = [...]time.Duration{
-	1 * time.Second,
-	2 * time.Second,
-	5 * time.Second,
-	10 * time.Second,
-	15 * time.Second,
-	20 * time.Second,
-	25 * time.Second,
-	25 * time.Second,
-	25 * time.Second,
-	50 * time.Second,
-	50 * time.Second,
-	100 * time.Second,
+	1 * time.Millisecond,
+	2 * time.Millisecond,
+	5 * time.Millisecond,
+	10 * time.Millisecond,
+	15 * time.Millisecond,
+	20 * time.Millisecond,
+	25 * time.Millisecond,
+	25 * time.Millisecond,
+	25 * time.Millisecond,
+	50 * time.Millisecond,
+	50 * time.Millisecond,
+	100 * time.Millisecond,
 }
 
 var busyHandlers sync.Map // sqlite3* -> func(int) bool
@@ -1153,6 +1152,12 @@ func (stmt *Stmt) ColumnType(col int) ColumnType {
 	return ColumnType(lib.Xsqlite3_column_type(stmt.conn.tls, stmt.stmt, int32(col)))
 }
 
+// ColumnIsNull reports whether the result column holds NULL.
+// Column indices start at 0.
+func (stmt *Stmt) ColumnIsNull(col int) bool {
+	return stmt.ColumnType(col) == TypeNull
+}
+
 // ColumnText returns a query result as a string.
 //
 // Column indices start at 0.
@@ -1263,6 +1268,15 @@ func (stmt *Stmt) GetLen(colName string) int {
 	return stmt.ColumnLen(col)
 }
 
+// IsNull reports whether a query result value for colName is NULL.
+func (stmt *Stmt) IsNull(colName string) bool {
+	col, found := stmt.colNames[colName]
+	if !found {
+		return true
+	}
+	return stmt.ColumnIsNull(col)
+}
+
 func malloc(tls *libc.TLS, n types.Size_t) (uintptr, error) {
 	p := libc.Xmalloc(tls, n)
 	if p == 0 {
@@ -1283,13 +1297,8 @@ func goStringN(s uintptr, n int) string {
 	if s == 0 {
 		return ""
 	}
-	var buf strings.Builder
-	buf.Grow(n)
-	for i := 0; i < n; i++ {
-		buf.WriteByte(*(*byte)(unsafe.Pointer(s)))
-		s++
-	}
-	return buf.String()
+	b := unsafe.Slice((*byte)(unsafe.Pointer(s)), n)
+	return string(b)
 }
 
 // cFuncPointer converts a function defined by a function declaration to a C pointer.

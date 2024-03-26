@@ -508,7 +508,7 @@ func (db *PMTilesSpatialDatabase) decodeMVT(ctx context.Context, body []byte) ([
 			err := json.Unmarshal([]byte(v.String()), &values)
 
 			if err != nil {
-				return nil, fmt.Errorf("Failed to unmarshal %k value (%s), %w", k, v.String(), err)
+				return nil, fmt.Errorf("Failed to unmarshal %s value (%s), %w", k, v.String(), err)
 			}
 
 			path := fmt.Sprintf("properties.%s", k)
@@ -525,7 +525,7 @@ func (db *PMTilesSpatialDatabase) decodeMVT(ctx context.Context, body []byte) ([
 			err := json.Unmarshal([]byte(v.String()), &values)
 
 			if err != nil {
-				return nil, fmt.Errorf("Failed to unmarshal %k value (%s), %w", k, v.String(), err)
+				return nil, fmt.Errorf("Failed to unmarshal %s value (%s), %w", k, v.String(), err)
 			}
 
 			path := fmt.Sprintf("properties.%s", k)

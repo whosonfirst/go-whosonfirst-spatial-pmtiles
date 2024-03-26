@@ -3,7 +3,7 @@ package app
 import (
 	"context"
 	"flag"
-	
+
 	"github.com/sfomuseum/go-flags/lookup"
 	"github.com/whosonfirst/go-whosonfirst-spatial/database"
 	"github.com/whosonfirst/go-whosonfirst-spatial/flags"

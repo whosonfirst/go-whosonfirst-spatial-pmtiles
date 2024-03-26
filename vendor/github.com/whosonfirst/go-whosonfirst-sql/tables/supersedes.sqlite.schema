@@ -1,0 +1,6 @@
+CREATE TABLE {{ .Name }} (
+	id INTEGER NOT NULL PRIMARY KEY,
+	superseded_id INTEGER NOT NULL,
+	superseded_by_id INTEGER NOT NULL,
+	lastmodified INTEGER
+);

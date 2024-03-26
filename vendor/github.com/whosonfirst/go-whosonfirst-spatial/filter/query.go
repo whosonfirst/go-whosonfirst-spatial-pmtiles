@@ -4,7 +4,7 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/whosonfirst/go-whosonfirst-spatial"	
+	"github.com/whosonfirst/go-whosonfirst-spatial"
 )
 
 func NewSPRFilterFromQuery(query url.Values) (spatial.Filter, error) {

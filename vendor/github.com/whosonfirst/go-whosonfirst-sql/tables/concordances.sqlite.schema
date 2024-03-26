@@ -1,0 +1,9 @@
+CREATE TABLE {{ .Name }} (
+	id INTEGER NOT NULL,
+	other_id INTEGER NOT NULL,
+	other_source TEXT,
+	lastmodified INTEGER
+);
+
+CREATE UNIQUE INDEX `by_other` ON {{ .Name }} (`id`, `other_source`);
+CREATE INDEX `other_id` ON {{ .Name }} (`other_source`, `other_id`);

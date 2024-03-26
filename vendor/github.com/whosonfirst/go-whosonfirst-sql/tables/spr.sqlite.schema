@@ -1,0 +1,43 @@
+CREATE TABLE {{ .Name }} (
+	id TEXT NOT NULL,
+	parent_id INTEGER,
+	name TEXT,
+	placetype TEXT,
+	inception TEXT,
+	cessation TEXT,
+	country TEXT,
+	repo TEXT,
+	latitude REAL,
+	longitude REAL,
+	min_latitude REAL,
+	min_longitude REAL,
+	max_latitude REAL,
+	max_longitude REAL,
+	is_current INTEGER,
+	is_deprecated INTEGER,
+	is_ceased INTEGER,
+	is_superseded INTEGER,
+	is_superseding INTEGER,
+	superseded_by TEXT,
+	supersedes TEXT,
+	belongsto TEXT,
+	is_alt TINYINT,
+	alt_label TEXT,
+	lastmodified INTEGER
+);
+
+CREATE UNIQUE INDEX spr_by_id ON {{ .Name }} (id, alt_label);
+CREATE INDEX spr_by_lastmod ON {{ .Name }} (lastmodified);
+CREATE INDEX spr_by_parent ON {{ .Name }} (parent_id, is_current, lastmodified);
+CREATE INDEX spr_by_placetype ON {{ .Name }} (placetype, is_current, lastmodified);
+CREATE INDEX spr_by_country ON {{ .Name }} (country, placetype, is_current, lastmodified);
+CREATE INDEX spr_by_name ON {{ .Name }} (name, placetype, is_current, lastmodified);
+CREATE INDEX spr_by_centroid ON {{ .Name }} (latitude, longitude, is_current, lastmodified);
+CREATE INDEX spr_by_bbox ON {{ .Name }} (min_latitude, min_longitude, max_latitude, max_longitude, placetype, is_current, lastmodified);
+CREATE INDEX spr_by_repo ON {{ .Name }} (repo, lastmodified);
+CREATE INDEX spr_by_current ON {{ .Name }} (is_current, lastmodified);
+CREATE INDEX spr_by_deprecated ON {{ .Name }} (is_deprecated, lastmodified);
+CREATE INDEX spr_by_ceased ON {{ .Name }} (is_ceased, lastmodified);
+CREATE INDEX spr_by_superseded ON {{ .Name }} (is_superseded, lastmodified);
+CREATE INDEX spr_by_superseding ON {{ .Name }} (is_superseding, lastmodified);
+CREATE INDEX spr_obsolete ON {{ .Name }} (is_deprecated, is_superseded);

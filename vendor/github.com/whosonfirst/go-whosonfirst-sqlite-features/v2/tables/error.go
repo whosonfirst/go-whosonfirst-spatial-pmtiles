@@ -2,6 +2,7 @@ package tables
 
 import (
 	"fmt"
+
 	"github.com/aaronland/go-sqlite/v2"
 )
 

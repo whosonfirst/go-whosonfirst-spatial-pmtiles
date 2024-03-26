@@ -1,10 +1,10 @@
 package sanitize
 
 import (
-	go_http "net/http"
+	"net/http"
 )
 
-func RequestString(req *go_http.Request, param string) (string, error) {
+func RequestString(req *http.Request, param string) (string, error) {
 
 	switch req.Method {
 
@@ -16,7 +16,19 @@ func RequestString(req *go_http.Request, param string) (string, error) {
 
 }
 
-func RequestInt64(req *go_http.Request, param string) (int64, error) {
+func RequestInt(req *http.Request, param string) (int, error) {
+
+	switch req.Method {
+
+	case "POST":
+		return PostInt(req, param)
+	default:
+		return GetInt(req, param)
+	}
+
+}
+
+func RequestInt64(req *http.Request, param string) (int64, error) {
 
 	switch req.Method {
 
@@ -24,6 +36,30 @@ func RequestInt64(req *go_http.Request, param string) (int64, error) {
 		return PostInt64(req, param)
 	default:
 		return GetInt64(req, param)
+	}
+
+}
+
+func RequestFloat64(req *http.Request, param string) (float64, error) {
+
+	switch req.Method {
+
+	case "POST":
+		return PostFloat64(req, param)
+	default:
+		return GetFloat64(req, param)
+	}
+
+}
+
+func RequestBool(req *http.Request, param string) (bool, error) {
+
+	switch req.Method {
+
+	case "POST":
+		return PostBool(req, param)
+	default:
+		return GetBool(req, param)
 	}
 
 }

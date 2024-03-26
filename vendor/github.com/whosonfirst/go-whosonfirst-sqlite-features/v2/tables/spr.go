@@ -3,14 +3,16 @@ package tables
 import (
 	"context"
 	"fmt"
+	_ "log"
+	"strconv"
+	"strings"
+
 	"github.com/aaronland/go-sqlite/v2"
 	"github.com/whosonfirst/go-whosonfirst-feature/alt"
 	"github.com/whosonfirst/go-whosonfirst-feature/properties"
 	"github.com/whosonfirst/go-whosonfirst-spr/v2"
+	sql_tables "github.com/whosonfirst/go-whosonfirst-sql/tables"
 	"github.com/whosonfirst/go-whosonfirst-sqlite-features/v2"
-	_ "log"
-	"strconv"
-	"strings"
 )
 
 type SPRTableOptions struct {
@@ -46,7 +48,7 @@ func NewSPRTable(ctx context.Context) (sqlite.Table, error) {
 func NewSPRTableWithOptions(ctx context.Context, opts *SPRTableOptions) (sqlite.Table, error) {
 
 	t := SPRTable{
-		name:    "spr",
+		name:    sql_tables.SPR_TABLE_NAME,
 		options: opts,
 	}
 
@@ -91,53 +93,8 @@ func (t *SPRTable) Name() string {
 }
 
 func (t *SPRTable) Schema() string {
-
-	sql := `CREATE TABLE %[1]s (
-			id TEXT NOT NULL,
-			parent_id INTEGER,
-			name TEXT,
-			placetype TEXT,
-			inception TEXT,
-			cessation TEXT,
-			country TEXT,
-			repo TEXT,
-			latitude REAL,
-			longitude REAL,
-			min_latitude REAL,
-			min_longitude REAL,
-			max_latitude REAL,
-			max_longitude REAL,
-			is_current INTEGER,
-			is_deprecated INTEGER,
-			is_ceased INTEGER,
-			is_superseded INTEGER,
-			is_superseding INTEGER,
-			superseded_by TEXT,
-			supersedes TEXT,
-			belongsto TEXT,
-			is_alt TINYINT,
-			alt_label TEXT,
-			lastmodified INTEGER
-	);
-
-	CREATE UNIQUE INDEX spr_by_id ON %[1]s (id, alt_label);
-	CREATE INDEX spr_by_lastmod ON %[1]s (lastmodified);
-	CREATE INDEX spr_by_parent ON %[1]s (parent_id, is_current, lastmodified);
-	CREATE INDEX spr_by_placetype ON %[1]s (placetype, is_current, lastmodified);
-	CREATE INDEX spr_by_country ON %[1]s (country, placetype, is_current, lastmodified);
-	CREATE INDEX spr_by_name ON %[1]s (name, placetype, is_current, lastmodified);
-	CREATE INDEX spr_by_centroid ON %[1]s (latitude, longitude, is_current, lastmodified);
-	CREATE INDEX spr_by_bbox ON %[1]s (min_latitude, min_longitude, max_latitude, max_longitude, placetype, is_current, lastmodified);
-	CREATE INDEX spr_by_repo ON %[1]s (repo, lastmodified);
-	CREATE INDEX spr_by_current ON %[1]s (is_current, lastmodified);
-	CREATE INDEX spr_by_deprecated ON %[1]s (is_deprecated, lastmodified);
-	CREATE INDEX spr_by_ceased ON %[1]s (is_ceased, lastmodified);
-	CREATE INDEX spr_by_superseded ON %[1]s (is_superseded, lastmodified);
-	CREATE INDEX spr_by_superseding ON %[1]s (is_superseding, lastmodified);
-	CREATE INDEX spr_obsolete ON %[1]s (is_deprecated, is_superseded);
-	`
-
-	return fmt.Sprintf(sql, t.Name())
+	schema, _ := sql_tables.LoadSchema("sqlite", sql_tables.SPR_TABLE_NAME)
+	return schema
 }
 
 func (t *SPRTable) IndexRecord(ctx context.Context, db sqlite.Database, i interface{}) error {

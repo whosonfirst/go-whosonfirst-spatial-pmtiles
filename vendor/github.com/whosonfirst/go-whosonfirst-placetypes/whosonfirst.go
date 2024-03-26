@@ -11,10 +11,10 @@ type WhosOnFirstDefinition struct {
 	Definition
 	spec *WOFPlacetypeSpecification
 	prop string
-	uri string
+	uri  string
 }
 
-func init(){
+func init() {
 	ctx := context.Background()
 	RegisterDefinition(ctx, "whosonfirst", NewWhosOnFirstDefinition)
 }
@@ -30,7 +30,7 @@ func NewWhosOnFirstDefinition(ctx context.Context, uri string) (Definition, erro
 	s := &WhosOnFirstDefinition{
 		spec: spec,
 		prop: "wof:placetype",
-		uri: uri,
+		uri:  uri,
 	}
 
 	return s, nil
@@ -47,4 +47,3 @@ func (s *WhosOnFirstDefinition) Property() string {
 func (s *WhosOnFirstDefinition) URI() string {
 	return s.uri
 }
-		

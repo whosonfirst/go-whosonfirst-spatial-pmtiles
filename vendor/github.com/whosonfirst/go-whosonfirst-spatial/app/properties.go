@@ -4,7 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	
+
 	"github.com/sfomuseum/go-flags/lookup"
 	"github.com/whosonfirst/go-reader"
 	"github.com/whosonfirst/go-whosonfirst-spatial/flags"

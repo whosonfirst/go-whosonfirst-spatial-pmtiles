@@ -12,7 +12,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-iterate/v2/iterator"
 	"github.com/whosonfirst/go-whosonfirst-spatial/database"
 	"github.com/whosonfirst/go-whosonfirst-spatial/flags"
-	"github.com/whosonfirst/warning"	
+	"github.com/whosonfirst/warning"
 )
 
 func NewIteratorWithFlagSet(ctx context.Context, fl *flag.FlagSet, spatial_db database.SpatialDatabase) (*iterator.Iterator, error) {

@@ -40,6 +40,7 @@ func MarshalGzipped(layers Layers) ([]byte, error) {
 }
 
 // Marshal will take a set of layers and encode them into a Mapbox Vector Tile format.
+// Features that have a nil geometry, for some reason, will be skipped and not included.
 func Marshal(layers Layers) ([]byte, error) {
 	vt := &vectortile.Tile{
 		Layers: make([]*vectortile.Tile_Layer, 0, len(layers)),
@@ -73,6 +74,10 @@ func Marshal(layers Layers) ([]byte, error) {
 }
 
 func addFeature(layer *vectortile.Tile_Layer, kve *keyValueEncoder, f *geojson.Feature) error {
+	if f.Geometry == nil {
+		return nil
+	}
+
 	if f.Geometry.GeoJSONType() == "GeometryCollection" {
 		for _, g := range f.Geometry.(orb.Collection) {
 			return addSingleGeometryFeature(layer, kve, g, f.Properties, f.ID)
@@ -87,12 +92,12 @@ func addSingleGeometryFeature(layer *vectortile.Tile_Layer, kve *keyValueEncoder
 		return err
 	}
 	if err != nil {
-		return fmt.Errorf("error encoding geometry: %v", g)
+		return fmt.Errorf("error encoding geometry: %v : %s", g, err.Error())
 	}
 
 	tags, err := encodeProperties(kve, p)
 	if err != nil {
-		return fmt.Errorf("error encoding geometry: %v", g)
+		return fmt.Errorf("error encoding geometry: %v : %s", g, err.Error())
 	}
 
 	layer.Features = append(layer.Features, &vectortile.Tile_Feature{

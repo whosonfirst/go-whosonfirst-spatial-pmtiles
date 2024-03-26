@@ -8,7 +8,7 @@ import (
 
 	"github.com/sfomuseum/go-flags/lookup"
 	"github.com/whosonfirst/go-whosonfirst-placetypes"
-	"github.com/whosonfirst/go-whosonfirst-spatial/flags"	
+	"github.com/whosonfirst/go-whosonfirst-spatial/flags"
 )
 
 func AppendCustomPlacetypesWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {

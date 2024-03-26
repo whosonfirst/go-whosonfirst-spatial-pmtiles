@@ -7,6 +7,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-feature/alt"
 	"github.com/whosonfirst/go-whosonfirst-feature/properties"
 	"github.com/whosonfirst/go-whosonfirst-names/tags"
+	sql_tables "github.com/whosonfirst/go-whosonfirst-sql/tables"
 	"github.com/whosonfirst/go-whosonfirst-sqlite-features/v2"
 )
 
@@ -50,7 +51,7 @@ func NewNamesTableWithDatabase(ctx context.Context, db sqlite.Database) (sqlite.
 func NewNamesTable(ctx context.Context) (sqlite.Table, error) {
 
 	t := NamesTable{
-		name: "names",
+		name: sql_tables.NAMES_TABLE_NAME,
 	}
 
 	return &t, nil
@@ -61,33 +62,8 @@ func (t *NamesTable) Name() string {
 }
 
 func (t *NamesTable) Schema() string {
-
-	sql := `CREATE TABLE %s (
-	       id INTEGER NOT NULL,
-	       placetype TEXT,
-	       country TEXT,
-	       language TEXT,
-	       extlang TEXT,
-	       script TEXT,
-	       region TEXT,
-	       variant TEXT,
-	       extension TEXT,
-	       privateuse TEXT,
-	       name TEXT,
-	       lastmodified INTEGER
-	);
-
-	CREATE INDEX names_by_lastmod ON %s (lastmodified);
-	CREATE INDEX names_by_country ON %s (country,privateuse,placetype);
-	CREATE INDEX names_by_language ON %s (language,privateuse,placetype);
-	CREATE INDEX names_by_placetype ON %s (placetype,country,privateuse);
-	CREATE INDEX names_by_name ON %s (name, placetype, country);
-	CREATE INDEX names_by_name_private ON %s (name, privateuse, placetype, country);
-	CREATE INDEX names_by_wofid ON %s (id);
-	`
-
-	// this is a bit stupid really... (20170901/thisisaaronland)
-	return fmt.Sprintf(sql, t.Name(), t.Name(), t.Name(), t.Name(), t.Name(), t.Name(), t.Name(), t.Name())
+	schema, _ := sql_tables.LoadSchema("sqlite", sql_tables.NAMES_TABLE_NAME)
+	return schema
 }
 
 func (t *NamesTable) InitializeTable(ctx context.Context, db sqlite.Database) error {

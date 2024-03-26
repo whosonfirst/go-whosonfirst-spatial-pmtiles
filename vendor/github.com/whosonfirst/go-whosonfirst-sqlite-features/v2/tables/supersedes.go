@@ -3,9 +3,11 @@ package tables
 import (
 	"context"
 	"fmt"
+
 	"github.com/aaronland/go-sqlite/v2"
 	"github.com/whosonfirst/go-whosonfirst-feature/alt"
 	"github.com/whosonfirst/go-whosonfirst-feature/properties"
+	sql_tables "github.com/whosonfirst/go-whosonfirst-sql/tables"
 	"github.com/whosonfirst/go-whosonfirst-sqlite-features/v2"
 )
 
@@ -34,7 +36,7 @@ func NewSupersedesTableWithDatabase(ctx context.Context, db sqlite.Database) (sq
 func NewSupersedesTable(ctx context.Context) (sqlite.Table, error) {
 
 	t := SupersedesTable{
-		name: "supersedes",
+		name: sql_tables.SUPERSEDES_TABLE_NAME,
 	}
 
 	return &t, nil
@@ -45,18 +47,8 @@ func (t *SupersedesTable) Name() string {
 }
 
 func (t *SupersedesTable) Schema() string {
-
-	sql := `CREATE TABLE %s (
-		id INTEGER NOT NULL,
-		superseded_id INTEGER NOT NULL,
-		superseded_by_id INTEGER NOT NULL,
-		lastmodified INTEGER
-	);
-
-	CREATE UNIQUE INDEX supersedes_by ON %s (id,superseded_id, superseded_by_id);
-	`
-
-	return fmt.Sprintf(sql, t.Name(), t.Name())
+	schema, _ := sql_tables.LoadSchema("sqlite", sql_tables.SUPERSEDES_TABLE_NAME)
+	return schema
 }
 
 func (t *SupersedesTable) InitializeTable(ctx context.Context, db sqlite.Database) error {

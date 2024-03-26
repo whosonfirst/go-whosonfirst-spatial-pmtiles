@@ -12,7 +12,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-flags/existential"
 	"github.com/whosonfirst/go-whosonfirst-flags/geometry"
 	"github.com/whosonfirst/go-whosonfirst-flags/placetypes"
-	"github.com/whosonfirst/go-whosonfirst-spatial"	
+	"github.com/whosonfirst/go-whosonfirst-spatial"
 )
 
 var sanitizeOpts *sanitize.Options

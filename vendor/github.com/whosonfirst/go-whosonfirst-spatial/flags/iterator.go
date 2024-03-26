@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/sfomuseum/go-flags/lookup"
-	"github.com/whosonfirst/go-whosonfirst-iterate/v2/emitter"	
+	"github.com/whosonfirst/go-whosonfirst-iterate/v2/emitter"
 )
 
 func AppendIndexingFlags(fs *flag.FlagSet) error {

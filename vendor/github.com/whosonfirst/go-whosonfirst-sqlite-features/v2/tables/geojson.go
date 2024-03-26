@@ -3,9 +3,11 @@ package tables
 import (
 	"context"
 	"fmt"
+
 	"github.com/aaronland/go-sqlite/v2"
 	"github.com/whosonfirst/go-whosonfirst-feature/alt"
 	"github.com/whosonfirst/go-whosonfirst-feature/properties"
+	sql_tables "github.com/whosonfirst/go-whosonfirst-sql/tables"
 	"github.com/whosonfirst/go-whosonfirst-sqlite-features/v2"
 )
 
@@ -78,7 +80,7 @@ func NewGeoJSONTable(ctx context.Context) (sqlite.Table, error) {
 func NewGeoJSONTableWithOptions(ctx context.Context, opts *GeoJSONTableOptions) (sqlite.Table, error) {
 
 	t := GeoJSONTable{
-		name:    "geojson",
+		name:    sql_tables.GEOJSON_TABLE_NAME,
 		options: opts,
 	}
 
@@ -90,22 +92,8 @@ func (t *GeoJSONTable) Name() string {
 }
 
 func (t *GeoJSONTable) Schema() string {
-
-	sql := `CREATE TABLE %s (
-		id INTEGER NOT NULL,
-		body TEXT,
-		source TEXT,
-		is_alt BOOLEAN,
-		alt_label TEXT,
-		lastmodified INTEGER
-	);
-
-	CREATE UNIQUE INDEX geojson_by_id ON %s (id, source, alt_label);
-	CREATE INDEX geojson_by_alt ON %s (id, is_alt, alt_label);
-	CREATE INDEX geojson_by_lastmod ON %s (lastmodified);
-	`
-
-	return fmt.Sprintf(sql, t.Name(), t.Name(), t.Name(), t.Name())
+	schema, _ := sql_tables.LoadSchema("sqlite", sql_tables.GEOJSON_TABLE_NAME)
+	return schema
 }
 
 func (t *GeoJSONTable) InitializeTable(ctx context.Context, db sqlite.Database) error {

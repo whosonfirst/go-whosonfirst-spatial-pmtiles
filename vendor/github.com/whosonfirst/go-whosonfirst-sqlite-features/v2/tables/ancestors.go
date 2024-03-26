@@ -3,11 +3,13 @@ package tables
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/aaronland/go-sqlite/v2"
 	"github.com/whosonfirst/go-whosonfirst-feature/alt"
 	"github.com/whosonfirst/go-whosonfirst-feature/properties"
+	sql_tables "github.com/whosonfirst/go-whosonfirst-sql/tables"
 	"github.com/whosonfirst/go-whosonfirst-sqlite-features/v2"
-	"strings"
 )
 
 type AncestorsTable struct {
@@ -42,7 +44,7 @@ func NewAncestorsTableWithDatabase(ctx context.Context, db sqlite.Database) (sql
 func NewAncestorsTable(ctx context.Context) (sqlite.Table, error) {
 
 	t := AncestorsTable{
-		name: "ancestors",
+		name: sql_tables.ANCESTORS_TABLE_NAME,
 	}
 
 	return &t, nil
@@ -53,19 +55,8 @@ func (t *AncestorsTable) Name() string {
 }
 
 func (t *AncestorsTable) Schema() string {
-
-	sql := `CREATE TABLE %s (
-		id INTEGER NOT NULL,
-		ancestor_id INTEGER NOT NULL,
-		ancestor_placetype TEXT,
-		lastmodified INTEGER
-	);
-
-	CREATE INDEX ancestors_by_id ON %s (id,ancestor_placetype,lastmodified);
-	CREATE INDEX ancestors_by_ancestor ON %s (ancestor_id,ancestor_placetype,lastmodified);
-	CREATE INDEX ancestors_by_lastmod ON %s (lastmodified);`
-
-	return fmt.Sprintf(sql, t.Name(), t.Name(), t.Name(), t.Name())
+	schema, _ := sql_tables.LoadSchema("sqlite", sql_tables.ANCESTORS_TABLE_NAME)
+	return schema
 }
 
 func (t *AncestorsTable) InitializeTable(ctx context.Context, db sqlite.Database) error {

@@ -3,13 +3,15 @@ package tables
 import (
 	"context"
 	"fmt"
+	_ "log"
+
 	"github.com/aaronland/go-sqlite/v2"
 	"github.com/paulmach/orb/encoding/wkt"
 	"github.com/whosonfirst/go-whosonfirst-feature/alt"
 	"github.com/whosonfirst/go-whosonfirst-feature/geometry"
 	"github.com/whosonfirst/go-whosonfirst-feature/properties"
+	sql_tables "github.com/whosonfirst/go-whosonfirst-sql/tables"
 	"github.com/whosonfirst/go-whosonfirst-sqlite-features/v2"
-	_ "log"
 )
 
 type GeometriesTableOptions struct {
@@ -51,7 +53,7 @@ func NewGeometriesTable(ctx context.Context) (sqlite.Table, error) {
 func NewGeometriesTableWithOptions(ctx context.Context, opts *GeometriesTableOptions) (sqlite.Table, error) {
 
 	t := GeometriesTable{
-		name:    "geometries",
+		name:    sql_tables.GEOMETRIES_TABLE_NAME,
 		options: opts,
 	}
 
@@ -102,22 +104,8 @@ func (t *GeometriesTable) Schema() string {
 	// Note the InitSpatialMetaData() command because this:
 	// https://stackoverflow.com/questions/17761089/cannot-create-column-with-spatialite-unexpected-metadata-layout
 
-	sql := `CREATE TABLE %s (
-		id INTEGER NOT NULL,
-		type TEXT,
-		is_alt TINYINT,
-		alt_label TEXT,
-		lastmodified INTEGER
-	);
-
-	SELECT InitSpatialMetaData();
-	SELECT AddGeometryColumn('%s', 'geom', 4326, 'GEOMETRY', 'XY');
-	SELECT CreateSpatialIndex('%s', 'geom');
-
-	CREATE UNIQUE INDEX by_id ON %s (id, alt_label);
-	CREATE INDEX geometries_by_lastmod ON %s (lastmodified);`
-
-	return fmt.Sprintf(sql, t.Name(), t.Name(), t.Name(), t.Name(), t.Name())
+	schema, _ := sql_tables.LoadSchema("sqlite", sql_tables.GEOMETRIES_TABLE_NAME)
+	return schema
 }
 
 func (t *GeometriesTable) InitializeTable(ctx context.Context, db sqlite.Database) error {

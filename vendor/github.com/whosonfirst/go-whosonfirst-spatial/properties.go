@@ -11,7 +11,7 @@ import (
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 	"github.com/whosonfirst/go-reader"
-	"github.com/whosonfirst/go-whosonfirst-spr/v2"	
+	"github.com/whosonfirst/go-whosonfirst-spr/v2"
 )
 
 type PropertiesResponseOptions struct {

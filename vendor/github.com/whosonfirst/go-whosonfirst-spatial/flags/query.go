@@ -3,7 +3,7 @@ package flags
 import (
 	"flag"
 	"fmt"
-	
+
 	"github.com/sfomuseum/go-flags/lookup"
 	"github.com/sfomuseum/go-flags/multi"
 	"github.com/whosonfirst/go-whosonfirst-spatial/geo"
