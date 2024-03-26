@@ -6,3 +6,4 @@ vuln:
 cli:
 	go build -mod $(GOMOD) -ldflags="-s -w" -o bin/query cmd/query/main.go
 	go build -mod $(GOMOD) -ldflags="-s -w" -o bin/pmtile cmd/pmtile/main.go
+	go build -mod $(GOMOD) -ldflags="-s -w" -o bin/server cmd/server/main.go
