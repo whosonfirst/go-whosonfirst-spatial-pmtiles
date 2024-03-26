@@ -20,17 +20,26 @@ require (
 	github.com/whosonfirst/go-whosonfirst-spatial v0.7.3
 	github.com/whosonfirst/go-whosonfirst-spatial-pip v0.3.3
 	github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.6.9
+	github.com/whosonfirst/go-whosonfirst-spatial-www v0.0.49
 	github.com/whosonfirst/go-whosonfirst-spr/v2 v2.3.7
 	github.com/whosonfirst/go-whosonfirst-uri v1.3.0
 	gocloud.dev v0.37.0
 )
 
 require (
+	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/RoaringBitmap/roaring v1.5.0 // indirect
 	github.com/aaronland/go-aws-dynamodb v0.0.5 // indirect
 	github.com/aaronland/go-aws-session v0.2.1 // indirect
+	github.com/aaronland/go-http-bootstrap v0.4.0 // indirect
+	github.com/aaronland/go-http-leaflet v0.4.0 // indirect
+	github.com/aaronland/go-http-maps v0.3.2 // indirect
+	github.com/aaronland/go-http-ping/v2 v2.0.0 // indirect
+	github.com/aaronland/go-http-rewrite v1.1.0 // indirect
 	github.com/aaronland/go-http-sanitize v0.0.8 // indirect
 	github.com/aaronland/go-http-server v1.4.1 // indirect
+	github.com/aaronland/go-http-static v0.0.3 // indirect
+	github.com/aaronland/go-http-tangramjs v0.3.0 // indirect
 	github.com/aaronland/go-json-query v0.1.4 // indirect
 	github.com/aaronland/go-pagination v0.2.0 // indirect
 	github.com/aaronland/go-pagination-sql v0.2.0 // indirect
@@ -56,6 +65,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.11.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.17.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.51.4 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssm v1.49.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.20.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.23.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.28.4 // indirect
@@ -65,6 +75,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/dominikbraun/graph v0.23.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
+	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/g8rswimmer/error-chain v1.0.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
@@ -78,6 +89,7 @@ require (
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/mattn/go-isatty v0.0.17 // indirect
 	github.com/mattn/go-runewidth v0.0.14 // indirect
+	github.com/mattn/go-sqlite3 v1.14.16 // indirect
 	github.com/matttproud/golang_protobuf_extensions/v2 v2.0.0 // indirect
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
@@ -94,14 +106,25 @@ require (
 	github.com/prometheus/common v0.45.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
-	github.com/rivo/uniseg v0.2.0 // indirect
+	github.com/rivo/uniseg v0.4.3 // indirect
+	github.com/rs/cors v1.10.1 // indirect
 	github.com/schollz/progressbar/v3 v3.13.1 // indirect
 	github.com/sfomuseum/go-edtf v1.1.1 // indirect
 	github.com/sfomuseum/go-flags v0.10.0 // indirect
+	github.com/sfomuseum/go-http-auth v0.9.0 // indirect
+	github.com/sfomuseum/go-http-protomaps v0.2.0 // indirect
+	github.com/sfomuseum/go-http-rollup v0.0.2 // indirect
+	github.com/sfomuseum/go-sfomuseum-pmtiles v1.2.0 // indirect
+	github.com/sfomuseum/go-template v1.8.0 // indirect
 	github.com/sfomuseum/go-timings v1.2.1 // indirect
 	github.com/sfomuseum/iso8601duration v1.1.0 // indirect
+	github.com/sfomuseum/runtimevar v1.1.2 // indirect
+	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e // indirect
+	github.com/tdewolff/minify/v2 v2.19.10 // indirect
+	github.com/tdewolff/parse/v2 v2.6.8 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
+	github.com/tilezen/go-tilepacks v0.0.0-20230902185537-9a48755ab988 // indirect
 	github.com/whosonfirst/go-rfc-5646 v0.1.0 // indirect
 	github.com/whosonfirst/go-sanitize v0.1.0 // indirect
 	github.com/whosonfirst/go-whosonfirst-crawl v0.2.2 // indirect

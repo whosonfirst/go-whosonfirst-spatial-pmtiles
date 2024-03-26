@@ -1,0 +1,1 @@
+#container{display:grid;grid-template-columns:1fr 1fr}#geojson{padding:1rem;font-size:small;border:solid thick;height:100vh;overflow:auto}#map{width:100%;height:100vh}.leaflet-draw-toolbar a{background-size:300px 30px!important}

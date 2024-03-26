@@ -1,0 +1,23 @@
+#spinner {
+	background-color:#fff;
+}
+
+.spinner:after {
+	content: '';
+	box-sizing: border-box;
+	width: 20px;
+	height: 20px;
+	margin: .5rem;
+	margin-bottom: .25rem;
+	border-radius: 100%;
+	border: 2px solid #ccc;
+	border-top-color: #146e8e;
+	animation: spinner .6s linear infinite;
+	display: inline-block;
+}
+
+/* https://stephanwagner.me/only-css-loading-spinner */
+
+@keyframes spinner {
+  to {transform: rotate(360deg);}
+}

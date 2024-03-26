@@ -1,0 +1,4 @@
+{{ define "test"}}
+{{ if (IsAvailable "PageTitle" .) }}{{ .PageTitle }}{{ end }}
+{{ if (IsAvailable "UserName" .) }}Hello {{ .UserName }}{{ else }}This is a test.{{ end }}
+{{ end }}

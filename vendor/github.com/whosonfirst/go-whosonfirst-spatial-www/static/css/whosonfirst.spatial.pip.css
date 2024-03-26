@@ -1,0 +1,32 @@
+nav {
+	margin-top:1rem !important;	
+	margin-bottom:1rem !important;
+}
+
+details {
+	margin-bottom: 1rem;
+}
+
+details summary {
+	font-weight: 700;
+}
+
+.card {
+	margin-bottom: 1rem;
+}
+
+#slippymap-coords {
+	text-align: center;
+	font-size:small;
+	margin:.5rem;
+}
+
+#map {
+	height: 45vh !important;
+	max-height: 45vh !important;	
+}
+
+#pip-results {
+	max-height: 35vh !important;
+	overflow: scroll !important;
+}
