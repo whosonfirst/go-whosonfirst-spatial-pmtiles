@@ -554,18 +554,14 @@ github.com/whosonfirst/go-whosonfirst-sources/sources
 ## explicit; go 1.22.1
 github.com/whosonfirst/go-whosonfirst-spatial
 github.com/whosonfirst/go-whosonfirst-spatial/app
+github.com/whosonfirst/go-whosonfirst-spatial/app/pip
 github.com/whosonfirst/go-whosonfirst-spatial/database
 github.com/whosonfirst/go-whosonfirst-spatial/filter
 github.com/whosonfirst/go-whosonfirst-spatial/flags
 github.com/whosonfirst/go-whosonfirst-spatial/geo
 github.com/whosonfirst/go-whosonfirst-spatial/pip
-# github.com/whosonfirst/go-whosonfirst-spatial-pip v0.3.3
-## explicit; go 1.22
-github.com/whosonfirst/go-whosonfirst-spatial-pip
-github.com/whosonfirst/go-whosonfirst-spatial-pip/app/query
-github.com/whosonfirst/go-whosonfirst-spatial-pip/http/api
-# github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.6.10
-## explicit; go 1.22
+# github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.6.11
+## explicit; go 1.22.1
 github.com/whosonfirst/go-whosonfirst-spatial-sqlite
 github.com/whosonfirst/go-whosonfirst-spatial-sqlite/wkttoorb
 # github.com/whosonfirst/go-whosonfirst-spatial-www v0.0.50

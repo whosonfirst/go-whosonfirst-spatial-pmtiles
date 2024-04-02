@@ -16,8 +16,7 @@ require (
 	github.com/whosonfirst/go-reader v1.0.2
 	github.com/whosonfirst/go-whosonfirst-feature v0.0.27
 	github.com/whosonfirst/go-whosonfirst-spatial v0.7.4
-	github.com/whosonfirst/go-whosonfirst-spatial-pip v0.3.3
-	github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.6.10
+	github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.6.11
 	github.com/whosonfirst/go-whosonfirst-spatial-www v0.0.50
 	github.com/whosonfirst/go-whosonfirst-spr/v2 v2.3.7
 	github.com/whosonfirst/go-whosonfirst-uri v1.3.0

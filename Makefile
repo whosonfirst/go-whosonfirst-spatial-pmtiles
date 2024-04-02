@@ -8,3 +8,12 @@ cli:
 	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/query cmd/query/main.go
 	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/pmtile cmd/pmtile/main.go
 	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/server cmd/server/main.go
+
+server:
+	go run -mod $(GOMOD) cmd/server/main.go \
+		-enable-www \
+		-server-uri http://localhost:8081 \
+		-map-provider 'leaflet' \
+		-leaflet-tile-url 'https://tile.openstreetmap.org/{z}/{x}/{y}.png' \
+		-spatial-database-uri '$(DATABASE)' \
+		-properties-reader-uri '{spatial-database-uri}'
