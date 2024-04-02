@@ -204,8 +204,9 @@ import (
 
 import (
 	"context"
-	"github.com/whosonfirst/go-whosonfirst-spatial-pip/app/query"
 	"log"
+
+	"github.com/whosonfirst/go-whosonfirst-spatial-pip/app/query"
 )
 
 func main() {
@@ -226,7 +227,7 @@ func main() {
 
 ## Web interface(s)
 
-www-pmtiles/### server
+### server
 
 ```
 $> > ./bin/server -h
@@ -403,7 +404,7 @@ In the "configuration" section you'll need to assign the following variables in 
 | WHOSONFIRST_LOG_TIMINGS | true | Or not. |
 | WHOSONFIRST_PATH_PREFIX | _string_ | This should match the name of API Gateway deployment "stage" (discussed below) you associate with your Lambda function. |
 | WHOSONFIRST_PROPERTIES_READER_URI | {spatial-database-uri} | |
-| WHOSONFIRST_SERVER_URI | lambda:// | |
+| WHOSONFIRST_SERVER_URI | lambda:// | It is only necessary to set this is you are using your Lambda function in conjunction with an API Gateway integration, described below. If not leave empty and add a valid [awslabs/aws-lambda-web-adapter](https://github.com/awslabs/aws-lambda-web-adapter). |
 | WHOSONFIRST_SPATIAL_DATABASE_URI | pmtiles://?tiles={TILES_URI}&database={DATABASE} | See below for a discussion of the value of `{TILES_URI}` |
 
 Under the hood the value of the `?tiles=` query parameter in the `-spatial-database-uri` (or `WHOSONFIRST_SPATIAL_DATABASE_URI`) flag is just a [gocloud.dev/blob](https://gocloud.dev/howto/blob/) URI so data can be read from any source that implements that package's [Blob](https://pkg.go.dev/gocloud.dev/blob) interfaces. The default supported URIs are `file://` for reading data from the local filesystem and `s3://` and `s3blob://` for reading data from an S3 bucket. The difference between `s3://` and `s3blob://` is that the latter allows AWS credentials to be [defined as a query parameter](https://github.com/aaronland/gocloud-blob-s3#credentials). For example:
@@ -436,6 +437,8 @@ That should be all you need to do. You can test the set up by running the functi
 
 ### API Gateway
 
+_The use of API Gateway works but it's honestly easier to use a Lambda Function URL in conjunction with the [awslabs/aws-lambda-web-adapter](https://github.com/awslabs/aws-lambda-web-adapter)._
+
 Create a new "REST" API. For the sake of this example we'll call it `Architecture` (to match the container and Lambda function described above).
 
 * Create a new "Resource" and configure it "as proxy resource".
@@ -455,7 +458,6 @@ Once deployed the `server` tool will be available at a URL like `{PREFIX}.execut
 ## See also
 
 * https://github.com/whosonfirst/go-whosonfirst-spatial
-* https://github.com/whosonfirst/go-whosonfirst-spatial-pip
 * https://github.com/whosonfirst/go-whosonfirst-spatial-sqlite
 * https://github.com/whosonfirst/go-whosonfirst-spatial-www
 * https://github.com/whosonfirst/go-whosonfirst-tippecanoe
