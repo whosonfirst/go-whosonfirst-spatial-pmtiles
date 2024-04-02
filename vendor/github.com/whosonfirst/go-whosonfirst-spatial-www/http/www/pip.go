@@ -1,10 +1,10 @@
-package http
+package www
 
 import (
 	"errors"
 	"html/template"
 	_ "log"
-	gohttp "net/http"
+	"net/http"
 
 	"github.com/whosonfirst/go-whosonfirst-placetypes"
 	"github.com/whosonfirst/go-whosonfirst-spatial/app"
@@ -30,7 +30,7 @@ type PointInPolygonHandlerTemplateVars struct {
 	Placetypes       []*placetypes.WOFPlacetype
 }
 
-func PointInPolygonHandler(spatial_app *app.SpatialApplication, opts *PointInPolygonHandlerOptions) (gohttp.Handler, error) {
+func PointInPolygonHandler(spatial_app *app.SpatialApplication, opts *PointInPolygonHandlerOptions) (http.Handler, error) {
 
 	t := opts.Templates.Lookup("pointinpolygon")
 
@@ -46,10 +46,10 @@ func PointInPolygonHandler(spatial_app *app.SpatialApplication, opts *PointInPol
 		return nil, err
 	}
 
-	fn := func(rsp gohttp.ResponseWriter, req *gohttp.Request) {
+	fn := func(rsp http.ResponseWriter, req *http.Request) {
 
 		if iterator.IsIndexing() {
-			gohttp.Error(rsp, "indexing records", gohttp.StatusServiceUnavailable)
+			http.Error(rsp, "indexing records", http.StatusServiceUnavailable)
 			return
 		}
 
@@ -70,13 +70,13 @@ func PointInPolygonHandler(spatial_app *app.SpatialApplication, opts *PointInPol
 		err := t.Execute(rsp, vars)
 
 		if err != nil {
-			gohttp.Error(rsp, err.Error(), gohttp.StatusInternalServerError)
+			http.Error(rsp, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		return
 	}
 
-	h := gohttp.HandlerFunc(fn)
+	h := http.HandlerFunc(fn)
 	return h, nil
 }

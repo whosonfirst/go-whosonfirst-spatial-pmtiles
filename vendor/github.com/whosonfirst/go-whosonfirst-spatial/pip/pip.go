@@ -2,12 +2,13 @@ package pip
 
 import (
 	"flag"
+	"net/url"
+	"strconv"
+
 	"github.com/sfomuseum/go-flags/lookup"
 	"github.com/whosonfirst/go-whosonfirst-spatial"
 	"github.com/whosonfirst/go-whosonfirst-spatial/filter"
-	"github.com/whosonfirst/go-whosonfirst-spatial/flags"
-	"net/url"
-	"strconv"
+	"github.com/whosonfirst/go-whosonfirst-spatial/flags"	
 )
 
 type PointInPolygonRequest struct {

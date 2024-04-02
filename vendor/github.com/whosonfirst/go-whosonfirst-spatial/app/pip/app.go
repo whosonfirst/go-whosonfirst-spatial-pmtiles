@@ -1,21 +1,19 @@
-package query
+package pip
 
 import (
 	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/aaronland/go-http-server"
+	"log"
+
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/sfomuseum/go-flags/flagset"
 	"github.com/sfomuseum/go-flags/lookup"
 	"github.com/whosonfirst/go-whosonfirst-spatial"
-	"github.com/whosonfirst/go-whosonfirst-spatial-pip"
-	"github.com/whosonfirst/go-whosonfirst-spatial-pip/http/api"
+	"github.com/whosonfirst/go-whosonfirst-spatial/pip"
 	"github.com/whosonfirst/go-whosonfirst-spatial/app"
-	spatial_flags "github.com/whosonfirst/go-whosonfirst-spatial/flags"
-	"log"
-	gohttp "net/http"
+	spatial_flags "github.com/whosonfirst/go-whosonfirst-spatial/flags"	
 )
 
 type RunOptions struct {
@@ -161,35 +159,6 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 		}
 
 		lambda.Start(handler)
-
-	case "server":
-
-		pip_opts := &api.PointInPolygonHandlerOptions{
-			EnableGeoJSON: enable_geojson,
-		}
-
-		pip_handler, err := api.PointInPolygonHandler(spatial_app, pip_opts)
-
-		if err != nil {
-			return fmt.Errorf("Failed to create PIP handler, %v", err)
-		}
-
-		mux := gohttp.NewServeMux()
-		mux.Handle("/", pip_handler)
-
-		s, err := server.NewServer(ctx, server_uri)
-
-		if err != nil {
-			return fmt.Errorf("Failed to create server for '%s', %v", server_uri, err)
-		}
-
-		log.Printf("Listening for requests at %s\n", s.Address())
-
-		err = s.ListenAndServe(ctx, mux)
-
-		if err != nil {
-			return fmt.Errorf("Failed to serve requests for '%s', %v", server_uri, err)
-		}
 
 	default:
 		return fmt.Errorf("Invalid or unsupported mode '%s'", mode)

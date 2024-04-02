@@ -2,9 +2,10 @@ package main
 
 import (
 	"context"
-	_ "github.com/whosonfirst/go-whosonfirst-spatial-pmtiles"
-	"github.com/whosonfirst/go-whosonfirst-spatial-www/application/server"
 	"log"
+
+	_ "github.com/whosonfirst/go-whosonfirst-spatial-pmtiles"
+	"github.com/whosonfirst/go-whosonfirst-spatial-www/app/server"
 )
 
 func main() {

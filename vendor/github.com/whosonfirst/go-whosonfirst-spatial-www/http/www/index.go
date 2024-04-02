@@ -1,16 +1,16 @@
-package http
+package www
 
 import (
 	"errors"
 	"html/template"
-	gohttp "net/http"
+	"net/http"
 )
 
 type IndexHandlerOptions struct {
 	Templates *template.Template
 }
 
-func IndexHandler(opts *IndexHandlerOptions) (gohttp.Handler, error) {
+func IndexHandler(opts *IndexHandlerOptions) (http.Handler, error) {
 
 	t := opts.Templates.Lookup("index")
 
@@ -18,20 +18,20 @@ func IndexHandler(opts *IndexHandlerOptions) (gohttp.Handler, error) {
 		return nil, errors.New("Missing 'index' template")
 	}
 
-	fn := func(rsp gohttp.ResponseWriter, req *gohttp.Request) {
+	fn := func(rsp http.ResponseWriter, req *http.Request) {
 
 		rsp.Header().Set("Content-Type", "text/html; charset=utf-8")
 
 		err := t.Execute(rsp, nil)
 
 		if err != nil {
-			gohttp.Error(rsp, err.Error(), gohttp.StatusInternalServerError)
+			http.Error(rsp, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		return
 	}
 
-	h := gohttp.HandlerFunc(fn)
+	h := http.HandlerFunc(fn)
 	return h, nil
 }

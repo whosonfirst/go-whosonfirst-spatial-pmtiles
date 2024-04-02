@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/aaronland/go-roster"	
+	"github.com/aaronland/go-roster"
 )
 
 // type Authenticator is a simple interface for	enforcing authentication in HTTP handlers.

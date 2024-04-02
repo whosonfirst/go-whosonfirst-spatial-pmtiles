@@ -1,19 +1,19 @@
-package http
+package api
 
 // TBD: make this part of whosonfirst/go-reader package...
 
 import (
 	"fmt"
 	"io"
-	gohttp "net/http"
+	"net/http"
 
 	"github.com/whosonfirst/go-reader"
 	"github.com/whosonfirst/go-whosonfirst-uri"
 )
 
-func NewDataHandler(r reader.Reader) (gohttp.Handler, error) {
+func NewDataHandler(r reader.Reader) (http.Handler, error) {
 
-	fn := func(rsp gohttp.ResponseWriter, req *gohttp.Request) {
+	fn := func(rsp http.ResponseWriter, req *http.Request) {
 
 		path := req.URL.Path
 
@@ -21,7 +21,7 @@ func NewDataHandler(r reader.Reader) (gohttp.Handler, error) {
 
 		if err != nil {
 			e := fmt.Errorf("Failed to parse %s, %w", path, err)
-			gohttp.Error(rsp, e.Error(), gohttp.StatusBadRequest)
+			http.Error(rsp, e.Error(), http.StatusBadRequest)
 			return
 		}
 
@@ -29,7 +29,7 @@ func NewDataHandler(r reader.Reader) (gohttp.Handler, error) {
 
 		if err != nil {
 			e := fmt.Errorf("Failed to derive path for %d, %w", id, err)
-			gohttp.Error(rsp, e.Error(), gohttp.StatusBadRequest)
+			http.Error(rsp, e.Error(), http.StatusBadRequest)
 			return
 		}
 
@@ -38,7 +38,7 @@ func NewDataHandler(r reader.Reader) (gohttp.Handler, error) {
 
 		if err != nil {
 			e := fmt.Errorf("Failed to load %s, %w", rel_path, err)
-			gohttp.Error(rsp, e.Error(), gohttp.StatusBadRequest)
+			http.Error(rsp, e.Error(), http.StatusBadRequest)
 			return
 		}
 
@@ -48,13 +48,13 @@ func NewDataHandler(r reader.Reader) (gohttp.Handler, error) {
 
 		if err != nil {
 			e := fmt.Errorf("Failed to copy %s, %w", rel_path, err)
-			gohttp.Error(rsp, e.Error(), gohttp.StatusBadRequest)
+			http.Error(rsp, e.Error(), http.StatusBadRequest)
 			return
 		}
 
 		return
 	}
 
-	h := gohttp.HandlerFunc(fn)
+	h := http.HandlerFunc(fn)
 	return h, nil
 }

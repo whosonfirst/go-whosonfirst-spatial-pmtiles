@@ -448,7 +448,7 @@ github.com/sfomuseum/go-edtf/tests
 github.com/sfomuseum/go-flags/flagset
 github.com/sfomuseum/go-flags/lookup
 github.com/sfomuseum/go-flags/multi
-# github.com/sfomuseum/go-http-auth v0.9.0
+# github.com/sfomuseum/go-http-auth v0.11.0
 ## explicit; go 1.18
 github.com/sfomuseum/go-http-auth
 # github.com/sfomuseum/go-http-protomaps v0.2.0
@@ -550,27 +550,26 @@ github.com/whosonfirst/go-whosonfirst-placetypes
 ## explicit; go 1.12
 github.com/whosonfirst/go-whosonfirst-sources
 github.com/whosonfirst/go-whosonfirst-sources/sources
-# github.com/whosonfirst/go-whosonfirst-spatial v0.7.3
-## explicit; go 1.18
+# github.com/whosonfirst/go-whosonfirst-spatial v0.7.4
+## explicit; go 1.22.1
 github.com/whosonfirst/go-whosonfirst-spatial
 github.com/whosonfirst/go-whosonfirst-spatial/app
+github.com/whosonfirst/go-whosonfirst-spatial/app/pip
 github.com/whosonfirst/go-whosonfirst-spatial/database
 github.com/whosonfirst/go-whosonfirst-spatial/filter
 github.com/whosonfirst/go-whosonfirst-spatial/flags
 github.com/whosonfirst/go-whosonfirst-spatial/geo
-# github.com/whosonfirst/go-whosonfirst-spatial-pip v0.3.3
-## explicit; go 1.22
-github.com/whosonfirst/go-whosonfirst-spatial-pip
-github.com/whosonfirst/go-whosonfirst-spatial-pip/app/query
-github.com/whosonfirst/go-whosonfirst-spatial-pip/http/api
-# github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.6.9
-## explicit; go 1.22
+github.com/whosonfirst/go-whosonfirst-spatial/pip
+# github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.6.11
+## explicit; go 1.22.1
 github.com/whosonfirst/go-whosonfirst-spatial-sqlite
 github.com/whosonfirst/go-whosonfirst-spatial-sqlite/wkttoorb
-# github.com/whosonfirst/go-whosonfirst-spatial-www v0.0.49
-## explicit; go 1.22
-github.com/whosonfirst/go-whosonfirst-spatial-www/application/server
+# github.com/whosonfirst/go-whosonfirst-spatial-www v0.0.50
+## explicit; go 1.22.1
+github.com/whosonfirst/go-whosonfirst-spatial-www/app/server
 github.com/whosonfirst/go-whosonfirst-spatial-www/http
+github.com/whosonfirst/go-whosonfirst-spatial-www/http/api
+github.com/whosonfirst/go-whosonfirst-spatial-www/http/www
 github.com/whosonfirst/go-whosonfirst-spatial-www/static
 github.com/whosonfirst/go-whosonfirst-spatial-www/templates/html
 # github.com/whosonfirst/go-whosonfirst-spr-geojson v0.0.8
