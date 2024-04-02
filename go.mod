@@ -1,8 +1,6 @@
 module github.com/whosonfirst/go-whosonfirst-spatial-pmtiles
 
-go 1.22
-
-toolchain go1.22.1
+go 1.22.1
 
 require (
 	github.com/aaronland/go-log/v2 v2.0.0
@@ -17,10 +15,10 @@ require (
 	github.com/whosonfirst/go-ioutil v1.0.2
 	github.com/whosonfirst/go-reader v1.0.2
 	github.com/whosonfirst/go-whosonfirst-feature v0.0.27
-	github.com/whosonfirst/go-whosonfirst-spatial v0.7.3
+	github.com/whosonfirst/go-whosonfirst-spatial v0.7.4
 	github.com/whosonfirst/go-whosonfirst-spatial-pip v0.3.3
-	github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.6.9
-	github.com/whosonfirst/go-whosonfirst-spatial-www v0.0.49
+	github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.6.10
+	github.com/whosonfirst/go-whosonfirst-spatial-www v0.0.50
 	github.com/whosonfirst/go-whosonfirst-spr/v2 v2.3.7
 	github.com/whosonfirst/go-whosonfirst-uri v1.3.0
 	gocloud.dev v0.37.0
@@ -111,7 +109,7 @@ require (
 	github.com/schollz/progressbar/v3 v3.13.1 // indirect
 	github.com/sfomuseum/go-edtf v1.1.1 // indirect
 	github.com/sfomuseum/go-flags v0.10.0 // indirect
-	github.com/sfomuseum/go-http-auth v0.9.0 // indirect
+	github.com/sfomuseum/go-http-auth v0.11.0 // indirect
 	github.com/sfomuseum/go-http-protomaps v0.2.0 // indirect
 	github.com/sfomuseum/go-http-rollup v0.0.2 // indirect
 	github.com/sfomuseum/go-sfomuseum-pmtiles v1.2.0 // indirect

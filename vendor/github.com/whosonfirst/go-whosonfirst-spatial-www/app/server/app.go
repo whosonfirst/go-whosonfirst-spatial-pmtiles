@@ -19,8 +19,9 @@ import (
 	"github.com/rs/cors"
 	"github.com/sfomuseum/go-flags/flagset"
 	"github.com/sfomuseum/go-http-auth"
-	"github.com/whosonfirst/go-whosonfirst-spatial-pip/http/api"
 	"github.com/whosonfirst/go-whosonfirst-spatial-www/http"
+	"github.com/whosonfirst/go-whosonfirst-spatial-www/http/api"
+	"github.com/whosonfirst/go-whosonfirst-spatial-www/http/www"
 	"github.com/whosonfirst/go-whosonfirst-spatial-www/templates/html"
 	"github.com/whosonfirst/go-whosonfirst-spatial/app"
 	spatial_flags "github.com/whosonfirst/go-whosonfirst-spatial/flags"
@@ -123,7 +124,7 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 	// data (geojson) handlers
 	// SpatialDatabase implements reader.Reader
 
-	data_handler, err := http.NewDataHandler(spatial_app.SpatialDatabase)
+	data_handler, err := api.NewDataHandler(spatial_app.SpatialDatabase)
 
 	if err != nil {
 		return fmt.Errorf("Failed to create data handler, %v", err)
@@ -258,7 +259,7 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 			return fmt.Errorf("Failed to append bootstrap assets, %v", err)
 		}
 
-		err = http.AppendStaticAssetHandlers(mux)
+		err = www.AppendStaticAssetHandlers(mux)
 
 		if err != nil {
 			return fmt.Errorf("Failed to append static assets, %v", err)
@@ -266,7 +267,7 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 
 		// point-in-polygon page
 
-		http_pip_opts := &http.PointInPolygonHandlerOptions{
+		http_pip_opts := &www.PointInPolygonHandlerOptions{
 			Templates:        t,
 			InitialLatitude:  leaflet_initial_latitude,
 			InitialLongitude: leaflet_initial_longitude,
@@ -275,7 +276,7 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 			MapProvider:      map_provider.Scheme(),
 		}
 
-		http_pip_handler, err := http.PointInPolygonHandler(spatial_app, http_pip_opts)
+		http_pip_handler, err := www.PointInPolygonHandler(spatial_app, http_pip_opts)
 
 		if err != nil {
 			return fmt.Errorf("failed to create (bundled) www handler because %s", err)
@@ -303,11 +304,11 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 
 		// index / splash page
 
-		index_opts := &http.IndexHandlerOptions{
+		index_opts := &www.IndexHandlerOptions{
 			Templates: t,
 		}
 
-		index_handler, err := http.IndexHandler(index_opts)
+		index_handler, err := www.IndexHandler(index_opts)
 
 		if err != nil {
 			return fmt.Errorf("Failed to create index handler, %v", err)

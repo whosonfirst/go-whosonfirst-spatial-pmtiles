@@ -1,22 +1,22 @@
-package http
+package www
 
 import (
 	"fmt"
 	"io/fs"
 	_ "log"
-	gohttp "net/http"
+	"net/http"
 	"path/filepath"
 	"strings"
 
 	"github.com/whosonfirst/go-whosonfirst-spatial-www/static"
 )
 
-func StaticAssetsHandler() (gohttp.Handler, error) {
-	http_fs := gohttp.FS(static.FS)
-	return gohttp.FileServer(http_fs), nil
+func StaticAssetsHandler() (http.Handler, error) {
+	http_fs := http.FS(static.FS)
+	return http.FileServer(http_fs), nil
 }
 
-func StaticAssetsHandlerWithPrefix(prefix string) (gohttp.Handler, error) {
+func StaticAssetsHandlerWithPrefix(prefix string) (http.Handler, error) {
 
 	fs_handler, err := StaticAssetsHandler()
 
@@ -24,15 +24,15 @@ func StaticAssetsHandlerWithPrefix(prefix string) (gohttp.Handler, error) {
 		return nil, err
 	}
 
-	fs_handler = gohttp.StripPrefix(prefix, fs_handler)
+	fs_handler = http.StripPrefix(prefix, fs_handler)
 	return fs_handler, nil
 }
 
-func AppendStaticAssetHandlers(mux *gohttp.ServeMux) error {
+func AppendStaticAssetHandlers(mux *http.ServeMux) error {
 	return AppendStaticAssetHandlersWithPrefix(mux, "")
 }
 
-func AppendStaticAssetHandlersWithPrefix(mux *gohttp.ServeMux, prefix string) error {
+func AppendStaticAssetHandlersWithPrefix(mux *http.ServeMux, prefix string) error {
 
 	asset_handler, err := StaticAssetsHandlerWithPrefix(prefix)
 
