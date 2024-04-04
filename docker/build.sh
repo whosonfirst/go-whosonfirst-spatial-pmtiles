@@ -13,10 +13,15 @@ ZOOM="12"
 LAYER_NAME=""	# tippecanoe layer name
 PROPERTIES=""	# for example: -p 'wof:hierarchy wof:concordances'
 
-while getopts "i:l:n:p:s:t:z:fh" opt; do
+FORGIVING=""
+
+while getopts "i:l:n:p:s:t:z:fFh" opt; do
     case "$opt" in
 	f)
 	    WRITE_FEATURES=1
+	    ;;
+	F)
+	    FORGIVING=1
 	    ;;
 	h)
 	    HELP=1
@@ -58,6 +63,11 @@ echo "Import ${SOURCE} FROM ${ITERATOR} as ${NAME} and copy to ${TARGET}"
 
 FEATURES_ARGS="-as-spr -require-polygons -writer-uri constant://?val=jsonl://?writer=stdout:// -iterator-uri ${ITERATOR}"
 
+if [ "${FORGIVING}" != "" ]
+then
+    FEATURES_ARGS="${FEATURES_ARGS} -forgiving"
+fi
+			 
 for PROP in ${PROPERTIES}
 do
     FEATURES_ARGS="${FEATURES_ARGS} -spr-append-property ${PROP}"
