@@ -88,7 +88,6 @@ fi
 TIPPECANOE_ARGS="${TIPPECANOE_ARGS} -t /usr/local/data -o /usr/local/data/${NAME}.pmtiles"
 
 echo "wof-tippecanoe-features ${FEATURES_ARGS} | tippecanoe ${TIPPECANOE_ARGS}"
-exit
 
 if [ "${WRITE_FEATURES}" = "1" ]
 then
