@@ -20,7 +20,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	
+
 	aa_log "github.com/aaronland/go-log/v2"
 	aa_docstore "github.com/aaronland/gocloud-docstore"
 	"github.com/jtacoma/uritemplates"
@@ -451,18 +451,13 @@ func (db *PMTilesSpatialDatabase) featuresForTile(ctx context.Context, t maptile
 
 	status_code, _, body := db.server.Get(ctx, path)
 
-	if status_code != 200 {
-		return nil, fmt.Errorf("Failed to get %s, unexpected status code %d", path, status_code)
-	}
-
-	// not sure what the semantics are here but it's not treated as an error in protomaps
-	// https://github.com/protomaps/go-pmtiles/blob/0ac8f97530b3367142cfd250585d60936d0ce643/pmtiles/loop.go#L296
+	log.Println("WTF", path, status_code)
 
 	var features []*geojson.Feature
 
-	if status_code == 204 {
-		features = make([]*geojson.Feature, 0)
-	} else {
+	switch status_code {
+
+	case 200:
 
 		layers, err := mvt.UnmarshalGzipped(body)
 
@@ -483,6 +478,15 @@ func (db *PMTilesSpatialDatabase) featuresForTile(ctx context.Context, t maptile
 		}
 
 		features = fc[db.layer].Features
+
+	case 204:
+
+		// not sure what the semantics are here but 204 is not treated as an error in protomaps
+		// https://github.com/protomaps/go-pmtiles/blob/0ac8f97530b3367142cfd250585d60936d0ce643/pmtiles/loop.go#L296
+
+		features = make([]*geojson.Feature, 0)
+	default:
+		return nil, fmt.Errorf("Failed to get %s, unexpected status code %d", path, status_code)
 	}
 
 	return features, nil
