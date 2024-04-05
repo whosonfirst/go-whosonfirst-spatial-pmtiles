@@ -451,8 +451,6 @@ func (db *PMTilesSpatialDatabase) featuresForTile(ctx context.Context, t maptile
 
 	status_code, _, body := db.server.Get(ctx, path)
 
-	log.Println("WTF", path, status_code)
-
 	var features []*geojson.Feature
 
 	switch status_code {
