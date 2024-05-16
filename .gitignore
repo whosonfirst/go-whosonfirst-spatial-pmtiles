@@ -2,3 +2,4 @@
 bin
 *.pmtiles
 *.zip
+go.work*
