@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"strings"
 	"sync"
 	"time"
@@ -31,13 +31,11 @@ type FeatureCache struct {
 type CacheManager struct {
 	feature_collection *docstore.Collection
 	tile_collection    *docstore.Collection
-	logger             *log.Logger
 	ticker             *time.Ticker
 }
 
 type CacheManagerOptions struct {
 	FeatureCollection *docstore.Collection
-	Logger            *log.Logger
 	CacheTTL          int
 }
 
@@ -45,7 +43,6 @@ func NewCacheManager(ctx context.Context, opts *CacheManagerOptions) *CacheManag
 
 	m := &CacheManager{
 		feature_collection: opts.FeatureCollection,
-		logger:             opts.Logger,
 	}
 
 	cache_ttl := opts.CacheTTL
@@ -149,7 +146,7 @@ func (m *CacheManager) CacheFeature(ctx context.Context, body []byte) (*FeatureC
 		return nil, fmt.Errorf("Failed to create feature cache, %w", err)
 	}
 
-	// m.logger.Printf("cache feature %s\n", fc.Id)
+	slog.Debug("Store in feature cache", "id", fc.Id)
 
 	err = m.feature_collection.Put(ctx, fc)
 
@@ -170,12 +167,10 @@ func (m *CacheManager) GetFeatureCache(ctx context.Context, id string) (*Feature
 		Id: id,
 	}
 
-	// m.logger.Printf("get feature %s\n", fc.Id)
-
 	err := m.feature_collection.Get(ctx, &fc)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get feature cache for %s, %w", id, err)
+		return nil, fmt.Errorf("Failed to retrieve feature from cache for %s, %w", id, err)
 	}
 
 	return &fc, nil
@@ -207,7 +202,7 @@ func (m *CacheManager) pruneFeatureCache(ctx context.Context, t time.Time) error
 		return nil
 	}
 
-	m.logger.Printf("Prune tile cache older that %v\n", t)
+	slog.Debug("Prune tile cache", "older than", t)
 
 	ts := t.Unix()
 
@@ -227,13 +222,15 @@ func (m *CacheManager) pruneFeatureCache(ctx context.Context, t time.Time) error
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			m.logger.Printf("Failed to get next iterator, %v", err)
+			slog.Error("Failed to get next iterator", "error", err)
 		} else {
+
+			slog.Debug("Remove from feature cache", "id", fc.Id, "created", fc.Created)
 
 			err := m.feature_collection.Delete(ctx, &fc)
 
 			if err != nil {
-				m.logger.Printf("Failed to delete feature cache %s, %v", fc.Id, err)
+				slog.Error("Failed to delete from feature cache", "id", fc.Id, "error", err)
 			}
 		}
 	}

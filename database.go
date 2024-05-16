@@ -5,7 +5,6 @@ import ()
 import (
 	_ "github.com/aaronland/gocloud-blob-s3"
 	_ "github.com/whosonfirst/go-whosonfirst-spatial-rtree"
-	// _ "github.com/whosonfirst/go-whosonfirst-spatial-sqlite"
 	_ "gocloud.dev/blob/fileblob"
 	_ "gocloud.dev/docstore/awsdynamodb"
 	_ "gocloud.dev/docstore/memdocstore"
@@ -16,7 +15,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"log/slog"
 	"net/url"
 	"strconv"
@@ -25,7 +23,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	aa_log "github.com/aaronland/go-log/v2"
 	aa_docstore "github.com/aaronland/gocloud-docstore"
 	"github.com/jtacoma/uritemplates"
 	"github.com/paulmach/orb"
@@ -52,18 +49,17 @@ func init() {
 
 type PMTilesSpatialDatabase struct {
 	database.SpatialDatabase
-	server                         *pmtiles.Server
-	logger                         *log.Logger
-	database                       string
-	layer                          string
-	enable_feature_cache           bool
-	cache_manager                  *CacheManager
-	zoom                           int
-	spatial_database_uri           string
-	spatial_databases_counter      *sync.Map
-	spatial_databases_increment    int32
-	spatial_databases_cache        *sync.Map
-	spatial_databases_mutex        *sync.RWMutex
+	server                      *pmtiles.Server
+	database                    string
+	layer                       string
+	enable_feature_cache        bool
+	cache_manager               *CacheManager
+	zoom                        int
+	spatial_database_uri        string
+	spatial_databases_counter   *sync.Map
+	spatial_databases_increment int32
+	spatial_databases_cache     *sync.Map
+	spatial_databases_mutex     *sync.RWMutex
 }
 
 func NewPMTilesSpatialDatabaseReader(ctx context.Context, uri string) (reader.Reader, error) {
@@ -87,8 +83,6 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 	if q_layer == "" {
 		q_layer = q_database
 	}
-
-	logger := log.Default()
 
 	cache_size := 64
 	zoom := 12
@@ -119,7 +113,10 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 		zoom = z
 	}
 
-	server, err := pmtiles.NewServer(q_tile_path, "", logger, cache_size, "", "")
+	logger := slog.Default()
+	log_logger := slog.NewLogLogger(logger.Handler(), slog.LevelInfo)
+
+	server, err := pmtiles.NewServer(q_tile_path, "", log_logger, cache_size, "", "")
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create pmtiles.Loop, %w", err)
@@ -137,16 +134,15 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 	spatial_database_uri := "rtree://"
 
 	db := &PMTilesSpatialDatabase{
-		server:                         server,
-		database:                       q_database,
-		layer:                          q_layer,
-		logger:                         logger,
-		zoom:                           zoom,
-		spatial_database_uri:           spatial_database_uri,
-		spatial_databases_counter:      spatial_databases_counter,
-		spatial_databases_increment:    spatial_databases_increment,
-		spatial_databases_cache:        spatial_databases_cache,
-		spatial_databases_mutex:        spatial_databases_mutex,
+		server:                      server,
+		database:                    q_database,
+		layer:                       q_layer,
+		zoom:                        zoom,
+		spatial_database_uri:        spatial_database_uri,
+		spatial_databases_counter:   spatial_databases_counter,
+		spatial_databases_increment: spatial_databases_increment,
+		spatial_databases_cache:     spatial_databases_cache,
+		spatial_databases_mutex:     spatial_databases_mutex,
 	}
 
 	enable_feature_cache := false
@@ -167,7 +163,7 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 
 	if enable_feature_cache {
 
-		cache_ttl := 300
+		cache_ttl := 3600
 
 		q_cache_ttl := q.Get("cache-ttl")
 
@@ -208,7 +204,6 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 
 		cache_manager_opts := &CacheManagerOptions{
 			FeatureCollection: feature_cache,
-			Logger:            logger,
 			CacheTTL:          cache_ttl,
 		}
 
@@ -393,7 +388,7 @@ func (db *PMTilesSpatialDatabase) Read(ctx context.Context, path string) (io.Rea
 	fc, err := db.cache_manager.GetFeatureCache(ctx, fname)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get feature cache for %s, %w", path, err)
+		return nil, fmt.Errorf("Failed to read feature from cache for %s, %w", path, err)
 	}
 
 	r := strings.NewReader(fc.Body)
@@ -510,7 +505,7 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseFromTile(ctx context.Context, t
 				_, err := db.cache_manager.CacheFeature(ctx, body)
 
 				if err != nil {
-					aa_log.Warning(db.logger, "Failed to create new feature cache for %s, %v", path, err)
+					logger.Warn("Failed to create new feature cache", "path", path, "error", err)
 				}
 
 			}(body)

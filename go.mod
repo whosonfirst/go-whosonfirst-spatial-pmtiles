@@ -3,7 +3,6 @@ module github.com/whosonfirst/go-whosonfirst-spatial-pmtiles
 go 1.22.1
 
 require (
-	github.com/aaronland/go-log/v2 v2.0.0
 	github.com/aaronland/gocloud-blob-s3 v0.2.4
 	github.com/aaronland/gocloud-docstore v0.0.5
 	github.com/json-iterator/go v1.1.12
