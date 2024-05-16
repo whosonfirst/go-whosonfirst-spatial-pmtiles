@@ -78,14 +78,12 @@ pmtiles://?tiles=file:///usr/local/data&database=wof
 
 ```
 import (
-       _ "github.com/whosonfirst/go-whosonfirst-spatial-pmtiles"
-)
-
-import (
        "context"
        "fmt"
+       
        "github.com/paulmach/orb"       
        "github.com/whosonfirst/go-whosonfirst-spatial/database"
+       _ "github.com/whosonfirst/go-whosonfirst-spatial-pmtiles"       
 )
 
 func main(){
@@ -111,10 +109,10 @@ _Error handling omitted for the sake of brevity._
 
 ## Tools
 
-### query
+### pip
 
 ```
-$> ./bin/query -h
+$> ./bin/pip -h
   -alternate-geometry value
     	One or more alternate geometry labels (wof:alt_label) values to filter results by.
   -cessation-date string
@@ -168,7 +166,7 @@ $> ./bin/query -h
 #### Example
 
 ```
-$> ./bin/query \
+$> ./bin/pip \
 	-spatial-database-uri 'pmtiles://?tiles=file:///usr/local/data&database=wof' \
 	-latitude 37.621131 \
 	-longitude -122.384292 \
@@ -195,18 +193,12 @@ In order to add support for additional implementations you will need to clone th
 package main
 
 import (
-       _ "gocloud.dev/blob/s3blob"
-)
-
-import (
-	_ "github.com/whosonfirst/go-whosonfirst-spatial-pmtiles"
-)
-
-import (
 	"context"
 	"log"
 
-	"github.com/whosonfirst/go-whosonfirst-spatial-pip/app/query"
+	"github.com/whosonfirst/go-whosonfirst-spatial/app/pip"
+	_ "github.com/whosonfirst/go-whosonfirst-spatial-pmtiles"	
+        _ "gocloud.dev/blob/s3blob"	
 )
 
 func main() {
@@ -215,7 +207,7 @@ func main() {
 
 	logger := log.Default()
 
-	err := query.Run(ctx, logger)
+	err := pip.Run(ctx, logger)
 
 	if err != nil {
 		logger.Fatalf("Failed to run PIP application, %v", err)
@@ -458,6 +450,7 @@ Once deployed the `server` tool will be available at a URL like `{PREFIX}.execut
 ## See also
 
 * https://github.com/whosonfirst/go-whosonfirst-spatial
+* https://github.com/whosonfirst/go-whosonfirst-spatial-rtree
 * https://github.com/whosonfirst/go-whosonfirst-spatial-sqlite
 * https://github.com/whosonfirst/go-whosonfirst-spatial-www
 * https://github.com/whosonfirst/go-whosonfirst-tippecanoe
