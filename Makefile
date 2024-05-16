@@ -5,10 +5,10 @@ vuln:
 	govulncheck ./...
 
 cli:
-	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/query cmd/query/main.go
 	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/pmtile cmd/pmtile/main.go
 	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/server cmd/server/main.go
-	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/update cmd/update/main.go
+	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/update-hierarchies cmd/update-hierarchies/main.go
+	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/pip cmd/pip/main.go
 
 server:
 	go run -mod $(GOMOD) cmd/server/main.go \

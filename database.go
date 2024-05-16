@@ -130,7 +130,6 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 	spatial_databases_mutex := new(sync.RWMutex)
 
 	// To do: Check for query value
-	// spatial_database_uri := "sqlite://?dsn=modernc://mem"
 	spatial_database_uri := "rtree://"
 
 	db := &PMTilesSpatialDatabase{
