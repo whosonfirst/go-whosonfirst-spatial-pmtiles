@@ -4,7 +4,7 @@ import ()
 
 import (
 	_ "github.com/aaronland/gocloud-blob-s3"
-	_ "github.com/whosonfirst/go-whosonfirst-spatial-rtree"
+	_ "github.com/whosonfirst/go-whosonfirst-spatial-sqlite"	
 	_ "gocloud.dev/blob/fileblob"
 	_ "gocloud.dev/docstore/awsdynamodb"
 	_ "gocloud.dev/docstore/memdocstore"
@@ -130,7 +130,10 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 	spatial_databases_mutex := new(sync.RWMutex)
 
 	// To do: Check for query value
-	spatial_database_uri := "rtree://"
+
+	// This triggers "distance errors" which I don't really understand yet
+	// spatial_database_uri := "rtree://"
+	spatial_database_uri := "sqlite://?dsn=modernc://mem"
 
 	db := &PMTilesSpatialDatabase{
 		server:                      server,
@@ -316,8 +319,7 @@ func (db *PMTilesSpatialDatabase) PointInPolygonCandidates(ctx context.Context, 
 	}
 
 	defer db.releaseSpatialDatabase(ctx, coord)
-	// defer spatial_db.Disconnect(ctx)
-
+	
 	return spatial_db.PointInPolygonCandidates(ctx, coord, filters...)
 }
 
@@ -331,7 +333,6 @@ func (db *PMTilesSpatialDatabase) PointInPolygonWithChannels(ctx context.Context
 	}
 
 	defer db.releaseSpatialDatabase(ctx, coord)
-	// defer spatial_db.Disconnect(ctx)
 
 	spatial_db.PointInPolygonWithChannels(ctx, spr_ch, err_ch, done_ch, coord, filters...)
 }
