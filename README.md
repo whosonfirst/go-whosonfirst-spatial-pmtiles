@@ -23,29 +23,19 @@ There may be bugs. Notably, as written:
 
 ## Producing a Who's On First -enabled Protomaps tile database
 
-As of this writing producing a Who's On First -enabled Protomaps tile database is a manual two-step process.
+As of this writing producing a Who's On First -enabled Protomaps tile database is a manual two-step process. The first step is to produce a line-separated feed of GeoJSON files. The second step is to stream that feed in to the `tippecanoe` application to generate a PMTiles database.
 
-### Tippecanoe
-
-The first step is to produce a MBTiles database derived from Who's On First data. There are a variety of ways you might accomplish this but as a convenience you can use the `features` tool which is part of the [whosonfirst/go-whosonfirst-tippecanoe](https://github.com/whosonfirst/go-whosonfirst-tippecanoe) package. For example:
+There are a variety of ways you might accomplish the first step but as a convenience you can use the `features` tool which is part of the [whosonfirst/go-whosonfirst-tippecanoe](https://github.com/whosonfirst/go-whosonfirst-tippecanoe) package. For example:
 
 ```
 $> bin/features \
 	-writer-uri 'constant://?val=jsonl://?writer=stdout://' \
 	/usr/local/data/sfomuseum-data-whosonfirst/ \
 	
-	| tippecanoe -P -z 12 -pf -pk -o /usr/local/data/wof.mbtiles
+	| tippecanoe -P -z 12 -pf -pk -o /usr/local/data/wof.pmtiles
 ```
 
 Things to note: The `-pf` and `-pk` flags to ensure that no features are dropped and the `-z 12` flag to store everything at zoom 12 which is a good trade-off to minimize the number of places to query (ray cast) in any given tile and the total number of tiles to produce and store.
-
-### PMTiles
-
-Next, use the `pmtiles` tool which is part of the [protomaps/go-pmtiles](https://github.com/protomaps/go-pmtiles#creating-pmtiles-archives) package to convert the MBTiles database to a Protomaps PMTiles database:
-
-```
-$> pmtiles /usr/local/data/wof.mbtiles /usr/local/data/wof.pmtiles
-```
 
 ## Spatial Database URIs
 
