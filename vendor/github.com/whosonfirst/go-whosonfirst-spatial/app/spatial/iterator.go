@@ -1,11 +1,11 @@
-package app
+package spatial
 
 import (
 	"context"
 	"flag"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 
 	"github.com/sfomuseum/go-flags/lookup"
 	"github.com/whosonfirst/go-whosonfirst-feature/geometry"
@@ -43,7 +43,7 @@ func NewIteratorWithFlagSet(ctx context.Context, fl *flag.FlagSet, spatial_db da
 					return err
 				}
 
-				log.Printf("Feature '%s' triggered the following warning: %s\n", path, err)
+				slog.Warn("Feature triggered the following warning", "path", path, "error", err)
 			}
 		}
 

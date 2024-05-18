@@ -1,4 +1,4 @@
-package app
+package spatial
 
 import (
 	"context"
@@ -11,6 +11,8 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-spatial/flags"
 )
 
+// AppendCustomPlacetypesWithFlagSet will append custom placetypes defined in 'fs' to the
+// in-memory go-whosonfirst-placetypes specification.
 func AppendCustomPlacetypesWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 
 	enable_custom_placetypes, _ := lookup.BoolVar(fs, flags.ENABLE_CUSTOM_PLACETYPES)

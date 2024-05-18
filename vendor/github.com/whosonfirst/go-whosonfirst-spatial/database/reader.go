@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 
 	"github.com/paulmach/orb/geojson"
 	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-whosonfirst-feature/geometry"
 )
 
+// IndexDatabaseWithReader will index the data contained in 'r' in 'db'.
 func IndexDatabaseWithReader(ctx context.Context, db SpatialDatabase, r io.Reader) error {
 
 	index_func := func(ctx context.Context, body []byte, geom_type string) error {
@@ -18,6 +20,7 @@ func IndexDatabaseWithReader(ctx context.Context, db SpatialDatabase, r io.Reade
 		case "Polygon", "MultiPolygon":
 			return db.IndexFeature(ctx, body)
 		default:
+			slog.Warn("Record in unsupported geometry type, skipping", "type", geom_type)
 			return nil
 		}
 	}

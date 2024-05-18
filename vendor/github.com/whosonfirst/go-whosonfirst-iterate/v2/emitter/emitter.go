@@ -53,13 +53,22 @@ func NewEmitter(ctx context.Context, uri string) (Emitter, error) {
 
 	scheme := u.Scheme
 
+	if scheme == "" {
+		return nil, fmt.Errorf("Emittter URI is missing scheme '%s'", uri)
+	}
+
 	i, err := emitters.Driver(ctx, scheme)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to retrieve driver for %s scheme, %w", scheme, err)
+		return nil, fmt.Errorf("Failed to retrieve driver for '%s' scheme, %w", scheme, err)
 	}
 
 	fn := i.(EmitterInitializeFunc)
+
+	if fn == nil {
+		return nil, fmt.Errorf("Unregistered initialization function for '%s' scheme", scheme)
+	}
+
 	return fn(ctx, uri)
 }
 

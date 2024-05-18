@@ -11,9 +11,9 @@ import (
 	"github.com/sfomuseum/go-flags/flagset"
 	"github.com/sfomuseum/go-flags/lookup"
 	"github.com/whosonfirst/go-whosonfirst-spatial"
+	app "github.com/whosonfirst/go-whosonfirst-spatial/app/spatial"
+	spatial_flags "github.com/whosonfirst/go-whosonfirst-spatial/flags"
 	"github.com/whosonfirst/go-whosonfirst-spatial/pip"
-	"github.com/whosonfirst/go-whosonfirst-spatial/app"
-	spatial_flags "github.com/whosonfirst/go-whosonfirst-spatial/flags"	
 )
 
 type RunOptions struct {
@@ -149,7 +149,7 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 		}
 
 		fmt.Println(string(enc))
-		
+
 	case "lambda":
 
 		<-done_ch

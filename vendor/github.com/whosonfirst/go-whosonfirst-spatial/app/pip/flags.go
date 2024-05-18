@@ -3,7 +3,7 @@ package pip
 import (
 	"context"
 	"flag"
-	
+
 	"github.com/sfomuseum/go-flags/multi"
 	"github.com/whosonfirst/go-whosonfirst-spatial/flags"
 )

@@ -2,9 +2,11 @@ package spatial
 
 import (
 	"fmt"
+
 	"github.com/whosonfirst/go-whosonfirst-feature/properties"
 )
 
+// SpatialIdWithFeatures generates a unique identifiers derived from the feature data in 'body'.
 func SpatialIdWithFeature(body []byte, extra ...interface{}) (string, error) {
 
 	id, err := properties.Id(body)
