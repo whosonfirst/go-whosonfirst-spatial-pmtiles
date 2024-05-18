@@ -23,29 +23,19 @@ There may be bugs. Notably, as written:
 
 ## Producing a Who's On First -enabled Protomaps tile database
 
-As of this writing producing a Who's On First -enabled Protomaps tile database is a manual two-step process.
+As of this writing producing a Who's On First -enabled Protomaps tile database is a manual two-step process. The first step is to produce a line-separated feed of GeoJSON files. The second step is to stream that feed in to the `tippecanoe` application to generate a PMTiles database.
 
-### Tippecanoe
-
-The first step is to produce a MBTiles database derived from Who's On First data. There are a variety of ways you might accomplish this but as a convenience you can use the `features` tool which is part of the [whosonfirst/go-whosonfirst-tippecanoe](https://github.com/whosonfirst/go-whosonfirst-tippecanoe) package. For example:
+There are a variety of ways you might accomplish the first step but as a convenience you can use the `features` tool which is part of the [whosonfirst/go-whosonfirst-tippecanoe](https://github.com/whosonfirst/go-whosonfirst-tippecanoe) package. For example:
 
 ```
 $> bin/features \
 	-writer-uri 'constant://?val=jsonl://?writer=stdout://' \
 	/usr/local/data/sfomuseum-data-whosonfirst/ \
 	
-	| tippecanoe -P -z 12 -pf -pk -o /usr/local/data/wof.mbtiles
+	| tippecanoe -P -z 12 -pf -pk -o /usr/local/data/wof.pmtiles
 ```
 
 Things to note: The `-pf` and `-pk` flags to ensure that no features are dropped and the `-z 12` flag to store everything at zoom 12 which is a good trade-off to minimize the number of places to query (ray cast) in any given tile and the total number of tiles to produce and store.
-
-### PMTiles
-
-Next, use the `pmtiles` tool which is part of the [protomaps/go-pmtiles](https://github.com/protomaps/go-pmtiles#creating-pmtiles-archives) package to convert the MBTiles database to a Protomaps PMTiles database:
-
-```
-$> pmtiles /usr/local/data/wof.mbtiles /usr/local/data/wof.pmtiles
-```
 
 ## Spatial Database URIs
 
@@ -78,14 +68,12 @@ pmtiles://?tiles=file:///usr/local/data&database=wof
 
 ```
 import (
-       _ "github.com/whosonfirst/go-whosonfirst-spatial-pmtiles"
-)
-
-import (
        "context"
        "fmt"
+       
        "github.com/paulmach/orb"       
        "github.com/whosonfirst/go-whosonfirst-spatial/database"
+       _ "github.com/whosonfirst/go-whosonfirst-spatial-pmtiles"       
 )
 
 func main(){
@@ -111,10 +99,10 @@ _Error handling omitted for the sake of brevity._
 
 ## Tools
 
-### query
+### pip
 
 ```
-$> ./bin/query -h
+$> ./bin/pip -h
   -alternate-geometry value
     	One or more alternate geometry labels (wof:alt_label) values to filter results by.
   -cessation-date string
@@ -168,7 +156,7 @@ $> ./bin/query -h
 #### Example
 
 ```
-$> ./bin/query \
+$> ./bin/pip \
 	-spatial-database-uri 'pmtiles://?tiles=file:///usr/local/data&database=wof' \
 	-latitude 37.621131 \
 	-longitude -122.384292 \
@@ -195,18 +183,12 @@ In order to add support for additional implementations you will need to clone th
 package main
 
 import (
-       _ "gocloud.dev/blob/s3blob"
-)
-
-import (
-	_ "github.com/whosonfirst/go-whosonfirst-spatial-pmtiles"
-)
-
-import (
 	"context"
 	"log"
 
-	"github.com/whosonfirst/go-whosonfirst-spatial-pip/app/query"
+	"github.com/whosonfirst/go-whosonfirst-spatial/app/pip"
+	_ "github.com/whosonfirst/go-whosonfirst-spatial-pmtiles"	
+        _ "gocloud.dev/blob/s3blob"	
 )
 
 func main() {
@@ -215,7 +197,7 @@ func main() {
 
 	logger := log.Default()
 
-	err := query.Run(ctx, logger)
+	err := pip.Run(ctx, logger)
 
 	if err != nil {
 		logger.Fatalf("Failed to run PIP application, %v", err)
@@ -458,6 +440,7 @@ Once deployed the `server` tool will be available at a URL like `{PREFIX}.execut
 ## See also
 
 * https://github.com/whosonfirst/go-whosonfirst-spatial
+* https://github.com/whosonfirst/go-whosonfirst-spatial-rtree
 * https://github.com/whosonfirst/go-whosonfirst-spatial-sqlite
 * https://github.com/whosonfirst/go-whosonfirst-spatial-www
 * https://github.com/whosonfirst/go-whosonfirst-tippecanoe

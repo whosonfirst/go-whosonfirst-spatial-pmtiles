@@ -8,7 +8,7 @@ import (
 	"github.com/aaronland/go-http-sanitize"
 	"github.com/sfomuseum/go-timings"
 	"github.com/whosonfirst/go-whosonfirst-spatial"
-	spatial_app "github.com/whosonfirst/go-whosonfirst-spatial/app"
+	spatial_app "github.com/whosonfirst/go-whosonfirst-spatial/app/spatial"
 	"github.com/whosonfirst/go-whosonfirst-spatial/pip"
 	"github.com/whosonfirst/go-whosonfirst-spr-geojson"
 )

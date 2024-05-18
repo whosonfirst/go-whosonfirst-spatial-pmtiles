@@ -5,7 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"html/template"
-	"log"
+	"log/slog"
 	gohttp "net/http"
 	"path/filepath"
 	"strings"
@@ -23,17 +23,16 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-spatial-www/http/api"
 	"github.com/whosonfirst/go-whosonfirst-spatial-www/http/www"
 	"github.com/whosonfirst/go-whosonfirst-spatial-www/templates/html"
-	"github.com/whosonfirst/go-whosonfirst-spatial/app"
+	app "github.com/whosonfirst/go-whosonfirst-spatial/app/spatial"
 	spatial_flags "github.com/whosonfirst/go-whosonfirst-spatial/flags"
 )
 
 type RunOptions struct {
-	Logger        *log.Logger
 	FlagSet       *flag.FlagSet
 	EnvFlagPrefix string
 }
 
-func Run(ctx context.Context, logger *log.Logger) error {
+func Run(ctx context.Context, logger *slog.Logger) error {
 
 	fs, err := DefaultFlagSet()
 
@@ -44,21 +43,19 @@ func Run(ctx context.Context, logger *log.Logger) error {
 	return RunWithFlagSet(ctx, fs, logger)
 }
 
-func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet, logger *log.Logger) error {
+func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet, logger *slog.Logger) error {
 
 	opts := &RunOptions{
-		Logger:        logger,
 		FlagSet:       fs,
 		EnvFlagPrefix: "WHOSONFIRST",
 	}
 
-	return RunWithOptions(ctx, opts)
+	return RunWithOptions(ctx, opts, logger)
 }
 
-func RunWithOptions(ctx context.Context, opts *RunOptions) error {
+func RunWithOptions(ctx context.Context, opts *RunOptions, logger *slog.Logger) error {
 
 	fs := opts.FlagSet
-	logger := opts.Logger
 
 	flagset.Parse(fs)
 
@@ -83,10 +80,8 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 	spatial_app, err := app.NewSpatialApplicationWithFlagSet(ctx, fs)
 
 	if err != nil {
-		log.Fatal(fmt.Sprintf("Failed to create new spatial application, because: %v", err))
+		return fmt.Errorf("Failed to create new spatial application, because: %w", err)
 	}
-
-	spatial_app.Logger = logger
 
 	authenticator, err := auth.NewAuthenticator(ctx, authenticator_uri)
 
@@ -146,14 +141,12 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 		path_data = fmt.Sprintf("%s/", path_data)
 	}
 
-	logger.Printf("Register %s handler\n", path_data)
 	mux.Handle(path_data, data_handler)
 
 	// point-in-polygon handlers
 
 	api_pip_opts := &api.PointInPolygonHandlerOptions{
 		EnableGeoJSON: enable_geojson,
-		Logger:        logger,
 		LogTimings:    log_timings,
 	}
 
@@ -175,7 +168,6 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 
 	path_api_pip := filepath.Join(path_api, "point-in-polygon")
 
-	logger.Printf("Register %s handler\n", path_api_pip)
 	mux.Handle(path_api_pip, api_pip_handler)
 
 	// www handlers
@@ -192,12 +184,6 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 
 		if err != nil {
 			return fmt.Errorf("Failed to create map provider, %w", err)
-		}
-
-		err = map_provider.SetLogger(logger)
-
-		if err != nil {
-			return fmt.Errorf("Failed to set logger for map provider, %w", err)
 		}
 
 		err = map_provider.AppendAssetHandlers(mux)
@@ -294,7 +280,6 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 		http_pip_handler = maps.AppendResourcesHandlerWithProvider(http_pip_handler, map_provider, maps_opts)
 		http_pip_handler = authenticator.WrapHandler(http_pip_handler)
 
-		logger.Printf("Register %s handler\n", path_pip)
 		mux.Handle(path_pip, http_pip_handler)
 
 		if !strings.HasSuffix(path_pip, "/") {
@@ -319,7 +304,6 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 
 		path_index := "/"
 
-		logger.Printf("Register %s handler\n", path_index)
 		mux.Handle(path_index, index_handler)
 	}
 
@@ -329,7 +313,7 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 		return fmt.Errorf("Failed to create new server for '%s', %v", server_uri, err)
 	}
 
-	logger.Printf("Listening on %s\n", s.Address())
+	logger.Info("Listening for requests", "address", s.Address())
 
 	err = s.ListenAndServe(ctx, mux)
 

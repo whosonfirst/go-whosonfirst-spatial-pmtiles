@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"net/url"
 	"strconv"
 	"strings"
@@ -45,7 +46,6 @@ func init() {
 // package.
 type SQLiteSpatialDatabase struct {
 	database.SpatialDatabase
-	Logger        *log.Logger
 	mu            *sync.RWMutex
 	db            sqlite.Database
 	rtree_table   sqlite.Table
@@ -164,8 +164,6 @@ func NewSQLiteSpatialDatabaseWithDatabase(ctx context.Context, uri string, sqlit
 		return nil, fmt.Errorf("Failed to create geojson table, %w", err)
 	}
 
-	logger := log.Default()
-
 	expires := 5 * time.Minute
 	cleanup := 30 * time.Minute
 
@@ -174,7 +172,6 @@ func NewSQLiteSpatialDatabaseWithDatabase(ctx context.Context, uri string, sqlit
 	mu := new(sync.RWMutex)
 
 	spatial_db := &SQLiteSpatialDatabase{
-		Logger:        logger,
 		db:            sqlite_db,
 		rtree_table:   rtree_table,
 		spr_table:     spr_table,
@@ -639,7 +636,7 @@ func (r *SQLiteSpatialDatabase) inflateSpatialIndexWithChannels(ctx context.Cont
 	s, err := r.retrieveSPR(ctx, sp.Path())
 
 	if err != nil {
-		r.Logger.Printf("Failed to retrieve feature cache for %s, %v", sp_id, err)
+		slog.Error("Failed to retrieve feature cache", "id", sp_id, "error", err)
 		return
 	}
 
@@ -648,7 +645,6 @@ func (r *SQLiteSpatialDatabase) inflateSpatialIndexWithChannels(ctx context.Cont
 		err = filter.FilterSPR(f, s)
 
 		if err != nil {
-			// r.Logger.Printf("SKIP %s because filter error %s", sp_id, err)
 			return
 		}
 	}

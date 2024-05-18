@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"github.com/whosonfirst/go-whosonfirst-placetypes"
-	"github.com/whosonfirst/go-whosonfirst-spatial/app"
+	app "github.com/whosonfirst/go-whosonfirst-spatial/app/spatial"
 )
 
 type PointInPolygonHandlerOptions struct {

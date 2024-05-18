@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	chain "github.com/g8rswimmer/error-chain"
 	"io"
 	"log"
+	"log/slog"
+
+	chain "github.com/g8rswimmer/error-chain"
 )
 
 type MultiWriterOptions struct {
@@ -94,6 +96,7 @@ func (mw *MultiWriter) writeSync(ctx context.Context, key string, fh io.ReadSeek
 		i, err := wr.Write(ctx, key, fh)
 
 		if err != nil {
+			slog.Error("Failed to write (sync)", "writer", fmt.Sprintf("%T", wr), "key", key, "error", err)
 			errors = append(errors, err)
 			continue
 		}
@@ -106,6 +109,7 @@ func (mw *MultiWriter) writeSync(ctx context.Context, key string, fh io.ReadSeek
 		}
 
 		if mw.verbose {
+			slog.Debug("Write successful (async)", "writer", fmt.Sprintf("%T", wr), "key", key)
 			mw.logger.Printf("Wrote %s to %T", key, wr)
 		}
 	}
@@ -144,6 +148,7 @@ func (mw *MultiWriter) writeAsync(ctx context.Context, key string, fh io.ReadSee
 			i, err := wr.Write(ctx, key, bytes.NewReader(body))
 
 			if err != nil {
+				slog.Error("Failed to write (async)", "writer", fmt.Sprintf("%T", wr), "key", key, "error", err)
 				err_ch <- err
 				return
 			}
@@ -151,6 +156,7 @@ func (mw *MultiWriter) writeAsync(ctx context.Context, key string, fh io.ReadSee
 			count_ch <- i
 
 			if mw.verbose {
+				slog.Debug("Write successful (async)", "writer", fmt.Sprintf("%T", wr), "key", key)
 				mw.logger.Printf("Wrote %s to %T", key, wr)
 			}
 
@@ -212,10 +218,12 @@ func (mw *MultiWriter) flushSync(ctx context.Context) error {
 		err := wr.Flush(ctx)
 
 		if err != nil {
+			slog.Error("Failed to flush writer (sync)", "writer", fmt.Sprintf("%T", wr), "error", err)
 			errors = append(errors, err)
 		}
 
 		if mw.verbose {
+			slog.Debug("Flushed writer (sync)", "writer", fmt.Sprintf("%T", wr))
 			mw.logger.Printf("Flushed on %T", wr)
 		}
 	}
@@ -243,12 +251,14 @@ func (mw *MultiWriter) flushAsync(ctx context.Context) error {
 			err := wr.Flush(ctx)
 
 			if err != nil {
+				slog.Error("Failed to flush writer (sync)", "writer", fmt.Sprintf("%T", wr), "error", err)
 				err_ch <- err
 			}
 
 			done_ch <- true
 
 			if mw.verbose {
+				slog.Debug("Flushed writer (async)", "writer", fmt.Sprintf("%T", wr))
 				mw.logger.Printf("Flushed on %T", wr)
 			}
 
@@ -299,10 +309,12 @@ func (mw *MultiWriter) closeSync(ctx context.Context) error {
 		err := wr.Close(ctx)
 
 		if err != nil {
+			slog.Error("Failed to close writer (sync)", "writer", fmt.Sprintf("%T", wr), "error", err)
 			errors = append(errors, err)
 		}
 
 		if mw.verbose {
+			slog.Debug("Closed writer successfully (sync)", "writer", fmt.Sprintf("%T", wr))
 			mw.logger.Printf("Closed writer on %T", wr)
 		}
 	}
@@ -332,12 +344,14 @@ func (mw *MultiWriter) closeAsync(ctx context.Context) error {
 			err := wr.Close(ctx)
 
 			if err != nil {
+				slog.Error("Failed to close writer (sync)", "writer", fmt.Sprintf("%T", wr), "error", err)
 				err_ch <- err
 			}
 
 			done_ch <- true
 
 			if mw.verbose {
+				slog.Debug("Closed writer successfully (async)", "writer", fmt.Sprintf("%T", wr))
 				mw.logger.Printf("Closed writer on %T", wr)
 			}
 

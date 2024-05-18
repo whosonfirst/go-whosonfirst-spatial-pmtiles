@@ -6,6 +6,7 @@ import (
 	"github.com/paulmach/orb"
 )
 
+// NewBoundingBox returns a new `orb.Bound` instance derived from minimum and maximum x and y coordinates.
 func NewBoundingBox(minx float64, miny float64, maxx float64, maxy float64) (*orb.Bound, error) {
 
 	if !IsValidLongitude(minx) {
