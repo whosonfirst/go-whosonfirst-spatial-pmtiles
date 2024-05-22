@@ -7,7 +7,7 @@ import (
 	"github.com/sfomuseum/go-flags/flagset"
 	"github.com/sfomuseum/go-flags/lookup"
 	"github.com/whosonfirst/go-reader"
-	"github.com/whosonfirst/go-whosonfirst-spatial/database"
+	// "github.com/whosonfirst/go-whosonfirst-spatial/database"
 )
 
 func CommonFlags() (*flag.FlagSet, error) {
@@ -27,8 +27,8 @@ func AppendCommonFlags(fs *flag.FlagSet) error {
 
 	// spatial databases
 
-	available_databases := database.Schemes()
-	desc_databases := fmt.Sprintf("A valid whosonfirst/go-whosonfirst-spatial/data.SpatialDatabase URI. options are: %s", available_databases)
+	// available_databases := database.Schemes()
+	desc_databases := fmt.Sprintf("A valid whosonfirst/go-whosonfirst-spatial/data.SpatialDatabase URI. options are: %s", "...")
 
 	fs.String(SpatialDatabaseURIFlag, "", desc_databases)
 

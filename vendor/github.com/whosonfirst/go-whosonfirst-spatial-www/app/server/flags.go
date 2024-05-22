@@ -4,9 +4,13 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/aaronland/go-http-maps/provider"
+	"github.com/sfomuseum/go-flags/flagset"
 	"github.com/sfomuseum/go-flags/multi"
-	spatial_flags "github.com/whosonfirst/go-whosonfirst-spatial/flags"
+	"github.com/whosonfirst/go-reader"
+	"github.com/whosonfirst/go-whosonfirst-iterate/v2/emitter"
+	"github.com/whosonfirst/go-whosonfirst-spatial/database"
+	"sort"
+	"strings"
 )
 
 // Prepend this prefix to all assets (but not HTTP handlers). This is mostly for API Gateway integrations.
@@ -63,36 +67,43 @@ var authenticator_uri string
 // Emit timing metrics to the application's logger
 var log_timings bool
 
+var spatial_database_uri string
+var properties_reader_uri string
+var is_wof bool
+var enable_custom_placetypes bool
+var custom_placetypes string
+
+var iterator_uri string
+
+var map_provider_uri string
+
 func DefaultFlagSet() (*flag.FlagSet, error) {
 
-	fs, err := spatial_flags.CommonFlags()
+	fs := flagset.NewFlagSet("server")
 
-	if err != nil {
-		return nil, fmt.Errorf("Failed to derive common spatial flags, %w", err)
-	}
+	available_databases := database.Schemes()
+	desc_databases := fmt.Sprintf("A valid whosonfirst/go-whosonfirst-spatial/data.SpatialDatabase URI. options are: %s", available_databases)
 
-	err = spatial_flags.AppendIndexingFlags(fs)
+	fs.StringVar(&spatial_database_uri, "spatial-database-uri", "rtree://", desc_databases)
 
-	if err != nil {
-		return nil, fmt.Errorf("Failed to append spatial indexing flags, %w", err)
-	}
+	available_readers := reader.Schemes()
+	desc_readers := fmt.Sprintf("A valid whosonfirst/go-reader.Reader URI. Available options are: %s", available_readers)
 
-	err = AppendWWWFlags(fs)
+	fs.StringVar(&properties_reader_uri, "properties-reader-uri", "", fmt.Sprintf("%s. If the value is {spatial-database-uri} then the value of the '-spatial-database-uri' implements the reader.Reader interface and will be used.", desc_readers))
 
-	if err != nil {
-		return nil, fmt.Errorf("Failed to append www flags, %w", err)
-	}
+	fs.BoolVar(&is_wof, "is-wof", true, "Input data is WOF-flavoured GeoJSON. (Pass a value of '0' or 'false' if you need to index non-WOF documents.")
 
-	err = provider.AppendProviderFlags(fs)
+	fs.BoolVar(&enable_custom_placetypes, "enable-custom-placetypes", false, "Enable wof:placetype values that are not explicitly defined in the whosonfirst/go-whosonfirst-placetypes repository.")
 
-	if err != nil {
-		return nil, fmt.Errorf("Failed to append map provider flags, %w", err)
-	}
+	fs.StringVar(&custom_placetypes, "custom-placetypes", "", "A JSON-encoded string containing custom placetypes defined using the syntax described in the whosonfirst/go-whosonfirst-placetypes repository.")
 
-	return fs, nil
-}
+	modes := emitter.Schemes()
+	sort.Strings(modes)
 
-func AppendWWWFlags(fs *flag.FlagSet) error {
+	valid_modes := strings.Join(modes, ", ")
+	desc_modes := fmt.Sprintf("A valid whosonfirst/go-whosonfirst-iterate/v2 URI. Supported schemes are: %s.", valid_modes)
+
+	fs.StringVar(&iterator_uri, "iterator-uri", "repo://", desc_modes)
 
 	fs.StringVar(&server_uri, "server-uri", "http://localhost:8080", "A valid aaronland/go-http-server URI.")
 
@@ -122,5 +133,8 @@ func AppendWWWFlags(fs *flag.FlagSet) error {
 	fs.StringVar(&leaflet_max_bounds, "leaflet-max-bounds", "", "An optional comma-separated bounding box ({MINX},{MINY},{MAXX},{MAXY}) to set the boundary for map views.")
 
 	fs.BoolVar(&log_timings, "log-timings", false, "Emit timing metrics to the application's logger")
-	return nil
+
+	fs.StringVar(&map_provider_uri, "map-provider-uri", "leaflet://?leaflet-tile-url=https://tile.openstreetmap.org/{z}/{x}/{y}.png", "A valid aaronland/go-http-maps/provider URI.")
+
+	return fs, nil
 }

@@ -1,14 +1,11 @@
 package pip
 
 import (
-	"flag"
 	"net/url"
 	"strconv"
 
-	"github.com/sfomuseum/go-flags/lookup"
 	"github.com/whosonfirst/go-whosonfirst-spatial"
 	"github.com/whosonfirst/go-whosonfirst-spatial/filter"
-	"github.com/whosonfirst/go-whosonfirst-spatial/flags"
 )
 
 type PointInPolygonRequest struct {
@@ -26,116 +23,6 @@ type PointInPolygonRequest struct {
 	CessationDate       string   `json:"cessation_date,omitempty"`
 	Properties          []string `json:"properties,omitempty"`
 	Sort                []string `json:"sort,omitempty"`
-}
-
-func NewPointInPolygonRequestFromFlagSet(fs *flag.FlagSet) (*PointInPolygonRequest, error) {
-
-	req := &PointInPolygonRequest{}
-
-	latitude, err := lookup.Float64Var(fs, flags.LATITUDE)
-
-	if err != nil {
-		return nil, err
-	}
-
-	req.Latitude = latitude
-
-	longitude, err := lookup.Float64Var(fs, flags.LONGITUDE)
-
-	if err != nil {
-		return nil, err
-	}
-
-	req.Longitude = longitude
-
-	placetypes, err := lookup.MultiStringVar(fs, flags.PLACETYPES)
-
-	if err != nil {
-		return nil, err
-	}
-
-	req.Placetypes = placetypes
-
-	inception_date, err := lookup.StringVar(fs, flags.INCEPTION_DATE)
-
-	if err != nil {
-		return nil, err
-	}
-
-	cessation_date, err := lookup.StringVar(fs, flags.CESSATION_DATE)
-
-	if err != nil {
-		return nil, err
-	}
-
-	req.InceptionDate = inception_date
-	req.CessationDate = cessation_date
-
-	geometries, err := lookup.StringVar(fs, flags.GEOMETRIES)
-
-	if err != nil {
-		return nil, err
-	}
-
-	req.Geometries = geometries
-
-	alt_geoms, err := lookup.MultiStringVar(fs, flags.ALTERNATE_GEOMETRIES)
-
-	if err != nil {
-		return nil, err
-	}
-
-	req.AlternateGeometries = alt_geoms
-
-	is_current, err := lookup.MultiInt64Var(fs, flags.IS_CURRENT)
-
-	if err != nil {
-		return nil, err
-	}
-
-	req.IsCurrent = is_current
-
-	is_ceased, err := lookup.MultiInt64Var(fs, flags.IS_CEASED)
-
-	if err != nil {
-		return nil, err
-	}
-
-	req.IsCeased = is_ceased
-
-	is_deprecated, err := lookup.MultiInt64Var(fs, flags.IS_DEPRECATED)
-
-	if err != nil {
-		return nil, err
-	}
-
-	req.IsDeprecated = is_deprecated
-
-	is_superseded, err := lookup.MultiInt64Var(fs, flags.IS_SUPERSEDED)
-
-	if err != nil {
-		return nil, err
-	}
-
-	req.IsSuperseded = is_superseded
-
-	is_superseding, err := lookup.MultiInt64Var(fs, flags.IS_SUPERSEDING)
-
-	if err != nil {
-		return nil, err
-	}
-
-	req.IsSuperseding = is_superseding
-
-	sort_uris, err := lookup.MultiStringVar(fs, "sort-uri")
-
-	if err != nil {
-		return nil, err
-	}
-
-	req.Sort = sort_uris
-
-	return req, nil
 }
 
 func NewSPRFilterFromPointInPolygonRequest(req *PointInPolygonRequest) (spatial.Filter, error) {
