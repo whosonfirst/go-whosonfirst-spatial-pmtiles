@@ -13,9 +13,7 @@ cli:
 server:
 	go run -mod $(GOMOD) cmd/server/main.go \
 		-enable-www \
-		-server-uri http://localhost:8081 \
-		-map-provider 'leaflet' \
-		-leaflet-tile-url 'https://tile.openstreetmap.org/{z}/{x}/{y}.png' \
+		-server-uri http://localhost:8080 \
 		-spatial-database-uri '$(DATABASE)' \
 		-properties-reader-uri '{spatial-database-uri}'
 
