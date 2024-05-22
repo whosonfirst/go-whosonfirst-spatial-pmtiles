@@ -17,20 +17,13 @@ import (
 	"github.com/aaronland/go-http-ping/v2"
 	"github.com/aaronland/go-http-server"
 	"github.com/rs/cors"
-	"github.com/sfomuseum/go-flags/flagset"
 	"github.com/sfomuseum/go-http-auth"
 	"github.com/whosonfirst/go-whosonfirst-spatial-www/http"
 	"github.com/whosonfirst/go-whosonfirst-spatial-www/http/api"
 	"github.com/whosonfirst/go-whosonfirst-spatial-www/http/www"
 	"github.com/whosonfirst/go-whosonfirst-spatial-www/templates/html"
-	app "github.com/whosonfirst/go-whosonfirst-spatial/app/spatial"
-	spatial_flags "github.com/whosonfirst/go-whosonfirst-spatial/flags"
+	app "github.com/whosonfirst/go-whosonfirst-spatial/application"
 )
-
-type RunOptions struct {
-	FlagSet       *flag.FlagSet
-	EnvFlagPrefix string
-}
 
 func Run(ctx context.Context, logger *slog.Logger) error {
 
@@ -45,9 +38,10 @@ func Run(ctx context.Context, logger *slog.Logger) error {
 
 func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet, logger *slog.Logger) error {
 
-	opts := &RunOptions{
-		FlagSet:       fs,
-		EnvFlagPrefix: "WHOSONFIRST",
+	opts, err := RunOptionsFromFlagSet(ctx, fs)
+
+	if err != nil {
+		return fmt.Errorf("Failed to derive options from flag set, %w", err)
 	}
 
 	return RunWithOptions(ctx, opts, logger)
@@ -55,46 +49,34 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet, logger *slog.Logger) 
 
 func RunWithOptions(ctx context.Context, opts *RunOptions, logger *slog.Logger) error {
 
-	fs := opts.FlagSet
-
-	flagset.Parse(fs)
-
-	err := flagset.SetFlagsFromEnvVarsWithFeedback(fs, opts.EnvFlagPrefix, true)
-
-	if err != nil {
-		return fmt.Errorf("Failed to set flags from environment variables, %v", err)
+	spatial_opts := &app.SpatialApplicationOptions{
+		SpatialDatabaseURI:     opts.SpatialDatabaseURI,
+		PropertiesReaderURI:    opts.PropertiesReaderURI,
+		IteratorURI:            opts.IteratorURI,
+		EnableCustomPlacetypes: opts.EnableCustomPlacetypes,
+		CustomPlacetypes:       opts.CustomPlacetypes,
+		IsWhosOnFirst:          opts.IsWhosOnFirst,
 	}
 
-	err = spatial_flags.ValidateCommonFlags(fs)
+	spatial_app, err := app.NewSpatialApplication(ctx, spatial_opts)
 
 	if err != nil {
-		return fmt.Errorf("Failed to validate common flags, %v", err)
+		return fmt.Errorf("Failed to create new spatial application, %w", err)
 	}
 
-	err = spatial_flags.ValidateIndexingFlags(fs)
-
-	if err != nil {
-		return fmt.Errorf("Failed to validate indexing flags, %v", err)
-	}
-
-	spatial_app, err := app.NewSpatialApplicationWithFlagSet(ctx, fs)
-
-	if err != nil {
-		return fmt.Errorf("Failed to create new spatial application, because: %w", err)
-	}
-
-	authenticator, err := auth.NewAuthenticator(ctx, authenticator_uri)
+	authenticator, err := auth.NewAuthenticator(ctx, opts.AuthenticatorURI)
 
 	if err != nil {
 		return fmt.Errorf("Failed to create authenticator, %w", err)
 	}
 
-	paths := fs.Args()
+	if len(opts.IteratorSources) > 0 {
 
-	err = spatial_app.IndexPaths(ctx, paths...)
+		err = spatial_app.IndexPaths(ctx, opts.IteratorSources...)
 
-	if err != nil {
-		return fmt.Errorf("Failed to index paths, because %s", err)
+		if err != nil {
+			return fmt.Errorf("Failed to index paths, because %s", err)
+		}
 	}
 
 	mux := gohttp.NewServeMux()
@@ -105,14 +87,14 @@ func RunWithOptions(ctx context.Context, opts *RunOptions, logger *slog.Logger) 
 		return fmt.Errorf("failed to create ping handler because %s", err)
 	}
 
-	mux.Handle(path_ping, ping_handler)
+	mux.Handle(opts.PathPing, ping_handler)
 
 	var cors_wrapper *cors.Cors
 
-	if enable_cors {
+	if opts.EnableCORS {
 		cors_wrapper = cors.New(cors.Options{
-			AllowedOrigins:   cors_origins,
-			AllowCredentials: cors_allow_credentials,
+			AllowedOrigins:   opts.CORSOrigins,
+			AllowCredentials: opts.CORSAllowCredentials,
 		})
 	}
 
@@ -129,25 +111,25 @@ func RunWithOptions(ctx context.Context, opts *RunOptions, logger *slog.Logger) 
 
 	data_handler = authenticator.WrapHandler(data_handler)
 
-	if enable_cors {
+	if opts.EnableCORS {
 		data_handler = cors_wrapper.Handler(data_handler)
 	}
 
-	if enable_gzip {
+	if opts.EnableGzip {
 		data_handler = gziphandler.GzipHandler(data_handler)
 	}
 
-	if !strings.HasSuffix(path_data, "/") {
-		path_data = fmt.Sprintf("%s/", path_data)
+	if !strings.HasSuffix(opts.PathData, "/") {
+		opts.PathData = fmt.Sprintf("%s/", opts.PathData)
 	}
 
-	mux.Handle(path_data, data_handler)
+	mux.Handle(opts.PathData, data_handler)
 
 	// point-in-polygon handlers
 
 	api_pip_opts := &api.PointInPolygonHandlerOptions{
-		EnableGeoJSON: enable_geojson,
-		LogTimings:    log_timings,
+		EnableGeoJSON: opts.EnableGeoJSON,
+		LogTimings:    opts.LogTimings,
 	}
 
 	api_pip_handler, err := api.PointInPolygonHandler(spatial_app, api_pip_opts)
@@ -158,29 +140,23 @@ func RunWithOptions(ctx context.Context, opts *RunOptions, logger *slog.Logger) 
 
 	api_pip_handler = authenticator.WrapHandler(api_pip_handler)
 
-	if enable_cors {
+	if opts.EnableCORS {
 		api_pip_handler = cors_wrapper.Handler(api_pip_handler)
 	}
 
-	if enable_gzip {
+	if opts.EnableGzip {
 		api_pip_handler = gziphandler.GzipHandler(api_pip_handler)
 	}
 
-	path_api_pip := filepath.Join(path_api, "point-in-polygon")
+	path_api_pip := filepath.Join(opts.PathAPI, "point-in-polygon")
 
 	mux.Handle(path_api_pip, api_pip_handler)
 
 	// www handlers
 
-	if enable_www {
+	if opts.EnableWWW {
 
-		provider_uri, err := provider.ProviderURIFromFlagSet(fs)
-
-		if err != nil {
-			return fmt.Errorf("Failed to derive map provider URI, %w", err)
-		}
-
-		map_provider, err := provider.NewProvider(ctx, provider_uri)
+		map_provider, err := provider.NewProvider(ctx, opts.MapProviderURI)
 
 		if err != nil {
 			return fmt.Errorf("Failed to create map provider, %w", err)
@@ -200,20 +176,20 @@ func RunWithOptions(ctx context.Context, opts *RunOptions, logger *slog.Logger) 
 
 				path = strings.TrimLeft(path, "/")
 
-				if path_prefix == "" {
+				if opts.PathPrefix == "" {
 					return "/" + path
 				}
 
-				path = filepath.Join(path_prefix, path)
+				path = filepath.Join(opts.PathPrefix, path)
 				return path
 			},
 
 			"DataRoot": func() string {
 
-				path := path_data
+				path := opts.PathData
 
-				if path_prefix != "" {
-					path = filepath.Join(path_prefix, path)
+				if opts.PathPrefix != "" {
+					path = filepath.Join(opts.PathPrefix, path)
 				}
 
 				return path
@@ -221,10 +197,10 @@ func RunWithOptions(ctx context.Context, opts *RunOptions, logger *slog.Logger) 
 
 			"APIRoot": func() string {
 
-				path := path_api
+				path := opts.PathAPI
 
-				if path_prefix != "" {
-					path = filepath.Join(path_prefix, path)
+				if opts.PathPrefix != "" {
+					path = filepath.Join(opts.PathPrefix, path)
 				}
 
 				return path
@@ -255,10 +231,10 @@ func RunWithOptions(ctx context.Context, opts *RunOptions, logger *slog.Logger) 
 
 		http_pip_opts := &www.PointInPolygonHandlerOptions{
 			Templates:        t,
-			InitialLatitude:  leaflet_initial_latitude,
-			InitialLongitude: leaflet_initial_longitude,
-			InitialZoom:      leaflet_initial_zoom,
-			MaxBounds:        leaflet_max_bounds,
+			InitialLatitude:  opts.LeafletInitialLatitude,
+			InitialLongitude: opts.LeafletInitialLongitude,
+			InitialZoom:      opts.LeafletInitialZoom,
+			MaxBounds:        opts.LeafletMaxBounds,
 			MapProvider:      map_provider.Scheme(),
 		}
 
@@ -280,10 +256,10 @@ func RunWithOptions(ctx context.Context, opts *RunOptions, logger *slog.Logger) 
 		http_pip_handler = maps.AppendResourcesHandlerWithProvider(http_pip_handler, map_provider, maps_opts)
 		http_pip_handler = authenticator.WrapHandler(http_pip_handler)
 
-		mux.Handle(path_pip, http_pip_handler)
+		mux.Handle(opts.PathPIP, http_pip_handler)
 
-		if !strings.HasSuffix(path_pip, "/") {
-			path_pip_slash := fmt.Sprintf("%s/", path_pip)
+		if !strings.HasSuffix(opts.PathPIP, "/") {
+			path_pip_slash := fmt.Sprintf("%s/", opts.PathPIP)
 			mux.Handle(path_pip_slash, http_pip_handler)
 		}
 
@@ -307,7 +283,7 @@ func RunWithOptions(ctx context.Context, opts *RunOptions, logger *slog.Logger) 
 		mux.Handle(path_index, index_handler)
 	}
 
-	s, err := server.NewServer(ctx, server_uri)
+	s, err := server.NewServer(ctx, opts.ServerURI)
 
 	if err != nil {
 		return fmt.Errorf("Failed to create new server for '%s', %v", server_uri, err)

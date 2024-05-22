@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
+	_ "log/slog"
 
 	"github.com/whosonfirst/go-whosonfirst-export/v2"
 	"github.com/whosonfirst/go-whosonfirst-feature/geometry"
@@ -17,47 +17,35 @@ import (
 	"github.com/whosonfirst/go-writer/v3"
 )
 
-type UpdateApplicationOptions struct {
-	Writer             writer.Writer
-	WriterURI          string
-	Exporter           export.Exporter
-	ExporterURI        string
-	MapshaperServerURI string
-	SpatialDatabase    database.SpatialDatabase
-	SpatialDatabaseURI string
-	ToIterator         string
-	FromIterator       string
-	SPRFilterInputs    *filter.SPRInputs
-	SPRResultsFunc     hierarchy_filter.FilterSPRResultsFunc                   // This one chooses one result among many (or nil)
-	PIPUpdateFunc      hierarchy.PointInPolygonHierarchyResolverUpdateCallback // This one constructs a map[string]interface{} to update the target record (or not)
-}
-
-type UpdateApplicationPaths struct {
+type updateApplicationPaths struct {
 	To   []string
 	From []string
 }
 
-type UpdateApplication struct {
+// updateApplication is a struct to wrap the details of (optionally) populating a spatial
+// database and updating the hierarchies of (n) files derived from an iterator including
+// writing (publishing) the updated records.
+type updateApplication struct {
 	to                  string
 	from                string
-	tool                *hierarchy.PointInPolygonHierarchyResolver
+	resolver            *hierarchy.PointInPolygonHierarchyResolver
 	writer              writer.Writer
 	exporter            export.Exporter
+	export_opts         *export.Options
 	spatial_db          database.SpatialDatabase
 	sprResultsFunc      hierarchy_filter.FilterSPRResultsFunc
 	sprFilterInputs     *filter.SPRInputs
 	hierarchyUpdateFunc hierarchy.PointInPolygonHierarchyResolverUpdateCallback
-	logger              *log.Logger
 }
 
-func (app *UpdateApplication) Run(ctx context.Context, paths *UpdateApplicationPaths) error {
+func (app *updateApplication) Run(ctx context.Context, paths *updateApplicationPaths) error {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	// These are the data we are indexing to HIERARCHY from
 
-	err := app.IndexSpatialDatabase(ctx, paths.From...)
+	err := app.indexSpatialDatabase(ctx, paths.From...)
 
 	if err != nil {
 		return err
@@ -73,7 +61,7 @@ func (app *UpdateApplication) Run(ctx context.Context, paths *UpdateApplicationP
 			return fmt.Errorf("Failed to read '%s', %v", path, err)
 		}
 
-		_, err = app.UpdateAndPublishFeature(ctx, body)
+		_, err = app.updateAndPublishFeature(ctx, body)
 
 		if err != nil {
 			return fmt.Errorf("Failed to update feature for '%s', %v", path, err)
@@ -101,7 +89,7 @@ func (app *UpdateApplication) Run(ctx context.Context, paths *UpdateApplicationP
 	return app.writer.Close(ctx)
 }
 
-func (app *UpdateApplication) IndexSpatialDatabase(ctx context.Context, uris ...string) error {
+func (app *updateApplication) indexSpatialDatabase(ctx context.Context, uris ...string) error {
 
 	from_cb := func(ctx context.Context, path string, fh io.ReadSeeker, args ...interface{}) error {
 
@@ -143,17 +131,28 @@ func (app *UpdateApplication) IndexSpatialDatabase(ctx context.Context, uris ...
 // UpdateAndPublishFeature will invoke the `PointInPolygonAndUpdate` method using the `hierarchy.PointInPolygonHierarchyResolver` instance
 // associated with 'app' using 'body' as its input. If successful and there are changes the result will be published using the `PublishFeature`
 // method.
-func (app *UpdateApplication) UpdateAndPublishFeature(ctx context.Context, body []byte) ([]byte, error) {
+func (app *updateApplication) updateAndPublishFeature(ctx context.Context, body []byte) ([]byte, error) {
 
-	has_changed, new_body, err := app.UpdateFeature(ctx, body)
+	has_changed, new_body, err := app.updateFeature(ctx, body)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to update feature, %w", err)
 	}
 
+	// But really, has the record _actually_ changed?
+
 	if has_changed {
 
-		new_body, err = app.PublishFeature(ctx, new_body)
+		has_changed, err = export.ExportChanged(new_body, body, app.export_opts, io.Discard)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to determine if export has changed post update, %w", err)
+		}
+	}
+
+	if has_changed {
+
+		new_body, err = app.publishFeature(ctx, new_body)
 
 		if err != nil {
 			return nil, fmt.Errorf("Failed to publish feature, %w", err)
@@ -165,13 +164,13 @@ func (app *UpdateApplication) UpdateAndPublishFeature(ctx context.Context, body 
 
 // UpdateFeature will invoke the `PointInPolygonAndUpdate` method using the `hierarchy.PointInPolygonHierarchyResolver` instance
 // associated with 'app' using 'body' as its input.
-func (app *UpdateApplication) UpdateFeature(ctx context.Context, body []byte) (bool, []byte, error) {
+func (app *updateApplication) updateFeature(ctx context.Context, body []byte) (bool, []byte, error) {
 
-	return app.tool.PointInPolygonAndUpdate(ctx, app.sprFilterInputs, app.sprResultsFunc, app.hierarchyUpdateFunc, body)
+	return app.resolver.PointInPolygonAndUpdate(ctx, app.sprFilterInputs, app.sprResultsFunc, app.hierarchyUpdateFunc, body)
 }
 
 // PublishFeature exports 'body' using the `whosonfirst/go-writer/v3` instance associated with 'app'.
-func (app *UpdateApplication) PublishFeature(ctx context.Context, body []byte) ([]byte, error) {
+func (app *updateApplication) publishFeature(ctx context.Context, body []byte) ([]byte, error) {
 
 	new_body, err := app.exporter.Export(ctx, body)
 

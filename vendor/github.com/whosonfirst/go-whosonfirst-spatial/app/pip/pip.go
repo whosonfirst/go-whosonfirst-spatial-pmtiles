@@ -8,18 +8,10 @@ import (
 	"log"
 
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/sfomuseum/go-flags/flagset"
-	"github.com/sfomuseum/go-flags/lookup"
 	"github.com/whosonfirst/go-whosonfirst-spatial"
-	app "github.com/whosonfirst/go-whosonfirst-spatial/app/spatial"
-	spatial_flags "github.com/whosonfirst/go-whosonfirst-spatial/flags"
+	app "github.com/whosonfirst/go-whosonfirst-spatial/application"
 	"github.com/whosonfirst/go-whosonfirst-spatial/pip"
 )
-
-type RunOptions struct {
-	Logger  *log.Logger
-	FlagSet *flag.FlagSet
-}
 
 func Run(ctx context.Context, logger *log.Logger) error {
 
@@ -34,61 +26,40 @@ func Run(ctx context.Context, logger *log.Logger) error {
 
 func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet, logger *log.Logger) error {
 
-	opts := &RunOptions{
-		Logger:  logger,
-		FlagSet: fs,
+	opts, err := RunOptionsFromFlagSet(ctx, fs)
+
+	if err != nil {
+		return fmt.Errorf("Failed to derive options from flagset, %w", err)
 	}
 
-	return RunWithOptions(ctx, opts)
+	return RunWithOptions(ctx, opts, logger)
 }
 
-func RunWithOptions(ctx context.Context, opts *RunOptions) error {
-
-	fs := opts.FlagSet
-	logger := opts.Logger
-
-	flagset.Parse(fs)
-
-	err := flagset.SetFlagsFromEnvVars(fs, "WHOSONFIRST")
-
-	if err != nil {
-		return err
-	}
-
-	err = spatial_flags.ValidateCommonFlags(fs)
-
-	if err != nil {
-		return err
-	}
-
-	err = spatial_flags.ValidateQueryFlags(fs)
-
-	if err != nil {
-		return err
-	}
-
-	err = spatial_flags.ValidateIndexingFlags(fs)
-
-	if err != nil {
-		return err
-	}
-
-	spatial_app, err := app.NewSpatialApplicationWithFlagSet(ctx, fs)
-
-	if err != nil {
-		return fmt.Errorf("Failed to create new spatial application, %v", err)
-	}
+func RunWithOptions(ctx context.Context, opts *RunOptions, logger *log.Logger) error {
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	uris := fs.Args()
+	spatial_opts := &app.SpatialApplicationOptions{
+		SpatialDatabaseURI:     opts.SpatialDatabaseURI,
+		PropertiesReaderURI:    opts.PropertiesReaderURI,
+		IteratorURI:            opts.IteratorURI,
+		EnableCustomPlacetypes: opts.EnableCustomPlacetypes,
+		CustomPlacetypes:       opts.CustomPlacetypes,
+		IsWhosOnFirst:          opts.IsWhosOnFirst,
+	}
+
+	spatial_app, err := app.NewSpatialApplication(ctx, spatial_opts)
+
+	if err != nil {
+		return fmt.Errorf("Failed to create new spatial application, %w", err)
+	}
 
 	done_ch := make(chan bool)
 
 	go func() {
 
-		err := spatial_app.Iterator.IterateURIs(ctx, uris...)
+		err := spatial_app.Iterator.IterateURIs(ctx, opts.Sources...)
 
 		if err != nil {
 			logger.Printf("Failed to iterate URIs, %v", err)
@@ -101,18 +72,25 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 
 	case "cli":
 
-		props, err := lookup.MultiStringVar(fs, spatial_flags.PROPERTIES)
-
-		if err != nil {
-			return err
-		}
+		props := opts.Properties
 
 		<-done_ch
 
-		req, err := pip.NewPointInPolygonRequestFromFlagSet(fs)
-
-		if err != nil {
-			return fmt.Errorf("Failed to create SPR filter, %v", err)
+		req := &pip.PointInPolygonRequest{
+			Latitude:            opts.Latitude,
+			Longitude:           opts.Longitude,
+			Placetypes:          opts.Placetypes,
+			Geometries:          opts.Geometries,
+			AlternateGeometries: opts.AlternateGeometries,
+			IsCurrent:           opts.IsCurrent,
+			IsCeased:            opts.IsCeased,
+			IsDeprecated:        opts.IsDeprecated,
+			IsSuperseded:        opts.IsSuperseded,
+			IsSuperseding:       opts.IsSuperseding,
+			InceptionDate:       opts.InceptionDate,
+			CessationDate:       opts.CessationDate,
+			Properties:          opts.Properties,
+			Sort:                opts.Sort,
 		}
 
 		var rsp interface{}

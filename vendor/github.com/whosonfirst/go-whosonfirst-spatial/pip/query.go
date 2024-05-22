@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/sfomuseum/go-timings"
-	spatial_app "github.com/whosonfirst/go-whosonfirst-spatial/app/spatial"
+	spatial_app "github.com/whosonfirst/go-whosonfirst-spatial/application"
 	"github.com/whosonfirst/go-whosonfirst-spatial/geo"
 	"github.com/whosonfirst/go-whosonfirst-spr/v2"
 	"github.com/whosonfirst/go-whosonfirst-spr/v2/sort"

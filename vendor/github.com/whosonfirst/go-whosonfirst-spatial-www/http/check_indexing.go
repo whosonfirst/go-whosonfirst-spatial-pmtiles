@@ -3,7 +3,7 @@ package http
 import (
 	gohttp "net/http"
 
-	app "github.com/whosonfirst/go-whosonfirst-spatial/app/spatial"
+	app "github.com/whosonfirst/go-whosonfirst-spatial/application"
 )
 
 // CheckIndexingHandler() returns a `http.Handler` that will check with 'app.Iterator' is currently
