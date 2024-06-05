@@ -12,6 +12,4 @@ cli:
 server:
 	go run cmd/server/main.go \
 		-enable-www \
-		-spatial-database-uri "sqlite://?dsn=$(DSN)" \
-		-map-provider leaflet \
-		-leaflet-tile-url "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+		-spatial-database-uri "sqlite://?dsn=$(DSN)"

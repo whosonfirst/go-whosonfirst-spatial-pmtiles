@@ -8,14 +8,14 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/jtacoma/uritemplates v1.0.0
 	github.com/paulmach/orb v0.11.1
-	github.com/protomaps/go-pmtiles v1.19.1
+	github.com/protomaps/go-pmtiles v1.19.2
 	github.com/tidwall/gjson v1.17.1
 	github.com/tidwall/sjson v1.2.5
 	github.com/whosonfirst/go-ioutil v1.0.2
 	github.com/whosonfirst/go-reader v1.0.2
 	github.com/whosonfirst/go-whosonfirst-feature v0.0.27
 	github.com/whosonfirst/go-whosonfirst-spatial v0.9.0
-	github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.7.0
+	github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.8.0
 	github.com/whosonfirst/go-whosonfirst-spatial-www v0.2.0
 	github.com/whosonfirst/go-whosonfirst-spr/v2 v2.3.7
 	github.com/whosonfirst/go-whosonfirst-uri v1.3.0

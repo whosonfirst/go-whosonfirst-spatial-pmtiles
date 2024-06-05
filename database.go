@@ -416,7 +416,7 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseFromTile(ctx context.Context, t
 	t1 := time.Now()
 
 	defer func() {
-		logger.Info("Time to create database", "time", time.Since(t1))
+		logger.Debug("Time to create database", "time", time.Since(t1))
 	}()
 
 	logger.Debug("Get spatial database for tile")

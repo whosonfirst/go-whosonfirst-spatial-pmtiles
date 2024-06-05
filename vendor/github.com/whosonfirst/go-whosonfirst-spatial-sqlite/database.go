@@ -24,14 +24,14 @@ import (
 	"github.com/whosonfirst/go-ioutil"
 	"github.com/whosonfirst/go-reader"
 	"github.com/whosonfirst/go-whosonfirst-spatial"
-	"github.com/whosonfirst/go-whosonfirst-spatial-sqlite/wkttoorb"	
+	"github.com/whosonfirst/go-whosonfirst-spatial-sqlite/wkttoorb"
 	"github.com/whosonfirst/go-whosonfirst-spatial/database"
 	"github.com/whosonfirst/go-whosonfirst-spatial/filter"
 	"github.com/whosonfirst/go-whosonfirst-spr/v2"
 	"github.com/whosonfirst/go-whosonfirst-sqlite-features/v2/tables"
 	sqlite_spr "github.com/whosonfirst/go-whosonfirst-sqlite-spr/v2"
 	"github.com/whosonfirst/go-whosonfirst-uri"
-	"github.com/whosonfirst/go-writer/v3"	
+	"github.com/whosonfirst/go-writer/v3"
 )
 
 func init() {
@@ -438,12 +438,12 @@ func (r *SQLiteSpatialDatabase) getIntersectsByCoord(ctx context.Context, coord 
 func (r *SQLiteSpatialDatabase) getIntersectsByRect(ctx context.Context, rect *orb.Bound, filters ...spatial.Filter) ([]*RTreeSpatialIndex, error) {
 
 	/*
-	t1 := time.Now()
-	defer func(){
-		log.Printf("Time to rect, %v\n", time.Since(t1))
-	}()
+		t1 := time.Now()
+		defer func(){
+			log.Printf("Time to rect, %v\n", time.Since(t1))
+		}()
 	*/
-	
+
 	conn, err := r.db.Conn(ctx)
 
 	if err != nil {
@@ -519,13 +519,13 @@ func (r *SQLiteSpatialDatabase) getIntersectsByRect(ctx context.Context, rect *o
 func (r *SQLiteSpatialDatabase) inflateResultsWithChannels(ctx context.Context, rsp_ch chan spr.StandardPlacesResult, err_ch chan error, possible []*RTreeSpatialIndex, c *orb.Point, filters ...spatial.Filter) {
 
 	/*
-	t1 := time.Now()
+		t1 := time.Now()
 
-	defer func(){
-		log.Printf("Time to inflate, %v\n", time.Since(t1))
-	}()
+		defer func(){
+			log.Printf("Time to inflate, %v\n", time.Since(t1))
+		}()
 	*/
-	
+
 	seen := new(sync.Map)
 
 	wg := new(sync.WaitGroup)
@@ -548,7 +548,6 @@ func (r *SQLiteSpatialDatabase) inflateResultsWithChannels(ctx context.Context, 
 // will be skipped; if not it will be added (to 'seen') once the spatial index has been successfully inflated.
 func (r *SQLiteSpatialDatabase) inflateSpatialIndexWithChannels(ctx context.Context, rsp_ch chan spr.StandardPlacesResult, err_ch chan error, seen *sync.Map, sp *RTreeSpatialIndex, c *orb.Point, filters ...spatial.Filter) {
 
-	
 	select {
 	case <-ctx.Done():
 		return
@@ -560,18 +559,18 @@ func (r *SQLiteSpatialDatabase) inflateSpatialIndexWithChannels(ctx context.Cont
 	feature_id := fmt.Sprintf("%s:%s", sp.FeatureId, sp.AltLabel)
 
 	/*
-	t1 := time.Now()
-	
-	defer func(){
-		log.Printf("[%s] Time to inflate w/ channel, %v\n", sp_id, time.Since(t1))
-	}()
+		t1 := time.Now()
+
+		defer func(){
+			log.Printf("[%s] Time to inflate w/ channel, %v\n", sp_id, time.Since(t1))
+		}()
 	*/
-	
+
 	// have we already looked up the filters for this ID?
 	// see notes below
 
 	_, ok := seen.Load(feature_id)
-	
+
 	if ok {
 		return
 	}
@@ -588,7 +587,7 @@ func (r *SQLiteSpatialDatabase) inflateSpatialIndexWithChannels(ctx context.Cont
 	// This is the bottleneck. It appears to be this:
 	// https://github.com/paulmach/orb/issues/132
 	// maybe... https://github.com/Succo/wktToOrb/ ?
-	
+
 	if strings.HasPrefix(sp.geometry, "[[[") {
 		// Investigate https://github.com/paulmach/orb/tree/master/geojson#performance
 		err = json.Unmarshal([]byte(sp.geometry), &poly)
@@ -596,11 +595,11 @@ func (r *SQLiteSpatialDatabase) inflateSpatialIndexWithChannels(ctx context.Cont
 
 		/*
 
-	2023/08/21 22:23:01 [102087463#2084:] orb 20.368308ms
-2023/08/21 22:23:01 [102087463#2084:] not-orb 4.206974ms
+			2023/08/21 22:23:01 [102087463#2084:] orb 20.368308ms
+		2023/08/21 22:23:01 [102087463#2084:] not-orb 4.206974ms
 
-*/
-		
+		*/
+
 		// poly, err = wkt.UnmarshalPolygon(sp.geometry)
 
 		o, err := wkttoorb.Scan(sp.geometry)
@@ -615,9 +614,9 @@ func (r *SQLiteSpatialDatabase) inflateSpatialIndexWithChannels(ctx context.Cont
 	if err != nil {
 		return
 	}
-	
+
 	// END OF maybe move all this code in to whosonfirst/go-whosonfirst-sqlite-features/tables/rtree.go
-	
+
 	if !planar.PolygonContains(poly, *c) {
 		return
 	}
@@ -632,7 +631,7 @@ func (r *SQLiteSpatialDatabase) inflateSpatialIndexWithChannels(ctx context.Cont
 	if ok {
 		return
 	}
-	
+
 	s, err := r.retrieveSPR(ctx, sp.Path())
 
 	if err != nil {

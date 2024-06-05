@@ -448,7 +448,7 @@ github.com/prometheus/common/model
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
-# github.com/protomaps/go-pmtiles v1.19.1
+# github.com/protomaps/go-pmtiles v1.19.2
 ## explicit; go 1.21
 github.com/protomaps/go-pmtiles/pmtiles
 # github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec
@@ -611,7 +611,7 @@ github.com/whosonfirst/go-whosonfirst-spatial/geo
 github.com/whosonfirst/go-whosonfirst-spatial/hierarchy
 github.com/whosonfirst/go-whosonfirst-spatial/hierarchy/filter
 github.com/whosonfirst/go-whosonfirst-spatial/pip
-# github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.7.0
+# github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.8.0
 ## explicit; go 1.22.3
 github.com/whosonfirst/go-whosonfirst-spatial-sqlite
 github.com/whosonfirst/go-whosonfirst-spatial-sqlite/wkttoorb
