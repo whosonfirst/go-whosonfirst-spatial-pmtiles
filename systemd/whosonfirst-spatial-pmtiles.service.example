@@ -1,1 +1,19 @@
-#
+[Unit]
+Description=PMTiles point-in-polygon server
+ConditionPathExists=/usr/local/go-whosonfirst-spatial-pmtiles
+After=network.target
+ 
+[Service]
+Type=simple
+User=nobody
+Group=nobody
+LimitNOFILE=1024
+
+Restart=on-failure
+RestartSec=10
+
+WorkingDirectory=/usr/local/go-whosonfirst-spatial-pmtiles
+ExecStart=/usr/local/go-whosonfirst-spatial-pmtiles/bin/server -spatial-database-uri 'pmtiles://?tiles=file:///usr/local/data/pmtiles&database=whosonfirst-point-in-polygon-z13&enable-cache=true&zoom=13&layer=whosonfirst' -server-uri 'http://localhost:9000'
+ 
+[Install]
+WantedBy=multi-user.target
