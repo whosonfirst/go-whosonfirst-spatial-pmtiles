@@ -14,8 +14,8 @@ require (
 	github.com/whosonfirst/go-ioutil v1.0.2
 	github.com/whosonfirst/go-reader v1.0.2
 	github.com/whosonfirst/go-whosonfirst-feature v0.0.27
-	github.com/whosonfirst/go-whosonfirst-spatial v0.9.0
-	github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.8.0
+	github.com/whosonfirst/go-whosonfirst-spatial v0.10.0
+	github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.8.3
 	github.com/whosonfirst/go-whosonfirst-spatial-www v0.2.0
 	github.com/whosonfirst/go-whosonfirst-spr/v2 v2.3.7
 	github.com/whosonfirst/go-whosonfirst-uri v1.3.0
@@ -137,7 +137,7 @@ require (
 	github.com/whosonfirst/go-sanitize v0.1.0 // indirect
 	github.com/whosonfirst/go-whosonfirst-crawl v0.2.2 // indirect
 	github.com/whosonfirst/go-whosonfirst-export/v2 v2.7.1 // indirect
-	github.com/whosonfirst/go-whosonfirst-flags v0.5.1 // indirect
+	github.com/whosonfirst/go-whosonfirst-flags v0.5.2 // indirect
 	github.com/whosonfirst/go-whosonfirst-format v0.4.1 // indirect
 	github.com/whosonfirst/go-whosonfirst-id v1.2.2 // indirect
 	github.com/whosonfirst/go-whosonfirst-iterate/v2 v2.4.1 // indirect

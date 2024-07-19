@@ -450,6 +450,10 @@ func (r *SQLiteSpatialDatabase) getIntersectsByRect(ctx context.Context, rect *o
 		return nil, fmt.Errorf("Failed to establish database connection, %w", err)
 	}
 
+	logger := slog.Default()
+	logger = logger.With("query", "intersects by rect")
+	logger = logger.With("center", rect.Center())
+
 	q := fmt.Sprintf("SELECT id, wof_id, is_alt, alt_label, geometry, min_x, min_y, max_x, max_y FROM %s  WHERE min_x <= ? AND max_x >= ?  AND min_y <= ? AND max_y >= ?", r.rtree_table.Name())
 
 	// Left returns the left of the bound.
@@ -511,6 +515,7 @@ func (r *SQLiteSpatialDatabase) getIntersectsByRect(ctx context.Context, rect *o
 		intersects = append(intersects, i)
 	}
 
+	logger.Debug("Intersects by rect candidates", "r", rect, "count", len(intersects))
 	return intersects, nil
 }
 
@@ -555,8 +560,15 @@ func (r *SQLiteSpatialDatabase) inflateSpatialIndexWithChannels(ctx context.Cont
 		// pass
 	}
 
-	sp_id := fmt.Sprintf("%s:%s", sp.Id, sp.AltLabel)
+	// sp_id := fmt.Sprintf("%s:%s", sp.Id, sp.AltLabel)
 	feature_id := fmt.Sprintf("%s:%s", sp.FeatureId, sp.AltLabel)
+
+	logger := slog.Default()
+	logger = logger.With("feature id", feature_id)
+	logger = logger.With("latitude", c.Y())
+	logger = logger.With("longitude", c.X())
+
+	logger.Debug("Inflate spatial index")
 
 	/*
 		t1 := time.Now()
@@ -595,8 +607,8 @@ func (r *SQLiteSpatialDatabase) inflateSpatialIndexWithChannels(ctx context.Cont
 
 		/*
 
-			2023/08/21 22:23:01 [102087463#2084:] orb 20.368308ms
-		2023/08/21 22:23:01 [102087463#2084:] not-orb 4.206974ms
+				2023/08/21 22:23:01 [102087463#2084:] orb 20.368308ms
+			2023/08/21 22:23:01 [102087463#2084:] not-orb 4.206974ms
 
 		*/
 
@@ -612,12 +624,14 @@ func (r *SQLiteSpatialDatabase) inflateSpatialIndexWithChannels(ctx context.Cont
 	}
 
 	if err != nil {
+		logger.Error("Failed to derive polygon", "error", err)
 		return
 	}
 
 	// END OF maybe move all this code in to whosonfirst/go-whosonfirst-sqlite-features/tables/rtree.go
 
 	if !planar.PolygonContains(poly, *c) {
+		logger.Debug("Coordinate not contained by feature polygon")
 		return
 	}
 
@@ -635,7 +649,7 @@ func (r *SQLiteSpatialDatabase) inflateSpatialIndexWithChannels(ctx context.Cont
 	s, err := r.retrieveSPR(ctx, sp.Path())
 
 	if err != nil {
-		slog.Error("Failed to retrieve feature cache", "id", sp_id, "error", err)
+		logger.Error("Failed to retrieve feature cache", "key", sp.Path(), "error", err)
 		return
 	}
 
@@ -644,10 +658,12 @@ func (r *SQLiteSpatialDatabase) inflateSpatialIndexWithChannels(ctx context.Cont
 		err = filter.FilterSPR(f, s)
 
 		if err != nil {
+			slog.Debug("Feature failed SPR filter", "feature_id", feature_id, "error", err)
 			return
 		}
 	}
 
+	logger.Debug("Return inflated SPR", "id", s.Id())
 	rsp_ch <- s
 }
 

@@ -17,20 +17,20 @@ type RunOptions struct {
 	EnableCustomPlacetypes bool     `json:"enable_custom_placetypes"`
 	CustomPlacetypes       string   `json:"custom_placetypes"`
 	IsWhosOnFirst          bool     `json:"is_whosonfirst"`
-	Latitude            float64  `json:"latitude"`
-	Longitude           float64  `json:"longitude"`
-	Placetypes          []string `json:"placetypes,omitempty"`
-	Geometries          string   `json:"geometries,omitempty"`
-	AlternateGeometries []string `json:"alternate_geometries,omitempty"`
-	IsCurrent           []int64  `json:"is_current,omitempty"`
-	IsCeased            []int64  `json:"is_ceased,omitempty"`
-	IsDeprecated        []int64  `json:"is_deprecated,omitempty"`
-	IsSuperseded        []int64  `json:"is_superseded,omitempty"`
-	IsSuperseding       []int64  `json:"is_superseding,omitempty"`
-	InceptionDate       string   `json:"inception_date,omitempty"`
-	CessationDate       string   `json:"cessation_date,omitempty"`
-	Properties          []string `json:"properties,omitempty"`
-	Sort                []string `json:"sort,omitempty"`
+	Latitude               float64  `json:"latitude"`
+	Longitude              float64  `json:"longitude"`
+	Placetypes             []string `json:"placetypes,omitempty"`
+	Geometries             string   `json:"geometries,omitempty"`
+	AlternateGeometries    []string `json:"alternate_geometries,omitempty"`
+	IsCurrent              []int64  `json:"is_current,omitempty"`
+	IsCeased               []int64  `json:"is_ceased,omitempty"`
+	IsDeprecated           []int64  `json:"is_deprecated,omitempty"`
+	IsSuperseded           []int64  `json:"is_superseded,omitempty"`
+	IsSuperseding          []int64  `json:"is_superseding,omitempty"`
+	InceptionDate          string   `json:"inception_date,omitempty"`
+	CessationDate          string   `json:"cessation_date,omitempty"`
+	Properties             []string `json:"properties,omitempty"`
+	Sort                   []string `json:"sort,omitempty"`
 }
 
 func RunOptionsFromFlagSet(ctx context.Context, fs *flag.FlagSet) (*RunOptions, error) {

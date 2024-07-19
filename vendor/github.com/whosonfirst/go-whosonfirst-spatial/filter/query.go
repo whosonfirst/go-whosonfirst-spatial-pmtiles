@@ -1,12 +1,15 @@
 package filter
 
 import (
+	"fmt"
 	"net/url"
 	"strconv"
 
 	"github.com/whosonfirst/go-whosonfirst-spatial"
 )
 
+// NewSPRFilterFromQuery will instantiate new `spatial.Filter` instance derived from parameters
+// in 'query'.
 func NewSPRFilterFromQuery(query url.Values) (spatial.Filter, error) {
 
 	inputs, err := NewSPRInputs()
@@ -25,31 +28,31 @@ func NewSPRFilterFromQuery(query url.Values) (spatial.Filter, error) {
 	is_current, err := atoi(query["is_current"])
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Invalid ?is_current= parameter, %w", err)
 	}
 
 	is_deprecated, err := atoi(query["is_deprecated"])
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Invalid ?is_deprecated= parameter, %w", err)		
 	}
 
 	is_ceased, err := atoi(query["is_ceased"])
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Invalid ?is_ceased= parameter, %w", err)				
 	}
 
 	is_superseded, err := atoi(query["is_superseded"])
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Invalid ?is_superseded= parameter, %w", err)						
 	}
 
 	is_superseding, err := atoi(query["is_superseding"])
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Invalid ?is_superseding= parameter, %w", err)								
 	}
 
 	inputs.IsCurrent = is_current
@@ -70,7 +73,7 @@ func atoi(strings []string) ([]int64, error) {
 		i, err := strconv.ParseInt(str, 10, 64)
 
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("Failed to parse integer value at offset %d, %w", idx, err)
 		}
 
 		numbers[idx] = i
