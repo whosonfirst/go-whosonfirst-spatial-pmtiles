@@ -6,16 +6,22 @@ vuln:
 
 cli:
 	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/pmtile cmd/pmtile/main.go
-	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/server cmd/server/main.go
+	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/http-server cmd/http-server/main.go
+	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/grpc-server cmd/grpc-server/main.go
+	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/grpc-client cmd/grpc-client/main.go
 	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/update-hierarchies cmd/update-hierarchies/main.go
 	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/pip cmd/pip/main.go
 
-server:
-	go run -mod $(GOMOD) cmd/server/main.go \
+http-server:
+	go run -mod $(GOMOD) cmd/http-server/main.go \
 		-enable-www \
 		-server-uri http://localhost:8080 \
 		-spatial-database-uri '$(DATABASE)' \
 		-properties-reader-uri '{spatial-database-uri}'
+
+grpc-server:
+	go run -mod $(GOMOD) cmd/grpc-server/main.go \
+		-spatial-database-uri '$(DATABASE)'
 
 lambda:
 	@make lambda-server

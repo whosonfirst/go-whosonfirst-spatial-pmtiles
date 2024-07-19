@@ -209,10 +209,10 @@ func main() {
 
 ## Web interface(s)
 
-### server
+### http-server
 
 ```
-> ./bin/server -h
+> ./bin/http-server -h
   -authenticator-uri string
     	A valid sfomuseum/go-http-auth URI. (default "null://")
   -cors-allow-credentials
@@ -268,7 +268,7 @@ func main() {
 #### Example
 
 ```
-$> bin/server \
+$> bin/http-server \
 	-spatial-database-uri 'pmtiles://?tiles=file:///usr/local/data&database=wof' \
 	-enable-www
 	
@@ -289,7 +289,7 @@ When you visit `http://localhost:8080` in your web browser you should see someth
 If you don't need, or want, to expose a user-facing interface simply remove the `-enable-www`, `-map-provider` and `-nextzen-apikey` flags. For example:
 
 ```
-$> ./bin/server \
+$> ./bin/http-server \
 	-spatial-database-uri 'pmtiles://?tiles=file:///usr/local/data&database=wof'
 
 2022/11/26 09:57:03 Register /data/ handler
@@ -319,7 +319,7 @@ $> curl -s http://localhost:8080/api/point-in-polygon \
 If you have created your Protomaps database with custom properties and want to be able to access them via the API you will need to ensure that your `spatial-database-uri` flag has a "enable-cache=true" query parameter and that you assign the value of "{spatial-database-uri}" to the `properties-reader-uri` flag. For example:
 
 ```
-$> ./bin/server \
+$> ./bin/http-server \
 	-spatial-database-uri 'pmtiles://?tiles=file:///usr/local/data&database=wof&enable-cache=true' \
 	-properties-reader-uri '{spatial-database-uri}'
 ```
@@ -327,7 +327,7 @@ $> ./bin/server \
 By default, results are returned as a list of ["standard places response"](https://github.com/whosonfirst/go-whosonfirst-spr/) (SPR) elements. You can also return results as a GeoJSON `FeatureCollection` by passing the `-enable-geojson` flag to the server and including a `format=geojson` query parameter with requests. For example:
 
 ```
-$> bin/server \
+$> bin/http-server \
 	-spatial-database-uri 'pmtiles://?tiles=file:///usr/local/data&database=wof'
 	-enable-geojson
 ```
@@ -405,12 +405,100 @@ Once deployed the `server` tool will be available at a URL like `{PREFIX}.execut
 * https://{PREFIX}.execute-api.us-east-1.amazonaws.com/architecture/
 * https://{PREFIX}.execute-api.us-east-1.amazonaws.com/architecture/point-in-polygon/
 
+## gRPC interface(s)
+
+### grpc-server
+
+```
+> ./bin/grpc-server -h
+  -custom-placetypes string
+    	A JSON-encoded string containing custom placetypes defined using the syntax described in the whosonfirst/go-whosonfirst-placetypes repository.
+  -enable-custom-placetypes
+    	Enable wof:placetype values that are not explicitly defined in the whosonfirst/go-whosonfirst-placetypes repository.
+  -host string
+    	The host to listen for requests on (default "localhost")
+  -is-wof
+    	Input data is WOF-flavoured GeoJSON. (Pass a value of '0' or 'false' if you need to index non-WOF documents. (default true)
+  -iterator-uri string
+    	A valid whosonfirst/go-whosonfirst-iterate/v2 URI. Supported schemes are: directory://, featurecollection://, file://, filelist://, geojsonl://, null://, repo://. (default "repo://")
+  -port int
+    	The port to listen for requests on (default 8082)
+  -properties-reader-uri string
+    	A valid whosonfirst/go-reader.Reader URI. Available options are: [fs:// null:// pmtiles:// repo:// sqlite:// stdin://]. If the value is {spatial-database-uri} then the value of the '-spatial-database-uri' implements the reader.Reader interface and will be used.
+  -spatial-database-uri string
+    	A valid whosonfirst/go-whosonfirst-spatial/data.SpatialDatabase URI. options are: [pmtiles:// rtree:// sqlite://] (default "rtree://")
+```
+
+For example:
+
+```
+$> bin/grpc-server \
+	-spatial-database-uri 'pmtiles://?tiles=file:///usr/local/data&database=wof'
+2024/07/19 11:13:44 Listening on localhost:8082	
+```
+
+And then in another terminal:
+
+```
+$> ./bin/grpc-client -latitude 37.621131 -longitude -122.384292 | jq '.places[]["name"]'
+"San Francisco International Airport"
+```
+
+### grpc-client
+
+```
+$> ./bin/grpc-client -h
+  -alternate-geometry value
+    	One or more alternate geometry labels (wof:alt_label) values to filter results by.
+  -cessation string
+    	A valid EDTF date string.
+  -geometries string
+    	Valid options are: all, alt, default. (default "all")
+  -host string
+    	The host of the gRPC server to connect to. (default "localhost")
+  -inception string
+    	A valid EDTF date string.
+  -is-ceased value
+    	One or more existential flags (-1, 0, 1) to filter results by.
+  -is-current value
+    	One or more existential flags (-1, 0, 1) to filter results by.
+  -is-deprecated value
+    	One or more existential flags (-1, 0, 1) to filter results by.
+  -is-superseded value
+    	One or more existential flags (-1, 0, 1) to filter results by.
+  -is-superseding value
+    	One or more existential flags (-1, 0, 1) to filter results by.
+  -latitude float
+    	A valid latitude.
+  -longitude float
+    	A valid longitude.
+  -null
+    	Emit results to /dev/null
+  -placetype value
+    	One or more place types to filter results by.
+  -port int
+    	The port of the gRPC server to connect to. (default 8082)
+  -property value
+    	One or more Who's On First properties to append to each result.
+  -sort-uri value
+    	Zero or more whosonfirst/go-whosonfirst-spr/sort URIs.
+  -stdout
+    	Emit results to STDOUT (default true)
+```
+
+For example:
+
+```
+$> ./bin/grpc-client -latitude 37.621131 -longitude -122.384292 | jq '.places[]["name"]'
+"San Francisco International Airport"
+```
+
 ## See also
 
 * https://github.com/whosonfirst/go-whosonfirst-spatial
-* https://github.com/whosonfirst/go-whosonfirst-spatial-rtree
 * https://github.com/whosonfirst/go-whosonfirst-spatial-sqlite
 * https://github.com/whosonfirst/go-whosonfirst-spatial-www
+* https://github.com/whosonfirst/go-whosonfirst-spatial-grpc
 * https://github.com/whosonfirst/go-whosonfirst-tippecanoe
 * https://github.com/protomaps/go-pmtiles
 * https://github.com/felt/tippecanoe
