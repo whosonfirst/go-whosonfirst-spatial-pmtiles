@@ -1,3 +1,19 @@
+# v1.50.0 (2024-04-24)
+
+* **Feature**: Add SSM DescribeInstanceProperties API to public AWS SDK.
+
+# v1.49.5 (2024-03-29)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.49.4 (2024-03-18)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.49.3 (2024-03-12)
+
+* **Documentation**: March 2024 doc-only updates for Systems Manager.
+
 # v1.49.2 (2024-03-07)
 
 * **Bug Fix**: Remove dependency on go-cmp.

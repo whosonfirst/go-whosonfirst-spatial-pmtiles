@@ -105,14 +105,15 @@ type RegisterTaskWithMaintenanceWindowInput struct {
 
 	// The Amazon Resource Name (ARN) of the IAM service role for Amazon Web Services
 	// Systems Manager to assume when running a maintenance window task. If you do not
-	// specify a service role ARN, Systems Manager uses your account's service-linked
-	// role. If no service-linked role for Systems Manager exists in your account, it
-	// is created when you run RegisterTaskWithMaintenanceWindow . For more
-	// information, see the following topics in the in the Amazon Web Services Systems
-	// Manager User Guide:
-	//   - Using service-linked roles for Systems Manager (https://docs.aws.amazon.com/systems-manager/latest/userguide/using-service-linked-roles.html#slr-permissions)
-	//   - Should I use a service-linked role or a custom service role to run
-	//   maintenance window tasks?  (https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-maintenance-permissions.html#maintenance-window-tasks-service-role)
+	// specify a service role ARN, Systems Manager uses a service-linked role in your
+	// account. If no appropriate service-linked role for Systems Manager exists in
+	// your account, it is created when you run RegisterTaskWithMaintenanceWindow .
+	// However, for an improved security posture, we strongly recommend creating a
+	// custom policy and custom service role for running your maintenance window tasks.
+	// The policy can be crafted to provide only the permissions needed for your
+	// particular maintenance window tasks. For more information, see Setting up
+	// maintenance windows (https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-maintenance-permissions.html)
+	// in the in the Amazon Web Services Systems Manager User Guide.
 	ServiceRoleArn *string
 
 	// The targets (either managed nodes or maintenance window targets). One or more
