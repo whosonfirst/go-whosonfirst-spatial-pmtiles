@@ -3,13 +3,6 @@ package main
 // go run cmd/pmtile/main.go -tiles file:///tmp -database test -x 655 -y 1585 | jq
 
 import (
-	_ "github.com/aaronland/gocloud-blob-s3"
-	_ "gocloud.dev/blob/fileblob"
-	_ "gocloud.dev/blob/s3blob"
-	_ "gocloud.dev/docstore/memdocstore"
-)
-
-import (
 	"context"
 	"encoding/json"
 	"flag"
@@ -17,6 +10,11 @@ import (
 	"log"
 	"os"
 
+	_ "github.com/aaronland/gocloud-blob/s3"
+	_ "gocloud.dev/blob/fileblob"
+	_ "gocloud.dev/blob/s3blob"
+	_ "gocloud.dev/docstore/memdocstore"
+	
 	"github.com/paulmach/orb/encoding/mvt"
 	"github.com/paulmach/orb/maptile"
 	"github.com/protomaps/go-pmtiles/pmtiles"

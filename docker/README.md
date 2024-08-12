@@ -51,7 +51,7 @@ $> docker run whosonfirst-spatial-pmtiles \
 | -t | A valid `gocloud.dev/blob.Bucket` URI where the final PMTiles database will be copied | no | If not specified the final PMTiles database will be written to `/usr/local/data` and it is assumed that directory will be mounted on a local volume. The following `gocloud.dev/blob` schemes are supported by default: `file://`, `s3://`, `s3blob://` |
 | -z | The zoom level to create tiles at | no | Default is 12 |
 
-The `s3blob://` scheme is distinguished from the `s3://` scheme in its ability to specify [AWS credentials using query parameters](https://github.com/aaronland/gocloud-blob-s3#credentials).
+The `s3blob://` scheme is distinguished from the `s3://` scheme in its ability to specify AWS credentials using query parameters.
 
 ### Iterators
 

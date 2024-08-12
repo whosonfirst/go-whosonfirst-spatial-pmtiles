@@ -1,15 +1,5 @@
 package pmtiles
 
-import ()
-
-import (
-	_ "github.com/aaronland/gocloud-blob-s3"
-	_ "github.com/whosonfirst/go-whosonfirst-spatial-sqlite"	
-	_ "gocloud.dev/blob/fileblob"
-	_ "gocloud.dev/docstore/awsdynamodb"
-	_ "gocloud.dev/docstore/memdocstore"
-)
-
 import (
 	"context"
 	"encoding/json"
@@ -23,6 +13,12 @@ import (
 	"sync/atomic"
 	"time"
 
+	_ "github.com/aaronland/gocloud-blob/s3"
+	_ "github.com/whosonfirst/go-whosonfirst-spatial-sqlite"	
+	_ "gocloud.dev/blob/fileblob"
+	_ "gocloud.dev/docstore/awsdynamodb"
+	_ "gocloud.dev/docstore/memdocstore"
+	
 	aa_docstore "github.com/aaronland/gocloud-docstore"
 	"github.com/jtacoma/uritemplates"
 	"github.com/paulmach/orb"

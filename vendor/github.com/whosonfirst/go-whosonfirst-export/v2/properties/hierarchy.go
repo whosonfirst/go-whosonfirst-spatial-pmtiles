@@ -29,14 +29,16 @@ func EnsureHierarchy(feature []byte) ([]byte, error) {
 
 	id := id_rsp.Int()
 
-	key := fmt.Sprintf("%s_id", pt)
+	pt_keys := []string{
+		fmt.Sprintf("%s_id", pt),
+	}
 
 	if pt == "custom" {
 
 		alt_rsp := gjson.GetBytes(feature, "properties.wof:placetype_alt")
 
-		if alt_rsp.Exists() {
-			key = fmt.Sprintf("%s_id", alt_rsp.String())
+		for _, r := range alt_rsp.Array() {
+			pt_keys = append(pt_keys, fmt.Sprintf("%s_id", r.String()))
 		}
 	}
 
@@ -52,18 +54,9 @@ func EnsureHierarchy(feature []byte) ([]byte, error) {
 
 			for k, r := range possible.Map() {
 
-				if k == "custom_id" {
-
-					alt_rsp := gjson.GetBytes(feature, "properties.wof:placetype_alt")
-
-					if alt_rsp.Exists() {
-						k = fmt.Sprintf("%s_id", alt_rsp.String())
-					}
-				}
-
 				v, exists := h[k]
 
-				if exists {
+				if exists && v != r.Int() {
 					return nil, fmt.Errorf("Hierarchy key '%s' already set with value '%d' (trying to set '%d')", k, v, r.Int())
 				}
 
@@ -80,7 +73,10 @@ func EnsureHierarchy(feature []byte) ([]byte, error) {
 	}
 
 	for _, h := range hierarchies {
-		h[key] = id
+
+		for _, k := range pt_keys {
+			h[k] = id
+		}
 	}
 
 	return sjson.SetBytes(feature, "properties.wof:hierarchy", hierarchies)

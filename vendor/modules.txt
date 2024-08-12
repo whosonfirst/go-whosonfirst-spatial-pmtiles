@@ -9,6 +9,9 @@ github.com/RoaringBitmap/roaring/roaring64
 # github.com/aaronland/go-artisanal-integers v0.9.1
 ## explicit; go 1.16
 github.com/aaronland/go-artisanal-integers/client
+# github.com/aaronland/go-aws-auth v1.6.3
+## explicit; go 1.22.1
+github.com/aaronland/go-aws-auth
 # github.com/aaronland/go-aws-dynamodb v0.0.5
 ## explicit; go 1.18
 github.com/aaronland/go-aws-dynamodb
@@ -87,15 +90,15 @@ github.com/aaronland/go-uid
 # github.com/aaronland/go-uid-artisanal v0.0.4
 ## explicit; go 1.18
 github.com/aaronland/go-uid-artisanal
-# github.com/aaronland/go-uid-proxy v0.1.1
-## explicit; go 1.18
+# github.com/aaronland/go-uid-proxy v0.2.0
+## explicit; go 1.22
 github.com/aaronland/go-uid-proxy
-# github.com/aaronland/go-uid-whosonfirst v0.0.4
-## explicit; go 1.18
+# github.com/aaronland/go-uid-whosonfirst v0.0.5
+## explicit; go 1.22
 github.com/aaronland/go-uid-whosonfirst
-# github.com/aaronland/gocloud-blob-s3 v0.2.4
-## explicit; go 1.18
-github.com/aaronland/gocloud-blob-s3
+# github.com/aaronland/gocloud-blob v0.2.0
+## explicit; go 1.22.2
+github.com/aaronland/gocloud-blob/s3
 # github.com/aaronland/gocloud-docstore v0.0.5
 ## explicit; go 1.18
 github.com/aaronland/gocloud-docstore
@@ -169,7 +172,7 @@ github.com/aws/aws-sdk-go/service/sso/ssoiface
 github.com/aws/aws-sdk-go/service/ssooidc
 github.com/aws/aws-sdk-go/service/sts
 github.com/aws/aws-sdk-go/service/sts/stsiface
-# github.com/aws/aws-sdk-go-v2 v1.26.1
+# github.com/aws/aws-sdk-go-v2 v1.30.3
 ## explicit; go 1.20
 github.com/aws/aws-sdk-go-v2/aws
 github.com/aws/aws-sdk-go-v2/aws/arn
@@ -190,6 +193,7 @@ github.com/aws/aws-sdk-go-v2/internal/awsutil
 github.com/aws/aws-sdk-go-v2/internal/context
 github.com/aws/aws-sdk-go-v2/internal/endpoints
 github.com/aws/aws-sdk-go-v2/internal/endpoints/awsrulesfn
+github.com/aws/aws-sdk-go-v2/internal/middleware
 github.com/aws/aws-sdk-go-v2/internal/rand
 github.com/aws/aws-sdk-go-v2/internal/sdk
 github.com/aws/aws-sdk-go-v2/internal/sdkio
@@ -201,10 +205,10 @@ github.com/aws/aws-sdk-go-v2/internal/timeconv
 ## explicit; go 1.20
 github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream
 github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream/eventstreamapi
-# github.com/aws/aws-sdk-go-v2/config v1.27.13
+# github.com/aws/aws-sdk-go-v2/config v1.27.27
 ## explicit; go 1.20
 github.com/aws/aws-sdk-go-v2/config
-# github.com/aws/aws-sdk-go-v2/credentials v1.17.13
+# github.com/aws/aws-sdk-go-v2/credentials v1.17.27
 ## explicit; go 1.20
 github.com/aws/aws-sdk-go-v2/credentials
 github.com/aws/aws-sdk-go-v2/credentials/ec2rolecreds
@@ -213,17 +217,17 @@ github.com/aws/aws-sdk-go-v2/credentials/endpointcreds/internal/client
 github.com/aws/aws-sdk-go-v2/credentials/processcreds
 github.com/aws/aws-sdk-go-v2/credentials/ssocreds
 github.com/aws/aws-sdk-go-v2/credentials/stscreds
-# github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.1
+# github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.11
 ## explicit; go 1.20
 github.com/aws/aws-sdk-go-v2/feature/ec2/imds
 github.com/aws/aws-sdk-go-v2/feature/ec2/imds/internal/config
 # github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.16.15
 ## explicit; go 1.20
 github.com/aws/aws-sdk-go-v2/feature/s3/manager
-# github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.5
+# github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.15
 ## explicit; go 1.20
 github.com/aws/aws-sdk-go-v2/internal/configsources
-# github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.5
+# github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.15
 ## explicit; go 1.20
 github.com/aws/aws-sdk-go-v2/internal/endpoints/v2
 # github.com/aws/aws-sdk-go-v2/internal/ini v1.8.0
@@ -234,13 +238,23 @@ github.com/aws/aws-sdk-go-v2/internal/ini
 github.com/aws/aws-sdk-go-v2/internal/v4a
 github.com/aws/aws-sdk-go-v2/internal/v4a/internal/crypto
 github.com/aws/aws-sdk-go-v2/internal/v4a/internal/v4
-# github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.11.2
+# github.com/aws/aws-sdk-go-v2/service/cognitoidentity v1.25.5
+## explicit; go 1.20
+github.com/aws/aws-sdk-go-v2/service/cognitoidentity
+github.com/aws/aws-sdk-go-v2/service/cognitoidentity/internal/endpoints
+github.com/aws/aws-sdk-go-v2/service/cognitoidentity/types
+# github.com/aws/aws-sdk-go-v2/service/iam v1.34.3
+## explicit; go 1.20
+github.com/aws/aws-sdk-go-v2/service/iam
+github.com/aws/aws-sdk-go-v2/service/iam/internal/endpoints
+github.com/aws/aws-sdk-go-v2/service/iam/types
+# github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.11.3
 ## explicit; go 1.20
 github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding
 # github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.3.7
 ## explicit; go 1.20
 github.com/aws/aws-sdk-go-v2/service/internal/checksum
-# github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.11.7
+# github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.11.17
 ## explicit; go 1.20
 github.com/aws/aws-sdk-go-v2/service/internal/presigned-url
 # github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.17.5
@@ -255,27 +269,27 @@ github.com/aws/aws-sdk-go-v2/service/s3/internal/arn
 github.com/aws/aws-sdk-go-v2/service/s3/internal/customizations
 github.com/aws/aws-sdk-go-v2/service/s3/internal/endpoints
 github.com/aws/aws-sdk-go-v2/service/s3/types
-# github.com/aws/aws-sdk-go-v2/service/ssm v1.50.0
+# github.com/aws/aws-sdk-go-v2/service/ssm v1.52.3
 ## explicit; go 1.20
 github.com/aws/aws-sdk-go-v2/service/ssm
 github.com/aws/aws-sdk-go-v2/service/ssm/internal/endpoints
 github.com/aws/aws-sdk-go-v2/service/ssm/types
-# github.com/aws/aws-sdk-go-v2/service/sso v1.20.6
+# github.com/aws/aws-sdk-go-v2/service/sso v1.22.4
 ## explicit; go 1.20
 github.com/aws/aws-sdk-go-v2/service/sso
 github.com/aws/aws-sdk-go-v2/service/sso/internal/endpoints
 github.com/aws/aws-sdk-go-v2/service/sso/types
-# github.com/aws/aws-sdk-go-v2/service/ssooidc v1.24.0
+# github.com/aws/aws-sdk-go-v2/service/ssooidc v1.26.4
 ## explicit; go 1.20
 github.com/aws/aws-sdk-go-v2/service/ssooidc
 github.com/aws/aws-sdk-go-v2/service/ssooidc/internal/endpoints
 github.com/aws/aws-sdk-go-v2/service/ssooidc/types
-# github.com/aws/aws-sdk-go-v2/service/sts v1.28.7
+# github.com/aws/aws-sdk-go-v2/service/sts v1.30.3
 ## explicit; go 1.20
 github.com/aws/aws-sdk-go-v2/service/sts
 github.com/aws/aws-sdk-go-v2/service/sts/internal/endpoints
 github.com/aws/aws-sdk-go-v2/service/sts/types
-# github.com/aws/smithy-go v1.20.2
+# github.com/aws/smithy-go v1.20.3
 ## explicit; go 1.20
 github.com/aws/smithy-go
 github.com/aws/smithy-go/auth
@@ -333,6 +347,9 @@ github.com/fsnotify/fsnotify
 # github.com/g8rswimmer/error-chain v1.0.0
 ## explicit
 github.com/g8rswimmer/error-chain
+# github.com/go-ini/ini v1.67.0
+## explicit
+github.com/go-ini/ini
 # github.com/gogo/protobuf v1.3.2
 ## explicit; go 1.15
 github.com/gogo/protobuf/proto
@@ -458,7 +475,7 @@ github.com/rs/cors/internal
 # github.com/schollz/progressbar/v3 v3.13.1
 ## explicit; go 1.13
 github.com/schollz/progressbar/v3
-# github.com/sfomuseum/go-edtf v1.1.1
+# github.com/sfomuseum/go-edtf v1.2.1
 ## explicit; go 1.12
 github.com/sfomuseum/go-edtf
 github.com/sfomuseum/go-edtf/calendar
@@ -493,7 +510,7 @@ github.com/sfomuseum/go-sfomuseum-pmtiles/http
 ## explicit; go 1.18
 github.com/sfomuseum/go-template/funcs
 github.com/sfomuseum/go-template/text
-# github.com/sfomuseum/go-timings v1.2.1
+# github.com/sfomuseum/go-timings v1.3.0
 ## explicit; go 1.18
 github.com/sfomuseum/go-timings
 # github.com/sfomuseum/iso8601duration v1.1.0
@@ -550,13 +567,15 @@ github.com/whosonfirst/go-sanitize
 # github.com/whosonfirst/go-whosonfirst-crawl v0.2.2
 ## explicit; go 1.18
 github.com/whosonfirst/go-whosonfirst-crawl
-# github.com/whosonfirst/go-whosonfirst-export/v2 v2.7.1
-## explicit; go 1.18
+# github.com/whosonfirst/go-whosonfirst-export/v2 v2.8.2
+## explicit; go 1.22
 github.com/whosonfirst/go-whosonfirst-export/v2
 github.com/whosonfirst/go-whosonfirst-export/v2/properties
-# github.com/whosonfirst/go-whosonfirst-feature v0.0.27
-## explicit; go 1.18
+# github.com/whosonfirst/go-whosonfirst-feature v0.0.28
+## explicit; go 1.22
+github.com/whosonfirst/go-whosonfirst-feature
 github.com/whosonfirst/go-whosonfirst-feature/alt
+github.com/whosonfirst/go-whosonfirst-feature/constants
 github.com/whosonfirst/go-whosonfirst-feature/geometry
 github.com/whosonfirst/go-whosonfirst-feature/properties
 # github.com/whosonfirst/go-whosonfirst-flags v0.5.2
@@ -569,8 +588,8 @@ github.com/whosonfirst/go-whosonfirst-flags/placetypes
 # github.com/whosonfirst/go-whosonfirst-format v0.4.1
 ## explicit; go 1.16
 github.com/whosonfirst/go-whosonfirst-format
-# github.com/whosonfirst/go-whosonfirst-id v1.2.2
-## explicit; go 1.18
+# github.com/whosonfirst/go-whosonfirst-id v1.2.4
+## explicit; go 1.22
 github.com/whosonfirst/go-whosonfirst-id
 # github.com/whosonfirst/go-whosonfirst-iterate/v2 v2.4.1
 ## explicit; go 1.18
@@ -581,7 +600,7 @@ github.com/whosonfirst/go-whosonfirst-iterate/v2/iterator
 ## explicit; go 1.12
 github.com/whosonfirst/go-whosonfirst-names
 github.com/whosonfirst/go-whosonfirst-names/tags
-# github.com/whosonfirst/go-whosonfirst-placetypes v0.7.2
+# github.com/whosonfirst/go-whosonfirst-placetypes v0.7.3
 ## explicit; go 1.18
 github.com/whosonfirst/go-whosonfirst-placetypes
 # github.com/whosonfirst/go-whosonfirst-reader v1.0.2
@@ -591,7 +610,7 @@ github.com/whosonfirst/go-whosonfirst-reader
 ## explicit; go 1.12
 github.com/whosonfirst/go-whosonfirst-sources
 github.com/whosonfirst/go-whosonfirst-sources/sources
-# github.com/whosonfirst/go-whosonfirst-spatial v0.10.0
+# github.com/whosonfirst/go-whosonfirst-spatial v0.10.1
 ## explicit; go 1.22.2
 github.com/whosonfirst/go-whosonfirst-spatial
 github.com/whosonfirst/go-whosonfirst-spatial/app/hierarchy/update
@@ -610,7 +629,7 @@ github.com/whosonfirst/go-whosonfirst-spatial-grpc/app/server
 github.com/whosonfirst/go-whosonfirst-spatial-grpc/request
 github.com/whosonfirst/go-whosonfirst-spatial-grpc/server
 github.com/whosonfirst/go-whosonfirst-spatial-grpc/spatial
-# github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.9.0
+# github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.9.1
 ## explicit; go 1.22.3
 github.com/whosonfirst/go-whosonfirst-spatial-sqlite
 github.com/whosonfirst/go-whosonfirst-spatial-sqlite/wkttoorb
@@ -642,8 +661,8 @@ github.com/whosonfirst/go-whosonfirst-sqlite-spr/v2
 # github.com/whosonfirst/go-whosonfirst-uri v1.3.0
 ## explicit; go 1.13
 github.com/whosonfirst/go-whosonfirst-uri
-# github.com/whosonfirst/go-whosonfirst-writer/v3 v3.1.0
-## explicit; go 1.18
+# github.com/whosonfirst/go-whosonfirst-writer/v3 v3.1.4
+## explicit; go 1.22.1
 github.com/whosonfirst/go-whosonfirst-writer/v3
 # github.com/whosonfirst/go-writer-featurecollection/v3 v3.0.0-20220916180959-42588e308a3e
 ## explicit; go 1.12

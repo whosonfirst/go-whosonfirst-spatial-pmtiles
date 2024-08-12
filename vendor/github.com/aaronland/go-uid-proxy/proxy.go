@@ -3,14 +3,13 @@ package proxy
 import (
 	"context"
 	"fmt"
-	"io"
 	"log"
+	"log/slog"
 	"net/url"
 	"strconv"
 	"sync"
 	"time"
 
-	aa_log "github.com/aaronland/go-log/v2"
 	"github.com/aaronland/go-pool/v2"
 	"github.com/aaronland/go-uid"
 )
@@ -95,14 +94,11 @@ func NewProxyProvider(ctx context.Context, uri string) (uid.Provider, error) {
 		return nil, fmt.Errorf("Failed to create pool, %w", err)
 	}
 
-	logger := log.New(io.Discard, "", 0)
-
 	refill := make(chan bool)
 
 	pr := &ProxyProvider{
 		provider: source_pr,
 		pool:     pl,
-		logger:   logger,
 		workers:  workers,
 		minimum:  minimum,
 		refill:   refill,
@@ -123,7 +119,7 @@ func (pr *ProxyProvider) UID(ctx context.Context, args ...interface{}) (uid.UID,
 
 	if pr.pool.Length(ctx) == 0 {
 
-		aa_log.Warning(pr.logger, "pool length is 0 so fetching integer from source")
+		slog.Warn("Pool length is 0 so fetching integer from source")
 
 		go pr.refillPool(ctx)
 		return pr.provider.UID(ctx, args...)
@@ -133,7 +129,7 @@ func (pr *ProxyProvider) UID(ctx context.Context, args ...interface{}) (uid.UID,
 
 	if !ok {
 
-		aa_log.Info(pr.logger, "failed to pop UID!")
+		slog.Info("Failed to pop UID")
 
 		go pr.refillPool(ctx)
 		return pr.provider.UID(ctx, args...)
@@ -143,7 +139,7 @@ func (pr *ProxyProvider) UID(ctx context.Context, args ...interface{}) (uid.UID,
 }
 
 func (pr *ProxyProvider) SetLogger(ctx context.Context, logger *log.Logger) error {
-	pr.logger = logger
+	slog.Warn("SetLogger is deprecated and a no/op. Please set default log/slog level instead.")
 	return nil
 }
 
@@ -154,7 +150,7 @@ func (pr *ProxyProvider) status(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-time.After(5 * time.Second):
-			aa_log.Debug(pr.logger, "Pool length: %d", pr.pool.Length(ctx))
+			slog.Debug("Status", "pool length", pr.pool.Length(ctx))
 		}
 	}
 }
@@ -185,11 +181,11 @@ func (pr *ProxyProvider) refillPool(ctx context.Context) {
 	// and refill the pool simultaneously. First, we block until a slot opens
 	// up.
 
-	aa_log.Debug(pr.logger, "Refill pool. Waiting for work queue.")
+	slog.Debug("Refill pool Waiting for work queue.")
 
 	<-pr.refill
 
-	aa_log.Debug(pr.logger, "Refill pool. Starting.")
+	slog.Debug("Start refilling pool.")
 
 	t1 := time.Now()
 
@@ -224,7 +220,7 @@ func (pr *ProxyProvider) refillPool(ctx context.Context) {
 
 	wg := new(sync.WaitGroup)
 
-	aa_log.Info(pr.logger, "refill poll w/ %d integers and %d workers", todo, workers)
+	slog.Info("Refill pool", "count", todo, "workers", workers)
 
 	success := 0
 	failed := 0
@@ -245,7 +241,7 @@ func (pr *ProxyProvider) refillPool(ctx context.Context) {
 		// First check that we still actually need to keep fetching integers
 
 		if pr.pool.Length(ctx) >= int64(pr.minimum) {
-			aa_log.Info(pr.logger, "pool is full (%d) stopping after %d iterations", pr.pool.Length(ctx), j)
+			slog.Info("Pool is full", "count", pr.pool.Length(ctx), "iterations", j)
 			break
 		}
 
@@ -272,7 +268,7 @@ func (pr *ProxyProvider) refillPool(ctx context.Context) {
 	pr.refill <- true
 
 	t2 := time.Since(t1)
-	aa_log.Debug(pr.logger, "Time to refill the pool with %d integers (success: %d failed: %d): %v (pool length is now %d)", todo, success, failed, t2, pr.pool.Length(ctx))
+	slog.Debug("Pool refilled", "count", todo, "successful", success, "failed", failed, "total", pr.pool.Length(ctx), "time to complete", fmt.Sprintf("%v", t2))
 
 }
 
@@ -281,7 +277,7 @@ func (pr *ProxyProvider) addToPool(ctx context.Context) bool {
 	i, err := pr.provider.UID(ctx)
 
 	if err != nil {
-		aa_log.Error(pr.logger, "Failed to create new UID to add to pool, %v", err)
+		slog.Error("Failed to create new UID to add to pool", "error", err)
 		return false
 	}
 

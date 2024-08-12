@@ -47,7 +47,7 @@ $> ./bin/wof-sqlite-index-features \
 And then...
 
 ```
-$> ./bin/query \
+$> ./bin/pip \
 	-database-uri 'sqlite://?dsn=/usr/local/data/ca-alt.db' \
 	-latitude 45.572744 \
 	-longitude -73.586295
@@ -124,10 +124,10 @@ _To be written_
 
 ## Tools
 
-### query
+### pip
 
 ```
-$> ./bin/query -h
+$> ./bin/pip -h
   -alternate-geometry value
     	One or more alternate geometry labels (wof:alt_label) values to filter results by.
   -cessation-date string
@@ -171,7 +171,7 @@ $> ./bin/query -h
 For example:
 
 ```
-$> ./bin/query \
+$> ./bin/pip \
 	-spatial-database-uri 'sqlite://?dsn=/usr/local/data/sfomuseum-data-architecture.db' \
 	-latitude 37.616951 \
 	-longitude -122.383747 \
@@ -238,7 +238,7 @@ $> ./bin/query \
 It is possible to filter results by one or more existential flags (`-is-current`, `-is-ceased`, `-is-deprecated`, `-is-superseded`, `-is-superseding`). For example, this query for a point at SFO airport returns 24 possible candidates:
 
 ```
-$> ./bin/query \
+$> ./bin/pip \
 	-spatial-database-uri 'sqlite://?dsn=/usr/local/data/sfom-arch.db' \
 	-latitude 37.616951 \
 	-longitude -122.383747
@@ -252,7 +252,7 @@ $> ./bin/query \
 But when filtered using the `-is-current 1` flag there is only a single result:
 
 ```
-> ./bin/query \
+> ./bin/pip \
 	-spatial-database-uri 'sqlite://?dsn=/usr/local/data/sfom-arch.db' \
 	-latitude 37.616951 \
 	-longitude -122.383747 \
@@ -293,7 +293,7 @@ But when filtered using the `-is-current 1` flag there is only a single result:
 You can also filter results to one or more specific alternate geometry labels. For example here are the `quattroshapes` and `whosonfirst-reversegeo` geometries for a point in the city of Montreal, using a SQLite database created from the `whosonfirst-data-admin-ca` database:
 
 ```
-$> ./bin/query \
+$> ./bin/pip \
 	-spatial-database-uri 'sqlite://?dsn=/usr/local/data/ca-alt.db' \
 	-latitude 45.572744 \
 	-longitude -73.586295 \
@@ -323,7 +323,7 @@ $> ./bin/wof-sqlite-index-features \
 The exclude alternate geometries from query results pass the `-geometries default` flag:
 
 ```
-$> ./bin/query \
+$> ./bin/pip \
 	-spatial-database-uri 'sqlite://?dsn=/usr/local/data/ca-alt.db' \
 	-latitude 45.572744 \
 	-longitude -73.586295 \
@@ -342,7 +342,7 @@ $> ./bin/query \
 To limit query results to _only_ alternate geometries pass the `-geometries alternate` flag:
 
 ```
-$> ./bin/query \
+$> ./bin/pip \
 	-spatial-database-uri 'sqlite://?dsn=/usr/local/data/ca-alt.db' \
 	-latitude 45.572744 \
 	-longitude -73.586295 \
@@ -362,7 +362,7 @@ $> ./bin/query \
 Support for remotely-hosted SQLite databases is available. For example:
 
 ```
-$> go run -mod vendor cmd/query/main.go \
+$> go run -mod vendor cmd/pip/main.go \
 	-spatial-database-uri 'sqlite://?dsn=http://localhost:8080/sfomuseum-architecture.db' \
 	-latitude 37.616951 \
 	-longitude -122.383747 \

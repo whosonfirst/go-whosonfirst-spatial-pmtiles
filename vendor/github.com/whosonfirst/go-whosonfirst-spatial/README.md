@@ -57,11 +57,38 @@ func main() {
 	}
 }
 ```
-
 Where:
 
 * The bulk of the application code is implemented by the `whosonfirst/go-whosonfirst-spatial-www` package.
 * The specific SQLite implementation of the spatial database is implemented by the `whosonfirst/go-whosonfirst-spatial-sqlite` package.
+
+Here is a another example, implementing a point-in-polygon gRPC service using a SQLite backend:
+
+```
+package main
+
+import (
+	"context"
+	"log"
+
+	_ "github.com/whosonfirst/go-whosonfirst-spatial-sqlite"
+	"github.com/whosonfirst/go-whosonfirst-spatial-grpc/application/server"
+)
+
+func main() {
+
+	ctx := context.Background()
+	logger := log.Default()
+
+	err := server.Run(ctx, logger)
+
+	if err != nil {
+		logger.Fatal(err)
+	}
+}
+```
+
+The only change is that `github.com/whosonfirst/go-whosonfirst-spatial-www/application/server` is replaced by `github.com/whosonfirst/go-whosonfirst-spatial-grpc/application/server`.
 
 The overall motivation for this approach is:
 
@@ -138,15 +165,14 @@ _Where `flags.*` refers to the [whosonfirst/go-whosonfirst-flags](https://github
 
 * https://github.com/whosonfirst/go-whosonfirst-spatial-www
 
-_Remember, this package implements the guts of a web application but does not support any particular database by default. It is meant to be imported by a database-specific implementation (see above) and exposed as a `cmd/server` application (for example) by that package._
+_Remember, this package implements the guts of a web application but does not support any particular database by default. It is meant to be imported by a database-specific implementation (see above) and exposed as a `cmd/http-server` application (for example) by that package._
 
 ### gRPC
 
 * https://github.com/whosonfirst/go-whosonfirst-spatial-grpc
-* https://github.com/whosonfirst/go-whosonfirst-spatial-grpc-sqlite
-* https://github.com/whosonfirst/go-whosonfirst-spatial-grpc-pmtiles
 
-_Note, the gRPC code has not been updated in a while and needs to be refactored to follow the model of the `go-whosonfirst-spatial-www` pacakge._
+_Remember, this package implements the guts of a web application but does not support any particular database by default. It is meant to be imported by a database-specific implementation (see above) and exposed as a `cmd/grpc-server` application (for example) by that package._
+
 ## See also
 
 * https://github.com/whosonfirst/go-whosonfirst-spr
