@@ -11,11 +11,9 @@ import (
 func main() {
 
 	ctx := context.Background()
-	logger := log.Default()
-
-	err := update.Run(ctx, logger)
+	err := update.Run(ctx)
 
 	if err != nil {
-		logger.Fatal(err)
+		log.Fatal(err)
 	}
 }
