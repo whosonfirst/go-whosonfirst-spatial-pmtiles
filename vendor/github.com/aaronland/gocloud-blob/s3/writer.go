@@ -43,4 +43,3 @@ func NewWriterWithACL(ctx context.Context, bucket *blob.Bucket, path string, str
 
 	return wr, nil
 }
-
