@@ -2,9 +2,7 @@ package maps
 
 import (
 	"fmt"
-	"io"
 	"io/fs"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -25,13 +23,10 @@ type MapsOptions struct {
 	AppendJavaScriptAtEOF bool
 	RollupAssets          bool
 	Prefix                string
-	Logger                *log.Logger
 }
 
 // Return a *MapsOptions struct with default paths and URIs.
 func DefaultMapsOptions() *MapsOptions {
-
-	logger := log.New(io.Discard, "", 0)
 
 	opts := &MapsOptions{
 		CSS: []string{
@@ -41,7 +36,6 @@ func DefaultMapsOptions() *MapsOptions {
 			"/javascript/aaronland.maps.min.js",
 		},
 		DataAttributes: make(map[string]string),
-		Logger:         logger,
 	}
 
 	return opts
@@ -122,9 +116,8 @@ func AppendAssetHandlers(mux *http.ServeMux, opts *MapsOptions) error {
 		}
 
 		rollup_js_opts := &rollup.RollupJSHandlerOptions{
-			FS:     static.FS,
-			Paths:  rollup_js_paths,
-			Logger: opts.Logger,
+			FS:    static.FS,
+			Paths: rollup_js_paths,
 		}
 
 		rollup_js_handler, err := rollup.RollupJSHandler(rollup_js_opts)
@@ -169,9 +162,8 @@ func AppendAssetHandlers(mux *http.ServeMux, opts *MapsOptions) error {
 		}
 
 		rollup_css_opts := &rollup.RollupCSSHandlerOptions{
-			FS:     static.FS,
-			Paths:  rollup_css_paths,
-			Logger: opts.Logger,
+			FS:    static.FS,
+			Paths: rollup_css_paths,
 		}
 
 		rollup_css_handler, err := rollup.RollupCSSHandler(rollup_css_opts)

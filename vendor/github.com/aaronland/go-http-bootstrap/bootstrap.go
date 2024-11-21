@@ -2,9 +2,7 @@ package bootstrap
 
 import (
 	"fmt"
-	"io"
 	"io/fs"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -25,18 +23,14 @@ type BootstrapOptions struct {
 	AppendJavaScriptAtEOF bool
 	RollupAssets          bool
 	Prefix                string
-	Logger                *log.Logger
 }
 
 // Return a *BootstrapOptions struct with default paths and URIs.
 func DefaultBootstrapOptions() *BootstrapOptions {
 
-	logger := log.New(io.Discard, "", 0)
-
 	opts := &BootstrapOptions{
-		CSS:    []string{"/css/bootstrap.min.css"},
-		JS:     make([]string, 0),
-		Logger: logger,
+		CSS: []string{"/css/bootstrap.min.css"},
+		JS:  make([]string, 0),
 	}
 
 	return opts
@@ -113,9 +107,8 @@ func AppendAssetHandlers(mux *http.ServeMux, opts *BootstrapOptions) error {
 		}
 
 		rollup_js_opts := &rollup.RollupJSHandlerOptions{
-			FS:     static.FS,
-			Paths:  rollup_js_paths,
-			Logger: opts.Logger,
+			FS:    static.FS,
+			Paths: rollup_js_paths,
 		}
 
 		rollup_js_handler, err := rollup.RollupJSHandler(rollup_js_opts)
@@ -160,9 +153,8 @@ func AppendAssetHandlers(mux *http.ServeMux, opts *BootstrapOptions) error {
 		}
 
 		rollup_css_opts := &rollup.RollupCSSHandlerOptions{
-			FS:     static.FS,
-			Paths:  rollup_css_paths,
-			Logger: opts.Logger,
+			FS:    static.FS,
+			Paths: rollup_css_paths,
 		}
 
 		rollup_css_handler, err := rollup.RollupCSSHandler(rollup_css_opts)

@@ -62,6 +62,7 @@ type Minifier struct {
 	KeepCSS2     bool
 	Precision    int // number of significant digits
 	newPrecision int // precision for new numbers
+	Inline       bool
 }
 
 // Minify minifies CSS data, it reads from r and writes to w.
@@ -81,14 +82,21 @@ func (t Token) String() string {
 	if len(t.Args) == 0 {
 		return t.TokenType.String() + "(" + string(t.Data) + ")"
 	}
-	return fmt.Sprint(t.Args)
+
+	sb := strings.Builder{}
+	sb.Write(t.Data)
+	for _, arg := range t.Args {
+		sb.WriteString(arg.String())
+	}
+	sb.WriteByte(')')
+	return sb.String()
 }
 
 // Equal returns true if both tokens are equal.
 func (t Token) Equal(t2 Token) bool {
 	if t.TokenType == t2.TokenType && bytes.Equal(t.Data, t2.Data) && len(t.Args) == len(t2.Args) {
 		for i := 0; i < len(t.Args); i++ {
-			if t.Args[i].TokenType != t2.Args[i].TokenType || !bytes.Equal(t.Args[i].Data, t2.Args[i].Data) {
+			if !t.Args[i].Equal(t2.Args[i]) {
 				return false
 			}
 		}
@@ -131,15 +139,17 @@ func (o *Minifier) Minify(m *minify.M, w io.Writer, r io.Reader, params map[stri
 	if o.newPrecision <= 0 || 15 < o.newPrecision {
 		o.newPrecision = 15 // minimum number of digits a double can represent exactly
 	}
+	if !o.Inline {
+		o.Inline = params != nil && params["inline"] == "1"
+	}
 
 	z := parse.NewInput(r)
 	defer z.Restore()
 
-	isInline := params != nil && params["inline"] == "1"
 	c := &cssMinifier{
 		m: m,
 		w: w,
-		p: css.NewParser(z, isInline),
+		p: css.NewParser(z, o.Inline),
 		o: o,
 	}
 	c.minifyGrammar()
@@ -243,11 +253,13 @@ func (c *cssMinifier) minifyGrammar() {
 			c.w.Write(value)
 			semicolonQueued = true
 		case css.CommentGrammar:
-			if len(data) > 5 && data[1] == '*' && data[2] == '!' {
+			if 5 < len(data) && data[1] == '*' && data[2] == '!' {
 				c.w.Write(data[:3])
 				comment := parse.TrimWhitespace(parse.ReplaceMultipleWhitespace(data[3 : len(data)-2]))
 				c.w.Write(comment)
 				c.w.Write(data[len(data)-2:])
+			} else if 5 < len(data) && (data[2] == '#' || data[2] == '@') {
+				c.w.Write(data) // sourceMappingURL
 			}
 		default:
 			c.w.Write(data)
@@ -405,7 +417,7 @@ func (c *cssMinifier) minifyDeclaration(property []byte, components []css.Token)
 	}
 
 	values = c.minifyTokens(prop, 0, values)
-	if len(values) > 0 {
+	if 0 < len(values) {
 		values = c.minifyProperty(prop, values)
 	}
 	c.writeDeclaration(values, important)
@@ -1127,7 +1139,7 @@ func (c *cssMinifier) minifyProperty(prop Hash, values []Token) []Token {
 			} else {
 				values[i] = minifyColor(values[i])
 			}
-			if 0 < i && sameValues && !bytes.Equal(values[0].Data, values[i].Data) {
+			if 0 < i && sameValues && !values[0].Equal(values[i]) {
 				sameValues = false
 			}
 		}

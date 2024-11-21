@@ -1,7 +1,7 @@
-GOMOD=readonly
+GOMOD=vendor
 
 cli:
-	go build -mod $(GOMOD) -o bin/example cmd/example/main.go
+	go build -mod $(GOMOD) -ldflags="-s -w"  -o bin/example cmd/example/main.go
 
 debug:
 	go run -mod $(GOMOD) cmd/example/main.go -javascript-at-eof -rollup-assets

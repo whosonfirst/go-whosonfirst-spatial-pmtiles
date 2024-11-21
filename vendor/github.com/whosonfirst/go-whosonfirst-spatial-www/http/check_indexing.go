@@ -13,7 +13,7 @@ func CheckIndexingHandler(app *app.SpatialApplication, next gohttp.Handler) goht
 
 	fn := func(rsp gohttp.ResponseWriter, req *gohttp.Request) {
 
-		if app.Iterator.IsIndexing() {
+		if app.IsIndexing() {
 			gohttp.Error(rsp, "Service unavailable: indexing", gohttp.StatusServiceUnavailable)
 			return
 		}

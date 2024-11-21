@@ -15,13 +15,15 @@ Until then have a look at [app/server/server.go](app/server/server.go), [templat
 An example HTTP server demonstrating the use of the `go-http-maps` package.
 
 ```
-$> ./bin/server -h
+> ./bin/server -h
   -initial-latitude float
     	The starting latitude to position the map at. (default 37.61799)
   -initial-longitude float
     	The start longitude to position the map at. (default -122.370943)
   -initial-zoom int
     	The starting zoom level to position the map at. (default 12)
+  -javascript-at-eof
+    	An optional boolean flag to indicate that JavaScript resources (<script> tags) should be appended to the end of the HTML output.
   -leaflet-enable-draw
     	Enable the Leaflet.Draw plugin.
   -leaflet-enable-fullscreen
@@ -30,14 +32,10 @@ $> ./bin/server -h
     	Enable the Leaflet.Hash plugin. (default true)
   -leaflet-tile-url string
     	A valid Leaflet 'tileLayer' layer URL. Only necessary if -map-provider is "leaflet".
+  -map-prefix string
+    	...
   -map-provider string
-    	The name of the map provider to use. Valid options are: leaflet, protomaps, tangram
-  -nextzen-apikey string
-    	A valid Nextzen API key. Only necessary if -map-provider is "tangram".
-  -nextzen-style-url string
-    	A valid URL for loading a Tangram.js style bundle. Only necessary if -map-provider is "tangram". (default "/tangram/refill-style.zip")
-  -nextzen-tile-url string
-    	A valid Nextzen tile URL template for loading map tiles. Only necessary if -map-provider is "tangram". (default "https://tile.nextzen.org/tilezen/vector/v1/512/all/{z}/{x}/{y}.mvt")
+    	The name of the map provider to use. Valid options are: leaflet, null, protomaps
   -protomaps-bucket-uri string
     	The gocloud.dev/blob.Bucket URI where Protomaps tiles are stored. Only necessary if -map-provider is "protomaps" and -protomaps-serve-tiles is true.
   -protomaps-caches-size int
@@ -52,12 +50,10 @@ $> ./bin/server -h
     	A boolean flag signaling whether to serve Protomaps tiles locally. Only necessary if -map-provider is "protomaps".
   -protomaps-tile-url string
     	A valid Protomaps .pmtiles URL for loading map tiles. Only necessary if -map-provider is "protomaps". (default "/tiles/")
+  -rollup-assets
+    	An optional boolean flag to indicate that multiple JavaScript and CSS assets should be minified and combined in to single files.
   -server-uri string
     	A valid aaronland/go-http-server URI (default "http://localhost:8080")
-  -tilezen-enable-tilepack
-    	Enable to use of Tilezen MBTiles tilepack for tile-serving. Only necessary if -map-provider is "tangram".
-  -tilezen-tilepack-path string
-    	The path to the Tilezen MBTiles tilepack to use for serving tiles. Only necessary if -map-provider is "tangram" and -tilezen-enable-tilezen is true.
 ```
 
 ### Example
@@ -74,25 +70,6 @@ go run -mod vendor cmd/server/main.go \
 	-protomaps-database sfo
 ```
 
-#### tangram
-
-![](docs/images/http-maps-tangram.png)
-
-```
-go run -mod vendor cmd/server/main.go \
-	-map-provider tangram \
-	-nextzen-apikey {APIKEY}
-```
-
-Or if you have a local [tilepack of Nextzen tiles](https://github.com/tilezen/go-tilepacks):
-
-```
-go run -mod vendor cmd/server/main.go \
-	-map-provider tangramjs \
-	-tilezen-enable-tilepack \
-	-tilezen-tilepack-path /usr/local/data/sf.db
-```
-
 #### leafet
 
 ![](docs/images/http-maps-leaflet.png)
@@ -106,6 +83,4 @@ go run -mod vendor cmd/server/main.go \
 ## See also
 
 * https://github.com/aaronland/go-http-leaflet
-* https://github.com/aaronland/go-http-tangramjs
 * https://github.com/aaronland/go-http-protomaps
-* https://github.com/tilezen/go-tilepacks

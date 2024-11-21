@@ -7,19 +7,16 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"os"
 	"runtime/debug"
 	"strings"
 	"sync"
-	"time"
+	"sync/atomic"
 
 	"github.com/sfomuseum/go-timings"
 	"github.com/whosonfirst/go-reader"
-	"github.com/whosonfirst/go-whosonfirst-feature/geometry"
 	"github.com/whosonfirst/go-whosonfirst-iterate/v2/iterator"
 	"github.com/whosonfirst/go-whosonfirst-placetypes"
 	"github.com/whosonfirst/go-whosonfirst-spatial/database"
-	"github.com/whosonfirst/warning"
 )
 
 // SpatialApplication a bunch of different operations related to indexing and querying spatial
@@ -33,18 +30,17 @@ import (
 //   - A new `reader.Reader` instance is created and made available a public 'PropertiesReader' property. This reader
 //     is intended for use by methods like `PropertiesResponseResultsWithStandardPlacesResults` which is what appends
 //     custom  properties to SPR responses (for example, in a point-in-polygon result set).
-//   - A new `iterator.Iterator` instance is created with a default callback to index records in `SpatialDatabase' and
-//     made available as a public 'Iterator' property.
 //   - If custom placetypes are defined these will be loaded an appended to the default `whosonfirst/go-whosonfirst-placetype`
 //     specification. This can be useful if you are working with non-standard Who's On First style records that define
 //     their own placetypes.
 type SpatialApplication struct {
 	SpatialDatabase  database.SpatialDatabase
 	PropertiesReader reader.Reader
-	Iterator         *iterator.Iterator
 	Timings          []*timings.SinceResponse
 	Monitor          timings.Monitor
 	mu               *sync.RWMutex
+	indexing         int64
+	indexed          int64
 }
 
 // SpatialApplicationOptions defines properties used to instantiate a new `SpatialApplication` instance.
@@ -53,11 +49,6 @@ type SpatialApplicationOptions struct {
 	SpatialDatabaseURI string
 	// A valid `whosonfirst/go-reader` URI.
 	PropertiesReaderURI string
-	// A valid `whosonfirst/go-whosonfirst-iterator/v2` URI.
-	IteratorURI string
-	// IsWhosOnFirst signals that input files (to index) are assumed to be valid Who's On First records
-	// and not arbitrary GeoJSON
-	IsWhosOnFirst bool
 	// EnableCustomPlacetypes signals that custom placetypes should be appended to the default placetype specification.
 	EnableCustomPlacetypes bool
 	// A JSON-encoded `whosonfirst/go-whosonfirst-placetypes.WOFPlacetypeSpecification` definition with custom placetypes.
@@ -96,65 +87,6 @@ func NewSpatialApplication(ctx context.Context, opts *SpatialApplicationOptions)
 
 	if properties_reader == nil {
 		properties_reader = spatial_db
-	}
-
-	// Set up iterator (to index records at start up if necessary)
-
-	iter_cb := func(ctx context.Context, path string, r io.ReadSeeker, args ...interface{}) error {
-
-		body, err := io.ReadAll(r)
-
-		if err != nil {
-			return fmt.Errorf("Failed to read '%s', %w", path, err)
-		}
-
-		if opts.IsWhosOnFirst {
-
-			if err != nil {
-
-				// it's still not clear (to me) what the expected or desired
-				// behaviour is / in this instance we might be issuing a warning
-				// from the geojson-v2 package because a feature might have a
-				// placetype defined outside of "core" (in the go-whosonfirst-placetypes)
-				// package but that shouldn't necessarily trigger a fatal error
-				// (20180405/thisisaaronland)
-
-				if !warning.IsWarning(err) {
-					return err
-				}
-
-				slog.Warn("Feature triggered the following warning", "path", path, "error", err)
-			}
-		}
-
-		geom_type, err := geometry.Type(body)
-
-		if err != nil {
-			return fmt.Errorf("Failed to derive geometry type for %s, %w", path, err)
-		}
-
-		if geom_type == "Point" {
-			return nil
-		}
-
-		err = spatial_db.IndexFeature(ctx, body)
-
-		if err != nil {
-
-			// something something something wrapping errors in Go 1.13
-			// something something something waiting to see if the GOPROXY is
-			// disabled by default in Go > 1.13 (20190919/thisisaaronland)
-
-			return fmt.Errorf("Failed to index %s %d", path, err)
-		}
-
-		return nil
-	}
-
-	iter, err := iterator.NewIterator(ctx, opts.IteratorURI, iter_cb)
-
-	if err != nil {
-		return nil, fmt.Errorf("Failed to create iterator, %w", err)
 	}
 
 	// Enable custom placetypes
@@ -217,7 +149,6 @@ func NewSpatialApplication(ctx context.Context, opts *SpatialApplicationOptions)
 	sp := SpatialApplication{
 		SpatialDatabase:  spatial_db,
 		PropertiesReader: properties_reader,
-		Iterator:         iter,
 		Timings:          app_timings,
 		Monitor:          m,
 		mu:               mu,
@@ -256,41 +187,55 @@ func (p *SpatialApplication) Close(ctx context.Context) error {
 }
 
 // IndexPaths() will index 'paths' using p's `Iterator` instance storing each document in p's `SpatialDatabase` instance.
-func (p *SpatialApplication) IndexPaths(ctx context.Context, paths ...string) error {
+func (p *SpatialApplication) IndexDatabaseWithIterators(ctx context.Context, sources map[string][]string) error {
 
-	go func() {
+	iter_cb := func(ctx context.Context, path string, r io.ReadSeeker, args ...interface{}) error {
 
-		// TO DO: put this somewhere so that it can be triggered by signal(s)
-		// to reindex everything in bulk or incrementally
-
-		t1 := time.Now()
-
-		err := p.Iterator.IterateURIs(ctx, paths...)
+		err := database.IndexDatabaseWithReader(ctx, p.SpatialDatabase, r)
 
 		if err != nil {
-			slog.Error("failed to index paths", "error", err)
-			os.Exit(1)
+			return fmt.Errorf("Failed to index %s, %w", path, err)
 		}
 
-		slog.Info("finished indexing", "time", time.Since(t1))
+		go p.Monitor.Signal(ctx)
+		atomic.AddInt64(&p.indexed, 1)
+		return nil
+	}
+
+	defer debug.FreeOSMemory()
+
+	for iter_uri, iter_sources := range sources {
+
+		atomic.AddInt64(&p.indexing, 1)
+		defer atomic.AddInt64(&p.indexing, -1)
+
+		iter, err := iterator.NewIterator(ctx, iter_uri, iter_cb)
+
+		if err != nil {
+			return fmt.Errorf("Failed to create iterator for %s, %w", iter_uri, err)
+		}
+
+		err = iter.IterateURIs(ctx, iter_sources...)
+
+		if err != nil {
+			return fmt.Errorf("Failed to iterate sources for %s (%v), %w", iter_uri, iter_sources, err)
+		}
+
 		debug.FreeOSMemory()
-	}()
-
-	// set up some basic monitoring and feedback stuff
-
-	go func() {
-
-		c := time.Tick(1 * time.Second)
-
-		for _ = range c {
-
-			if !p.Iterator.IsIndexing() {
-				continue
-			}
-
-			slog.Info("indexing records", "indexed", p.Iterator.Seen)
-		}
-	}()
+	}
 
 	return nil
+}
+
+func (p *SpatialApplication) IsIndexing() bool {
+
+	if atomic.LoadInt64(&p.indexing) > 0 {
+		return true
+	}
+
+	return false
+}
+
+func (p *SpatialApplication) Indexed() int64 {
+	return atomic.LoadInt64(&p.indexed)
 }

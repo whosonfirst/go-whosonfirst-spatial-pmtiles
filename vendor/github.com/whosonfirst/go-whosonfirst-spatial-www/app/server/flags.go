@@ -3,14 +3,14 @@ package server
 import (
 	"flag"
 	"fmt"
+	"sort"
 
 	"github.com/sfomuseum/go-flags/flagset"
 	"github.com/sfomuseum/go-flags/multi"
 	"github.com/whosonfirst/go-reader"
 	"github.com/whosonfirst/go-whosonfirst-iterate/v2/emitter"
 	"github.com/whosonfirst/go-whosonfirst-spatial/database"
-	"sort"
-	"strings"
+	spatial_flags "github.com/whosonfirst/go-whosonfirst-spatial/flags"
 )
 
 // Prepend this prefix to all assets (but not HTTP handlers). This is mostly for API Gateway integrations.
@@ -69,11 +69,10 @@ var log_timings bool
 
 var spatial_database_uri string
 var properties_reader_uri string
-var is_wof bool
 var enable_custom_placetypes bool
 var custom_placetypes string
 
-var iterator_uri string
+var iterator_uris spatial_flags.MultiCSVIteratorURIFlag
 
 var map_provider_uri string
 
@@ -91,8 +90,6 @@ func DefaultFlagSet() (*flag.FlagSet, error) {
 
 	fs.StringVar(&properties_reader_uri, "properties-reader-uri", "", fmt.Sprintf("%s. If the value is {spatial-database-uri} then the value of the '-spatial-database-uri' implements the reader.Reader interface and will be used.", desc_readers))
 
-	fs.BoolVar(&is_wof, "is-wof", true, "Input data is WOF-flavoured GeoJSON. (Pass a value of '0' or 'false' if you need to index non-WOF documents.")
-
 	fs.BoolVar(&enable_custom_placetypes, "enable-custom-placetypes", false, "Enable wof:placetype values that are not explicitly defined in the whosonfirst/go-whosonfirst-placetypes repository.")
 
 	fs.StringVar(&custom_placetypes, "custom-placetypes", "", "A JSON-encoded string containing custom placetypes defined using the syntax described in the whosonfirst/go-whosonfirst-placetypes repository.")
@@ -100,10 +97,10 @@ func DefaultFlagSet() (*flag.FlagSet, error) {
 	modes := emitter.Schemes()
 	sort.Strings(modes)
 
-	valid_modes := strings.Join(modes, ", ")
-	desc_modes := fmt.Sprintf("A valid whosonfirst/go-whosonfirst-iterate/v2 URI. Supported schemes are: %s.", valid_modes)
+	desc_iter := spatial_flags.IteratorURIFlagDescription()
+	desc_iter = fmt.Sprintf("Zero or more URIs denoting data sources to use for indexing the spatial database at startup. %s", desc_iter)
 
-	fs.StringVar(&iterator_uri, "iterator-uri", "repo://", desc_modes)
+	fs.Var(&iterator_uris, "iterator-uri", desc_iter)
 
 	fs.StringVar(&server_uri, "server-uri", "http://localhost:8080", "A valid aaronland/go-http-server URI.")
 

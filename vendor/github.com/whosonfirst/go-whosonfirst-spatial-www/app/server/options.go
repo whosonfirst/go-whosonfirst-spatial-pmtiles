@@ -14,8 +14,7 @@ type RunOptions struct {
 	MapProviderURI          string
 	SpatialDatabaseURI      string
 	PropertiesReaderURI     string
-	IteratorURI             string
-	IteratorSources         []string
+	IteratorSources         map[string][]string
 	EnableCustomPlacetypes  bool
 	CustomPlacetypes        string
 	IsWhosOnFirst           bool
@@ -47,7 +46,7 @@ func RunOptionsFromFlagSet(ctx context.Context, fs *flag.FlagSet) (*RunOptions, 
 		return nil, fmt.Errorf("Failed to set flags from environment variables, %v", err)
 	}
 
-	iterator_sources := fs.Args()
+	iterator_sources := iterator_uris.AsMap()
 
 	opts := &RunOptions{
 		AuthenticatorURI: authenticator_uri,
@@ -55,11 +54,9 @@ func RunOptionsFromFlagSet(ctx context.Context, fs *flag.FlagSet) (*RunOptions, 
 
 		SpatialDatabaseURI:     spatial_database_uri,
 		PropertiesReaderURI:    properties_reader_uri,
-		IteratorURI:            iterator_uri,
 		IteratorSources:        iterator_sources,
 		EnableCustomPlacetypes: enable_custom_placetypes,
 		CustomPlacetypes:       custom_placetypes,
-		IsWhosOnFirst:          is_wof,
 
 		EnableWWW:     enable_www,
 		EnableGeoJSON: enable_geojson,

@@ -20,7 +20,7 @@ func IndexDatabaseWithReader(ctx context.Context, db SpatialDatabase, r io.Reade
 		case "Polygon", "MultiPolygon":
 			return db.IndexFeature(ctx, body)
 		default:
-			slog.Warn("Record in unsupported geometry type, skipping", "type", geom_type)
+			slog.Debug("Record in unsupported geometry type, skipping", "type", geom_type)
 			return nil
 		}
 	}

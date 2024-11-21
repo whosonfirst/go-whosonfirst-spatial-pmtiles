@@ -2,9 +2,8 @@ package main
 
 import (
 	"context"
-	"log/slog"
-	"os"
-	
+	"log"
+
 	_ "github.com/whosonfirst/go-whosonfirst-spatial-pmtiles"
 	"github.com/whosonfirst/go-whosonfirst-spatial-www/app/server"
 )
@@ -12,12 +11,9 @@ import (
 func main() {
 
 	ctx := context.Background()
-	logger := slog.Default()
-
-	err := server.Run(ctx, logger)
+	err := server.Run(ctx)
 
 	if err != nil {
-		logger.Error("Failed to run server", "error", err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 }

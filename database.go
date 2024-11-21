@@ -14,11 +14,11 @@ import (
 	"time"
 
 	_ "github.com/aaronland/gocloud-blob/s3"
-	_ "github.com/whosonfirst/go-whosonfirst-spatial-sqlite"	
+	_ "github.com/whosonfirst/go-whosonfirst-spatial-sqlite"
 	_ "gocloud.dev/blob/fileblob"
 	_ "gocloud.dev/docstore/awsdynamodb"
 	_ "gocloud.dev/docstore/memdocstore"
-	
+
 	aa_docstore "github.com/aaronland/gocloud-docstore"
 	"github.com/jtacoma/uritemplates"
 	"github.com/paulmach/orb"
@@ -315,7 +315,7 @@ func (db *PMTilesSpatialDatabase) PointInPolygonCandidates(ctx context.Context, 
 	}
 
 	defer db.releaseSpatialDatabase(ctx, coord)
-	
+
 	return spatial_db.PointInPolygonCandidates(ctx, coord, filters...)
 }
 

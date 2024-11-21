@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"log"
+	"log/slog"
 
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/whosonfirst/go-whosonfirst-spatial"
@@ -13,7 +13,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-spatial/pip"
 )
 
-func Run(ctx context.Context, logger *log.Logger) error {
+func Run(ctx context.Context) error {
 
 	fs, err := DefaultFlagSet(ctx)
 
@@ -21,10 +21,10 @@ func Run(ctx context.Context, logger *log.Logger) error {
 		return fmt.Errorf("Failed to create application flag set, %v", err)
 	}
 
-	return RunWithFlagSet(ctx, fs, logger)
+	return RunWithFlagSet(ctx, fs)
 }
 
-func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet, logger *log.Logger) error {
+func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 
 	opts, err := RunOptionsFromFlagSet(ctx, fs)
 
@@ -32,10 +32,10 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet, logger *log.Logger) e
 		return fmt.Errorf("Failed to derive options from flagset, %w", err)
 	}
 
-	return RunWithOptions(ctx, opts, logger)
+	return RunWithOptions(ctx, opts)
 }
 
-func RunWithOptions(ctx context.Context, opts *RunOptions, logger *log.Logger) error {
+func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -43,10 +43,8 @@ func RunWithOptions(ctx context.Context, opts *RunOptions, logger *log.Logger) e
 	spatial_opts := &app.SpatialApplicationOptions{
 		SpatialDatabaseURI:     opts.SpatialDatabaseURI,
 		PropertiesReaderURI:    opts.PropertiesReaderURI,
-		IteratorURI:            opts.IteratorURI,
 		EnableCustomPlacetypes: opts.EnableCustomPlacetypes,
 		CustomPlacetypes:       opts.CustomPlacetypes,
-		IsWhosOnFirst:          opts.IsWhosOnFirst,
 	}
 
 	spatial_app, err := app.NewSpatialApplication(ctx, spatial_opts)
@@ -59,10 +57,10 @@ func RunWithOptions(ctx context.Context, opts *RunOptions, logger *log.Logger) e
 
 	go func() {
 
-		err := spatial_app.Iterator.IterateURIs(ctx, opts.Sources...)
+		err := spatial_app.IndexDatabaseWithIterators(ctx, opts.IteratorSources)
 
 		if err != nil {
-			logger.Printf("Failed to iterate URIs, %v", err)
+			slog.Error("Failed to index database", "error", err)
 		}
 
 		done_ch <- true

@@ -3,13 +3,11 @@ package server
 import (
 	"flag"
 	"fmt"
-	"sort"
-	"strings"
 
 	"github.com/sfomuseum/go-flags/flagset"
 	"github.com/whosonfirst/go-reader"
-	"github.com/whosonfirst/go-whosonfirst-iterate/v2/emitter"
 	"github.com/whosonfirst/go-whosonfirst-spatial/database"
+	spatial_flags "github.com/whosonfirst/go-whosonfirst-spatial/flags"
 )
 
 var host string
@@ -23,7 +21,7 @@ var is_wof bool
 var enable_custom_placetypes bool
 var custom_placetypes string
 
-var iterator_uri string
+var iterator_uris spatial_flags.MultiCSVIteratorURIFlag
 
 func DefaultFlagSet() (*flag.FlagSet, error) {
 
@@ -50,13 +48,9 @@ func DefaultFlagSet() (*flag.FlagSet, error) {
 
 	// Indexing flags
 
-	modes := emitter.Schemes()
-	sort.Strings(modes)
-
-	valid_modes := strings.Join(modes, ", ")
-	desc_modes := fmt.Sprintf("A valid whosonfirst/go-whosonfirst-iterate/v2 URI. Supported schemes are: %s.", valid_modes)
-
-	fs.StringVar(&iterator_uri, "iterator-uri", "repo://", desc_modes)
+	desc_iter := spatial_flags.IteratorURIFlagDescription()
+	desc_iter = fmt.Sprintf("Zero or more URIs denoting data sources to use for indexing the spatial database at startup. %s", desc_iter)
+	fs.Var(&iterator_uris, "iterator-uri", desc_iter)
 
 	return fs, nil
 }

@@ -2,9 +2,7 @@ package protomaps
 
 import (
 	"fmt"
-	"io"
 	"io/fs"
-	"log"
 	"net/http"
 	"net/url"
 	"path/filepath"
@@ -32,7 +30,6 @@ type ProtomapsOptions struct {
 	// Rollup (minify and bundle) JavaScript and CSS assets.
 	RollupAssets bool
 	Prefix       string
-	Logger       *log.Logger
 	// By default the go-http-protomaps package will also include and reference Leaflet.js resources using the aaronland/go-http-leaflet package. If you want or need to disable this behaviour set this variable to false.
 	AppendLeafletResources bool
 	// By default the go-http-protomaps package will also include and reference Leaflet.js assets using the aaronland/go-http-leaflet package. If you want or need to disable this behaviour set this variable to false.
@@ -42,8 +39,6 @@ type ProtomapsOptions struct {
 // Return a *ProtomapsOptions struct with default paths and URIs.
 func DefaultProtomapsOptions() *ProtomapsOptions {
 
-	logger := log.New(io.Discard, "", 0)
-
 	leaflet_opts := leaflet.DefaultLeafletOptions()
 
 	opts := &ProtomapsOptions{
@@ -52,7 +47,6 @@ func DefaultProtomapsOptions() *ProtomapsOptions {
 			"/javascript/protomaps.min.js",
 		},
 		LeafletOptions:         leaflet_opts,
-		Logger:                 logger,
 		AppendLeafletResources: true,
 		AppendLeafletAssets:    true,
 	}
@@ -68,7 +62,6 @@ func AppendResourcesHandler(next http.Handler, opts *ProtomapsOptions) http.Hand
 		opts.LeafletOptions.AppendJavaScriptAtEOF = opts.AppendJavaScriptAtEOF
 		opts.LeafletOptions.RollupAssets = opts.RollupAssets
 		opts.LeafletOptions.Prefix = opts.Prefix
-		opts.LeafletOptions.Logger = opts.Logger
 
 		next = leaflet.AppendResourcesHandler(next, opts.LeafletOptions)
 	}
@@ -109,7 +102,6 @@ func AppendAssetHandlers(mux *http.ServeMux, opts *ProtomapsOptions) error {
 		opts.LeafletOptions.AppendJavaScriptAtEOF = opts.AppendJavaScriptAtEOF
 		opts.LeafletOptions.RollupAssets = opts.RollupAssets
 		opts.LeafletOptions.Prefix = opts.Prefix
-		opts.LeafletOptions.Logger = opts.Logger
 
 		err := leaflet.AppendAssetHandlers(mux, opts.LeafletOptions)
 
@@ -164,9 +156,8 @@ func AppendAssetHandlers(mux *http.ServeMux, opts *ProtomapsOptions) error {
 		}
 
 		rollup_js_opts := &rollup.RollupJSHandlerOptions{
-			FS:     static.FS,
-			Paths:  rollup_js_paths,
-			Logger: opts.Logger,
+			FS:    static.FS,
+			Paths: rollup_js_paths,
 		}
 
 		rollup_js_handler, err := rollup.RollupJSHandler(rollup_js_opts)
@@ -211,9 +202,8 @@ func AppendAssetHandlers(mux *http.ServeMux, opts *ProtomapsOptions) error {
 		}
 
 		rollup_css_opts := &rollup.RollupCSSHandlerOptions{
-			FS:     static.FS,
-			Paths:  rollup_css_paths,
-			Logger: opts.Logger,
+			FS:    static.FS,
+			Paths: rollup_css_paths,
 		}
 
 		rollup_css_handler, err := rollup.RollupCSSHandler(rollup_css_opts)

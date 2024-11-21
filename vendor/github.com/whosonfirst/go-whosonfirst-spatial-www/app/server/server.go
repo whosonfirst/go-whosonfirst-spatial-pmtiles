@@ -25,7 +25,7 @@ import (
 	app "github.com/whosonfirst/go-whosonfirst-spatial/application"
 )
 
-func Run(ctx context.Context, logger *slog.Logger) error {
+func Run(ctx context.Context) error {
 
 	fs, err := DefaultFlagSet()
 
@@ -33,10 +33,10 @@ func Run(ctx context.Context, logger *slog.Logger) error {
 		return fmt.Errorf("Failed to derive default flag set, %w", err)
 	}
 
-	return RunWithFlagSet(ctx, fs, logger)
+	return RunWithFlagSet(ctx, fs)
 }
 
-func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet, logger *slog.Logger) error {
+func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 
 	opts, err := RunOptionsFromFlagSet(ctx, fs)
 
@@ -44,18 +44,18 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet, logger *slog.Logger) 
 		return fmt.Errorf("Failed to derive options from flag set, %w", err)
 	}
 
-	return RunWithOptions(ctx, opts, logger)
+	return RunWithOptions(ctx, opts)
 }
 
-func RunWithOptions(ctx context.Context, opts *RunOptions, logger *slog.Logger) error {
+func RunWithOptions(ctx context.Context, opts *RunOptions) error {
+
+	logger := slog.Default()
 
 	spatial_opts := &app.SpatialApplicationOptions{
 		SpatialDatabaseURI:     opts.SpatialDatabaseURI,
 		PropertiesReaderURI:    opts.PropertiesReaderURI,
-		IteratorURI:            opts.IteratorURI,
 		EnableCustomPlacetypes: opts.EnableCustomPlacetypes,
 		CustomPlacetypes:       opts.CustomPlacetypes,
-		IsWhosOnFirst:          opts.IsWhosOnFirst,
 	}
 
 	spatial_app, err := app.NewSpatialApplication(ctx, spatial_opts)
@@ -70,14 +70,14 @@ func RunWithOptions(ctx context.Context, opts *RunOptions, logger *slog.Logger) 
 		return fmt.Errorf("Failed to create authenticator, %w", err)
 	}
 
-	if len(opts.IteratorSources) > 0 {
+	go func() {
 
-		err = spatial_app.IndexPaths(ctx, opts.IteratorSources...)
+		err := spatial_app.IndexDatabaseWithIterators(ctx, opts.IteratorSources)
 
 		if err != nil {
-			return fmt.Errorf("Failed to index paths, because %s", err)
+			slog.Error("Failed to index database with iterator", "error", err)
 		}
-	}
+	}()
 
 	mux := gohttp.NewServeMux()
 

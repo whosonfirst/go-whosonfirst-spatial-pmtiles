@@ -4,9 +4,10 @@ package text
 import (
 	"context"
 	"fmt"
-	"github.com/sfomuseum/go-template/funcs"
 	"io/fs"
 	"text/template"
+
+	"github.com/sfomuseum/go-template/funcs"
 )
 
 // LoadTemplates loads text templates matching ".txt" from 't_fs' with default functions assigned.

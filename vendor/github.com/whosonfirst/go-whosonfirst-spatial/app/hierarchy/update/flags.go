@@ -8,17 +8,16 @@ import (
 
 	"github.com/sfomuseum/go-flags/flagset"
 	"github.com/sfomuseum/go-flags/multi"
+	spatial_flags "github.com/whosonfirst/go-whosonfirst-spatial/flags"
 )
 
-var iterator_uri string
+var source_iterator_uris spatial_flags.MultiIteratorURIFlag
+var target_iterator_uris spatial_flags.MultiIteratorURIFlag
+
 var exporter_uri string
 var writer_uri string
 
 var spatial_database_uri string
-var spatial_iterator_uri string
-
-var spatial_paths multi.MultiString
-
 var mapshaper_server string
 
 var is_current multi.MultiInt64
@@ -31,16 +30,18 @@ func DefaultFlagSet(ctx context.Context) (*flag.FlagSet, error) {
 
 	fs := flagset.NewFlagSet("pip")
 
-	fs.StringVar(&iterator_uri, "iterator-uri", "repo://", "A valid whosonfirst/go-whosonfirst-iterate/emitter URI scheme. This is used to identify WOF records to be PIP-ed.")
+	desc_iter := spatial_flags.IteratorURIFlagDescription()
+
+	source_desc := fmt.Sprintf("Zero or more URIs denoting data sources to use for indexing the spatial database at startup. %s", desc_iter)
+	target_desc := fmt.Sprintf("Zero or more URIs denoting target data sources whose hierarchies need updating. %s", desc_iter)
+
+	fs.Var(&source_iterator_uris, "source-iterator-uri", source_desc)
+	fs.Var(&target_iterator_uris, "target-iterator-uri", target_desc)
 
 	fs.StringVar(&exporter_uri, "exporter-uri", "whosonfirst://", "A valid whosonfirst/go-whosonfirst-export URI.")
 	fs.StringVar(&writer_uri, "writer-uri", "null://", "A valid whosonfirst/go-writer URI. This is where updated records will be written to.")
 
 	fs.StringVar(&spatial_database_uri, "spatial-database-uri", "rtree://", "A valid whosonfirst/go-whosonfirst-spatial URI. This is the database of spatial records that will for PIP-ing.")
-
-	fs.StringVar(&spatial_iterator_uri, "spatial-iterator-uri", "repo://", "A valid whosonfirst/go-whosonfirst-iterate/emitter URI scheme. This is used to identify WOF records to be indexed in the spatial database.")
-
-	fs.Var(&spatial_paths, "spatial-source", "One or more URIs to be indexed in the spatial database (used for PIP-ing).")
 
 	// As in github:sfomuseum/go-sfomuseum-mapshaper and github:sfomuseum/docker-sfomuseum-mapshaper
 	// One day the functionality exposed here will be ported to Go and this won't be necessary

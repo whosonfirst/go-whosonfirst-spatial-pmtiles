@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
 
 	"github.com/sfomuseum/go-sfomuseum-mapshaper"
 	"github.com/whosonfirst/go-whosonfirst-export/v2"
@@ -13,7 +12,7 @@ import (
 	"github.com/whosonfirst/go-writer/v3"
 )
 
-func Run(ctx context.Context, logger *log.Logger) error {
+func Run(ctx context.Context) error {
 
 	fs, err := DefaultFlagSet(ctx)
 
@@ -21,10 +20,10 @@ func Run(ctx context.Context, logger *log.Logger) error {
 		fmt.Errorf("Failed to create application flag set, %w", err)
 	}
 
-	return RunWithFlagSet(ctx, fs, logger)
+	return RunWithFlagSet(ctx, fs)
 }
 
-func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet, logger *log.Logger) error {
+func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 
 	opts, err := RunOptionsFromFlagSet(ctx, fs)
 
@@ -32,10 +31,10 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet, logger *log.Logger) e
 		return fmt.Errorf("Failed to derive run options, %w", err)
 	}
 
-	return RunWithOptions(ctx, opts, logger)
+	return RunWithOptions(ctx, opts)
 }
 
-func RunWithOptions(ctx context.Context, opts *RunOptions, logger *log.Logger) error {
+func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 
 	// Note that the bulk of this method is simply taking opts and using it to
 	// instantiate all the different pieces necessary for the updateApplication
@@ -140,11 +139,7 @@ func RunWithOptions(ctx context.Context, opts *RunOptions, logger *log.Logger) e
 		return fmt.Errorf("Failed to create PIP tool, %v", err)
 	}
 
-	// This is where the actual work happens
-
 	app := &updateApplication{
-		to:                  opts.ToIterator,
-		from:                opts.FromIterator,
 		spatial_db:          spatial_db,
 		resolver:            resolver,
 		exporter:            ex,
@@ -155,10 +150,5 @@ func RunWithOptions(ctx context.Context, opts *RunOptions, logger *log.Logger) e
 		hierarchyUpdateFunc: update_cb,
 	}
 
-	paths := &updateApplicationPaths{
-		To:   opts.To,
-		From: opts.From,
-	}
-
-	return app.Run(ctx, paths)
+	return app.Run(ctx, opts.SourceIteratorSources, opts.TargetIteratorSources)
 }

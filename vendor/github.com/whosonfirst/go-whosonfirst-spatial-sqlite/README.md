@@ -79,6 +79,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	
 	_ "github.com/whosonfirst/go-whosonfirst-spatial-sqlite"
 	"github.com/whosonfirst/go-whosonfirst-spatial/database"
 	"github.com/whosonfirst/go-whosonfirst-spatial/filter"
@@ -130,7 +131,7 @@ _To be written_
 $> ./bin/pip -h
   -alternate-geometry value
     	One or more alternate geometry labels (wof:alt_label) values to filter results by.
-  -cessation-date string
+  -cessation string
     	A valid EDTF date string.
   -custom-placetypes string
     	A JSON-encoded string containing custom placetypes defined using the syntax described in the whosonfirst/go-whosonfirst-placetypes repository.
@@ -138,7 +139,7 @@ $> ./bin/pip -h
     	Enable wof:placetype values that are not explicitly defined in the whosonfirst/go-whosonfirst-placetypes repository.
   -geometries string
     	Valid options are: all, alt, default. (default "all")
-  -inception-date string
+  -inception string
     	A valid EDTF date string.
   -is-ceased value
     	One or more existential flags (-1, 0, 1) to filter results by.
@@ -152,18 +153,26 @@ $> ./bin/pip -h
     	One or more existential flags (-1, 0, 1) to filter results by.
   -is-wof
     	Input data is WOF-flavoured GeoJSON. (Pass a value of '0' or 'false' if you need to index non-WOF documents. (default true)
+  -iterator-uri value
+    	Zero or more URIs denoting data sources to use for indexing the spatial database at startup. URIs take the form of {ITERATOR_URI} + "#" + {PIPE-SEPARATED LIST OF ITERATOR SOURCES}. Where {ITERATOR_URI} is expected to be a registered whosonfirst/go-whosonfirst-iterate/v2 iterator (emitter) URI and {ITERATOR SOURCES} are valid input paths for that iterator. Supported whosonfirst/go-whosonfirst-iterate/v2 iterator schemes are: cwd://, directory://, featurecollection://, file://, filelist://, geojsonl://, null://, repo://.
   -latitude float
     	A valid latitude.
   -longitude float
     	A valid longitude.
+  -mode string
+    	Valid options are: cli (default "cli")
   -placetype value
     	One or more place types to filter results by.
   -properties-reader-uri string
-    	A valid whosonfirst/go-reader.Reader URI. Available options are: [file:// fs:// null://]
+    	A valid whosonfirst/go-reader.Reader URI. Available options are: [fs:// null:// repo:// sqlite:// stdin://]. If the value is {spatial-database-uri} then the value of the '-spatial-database-uri' implements the reader.Reader interface and will be used.
   -property value
     	One or more Who's On First properties to append to each result.
+  -server-uri string
+    	A valid aaronland/go-http-server URI. (default "http://localhost:8080")
+  -sort-uri value
+    	Zero or more whosonfirst/go-whosonfirst-spr/sort URIs.
   -spatial-database-uri string
-    	A valid whosonfirst/go-whosonfirst-spatial/data.SpatialDatabase URI. options are: [sqlite://]
+    	A valid whosonfirst/go-whosonfirst-spatial/data.SpatialDatabase URI. options are: [rtree:// sqlite://] (default "rtree://")
   -verbose
     	Be chatty.
 ```
@@ -252,7 +261,7 @@ $> ./bin/pip \
 But when filtered using the `-is-current 1` flag there is only a single result:
 
 ```
-> ./bin/pip \
+$> ./bin/pip \
 	-spatial-database-uri 'sqlite://?dsn=/usr/local/data/sfom-arch.db' \
 	-latitude 37.616951 \
 	-longitude -122.383747 \
@@ -382,7 +391,7 @@ _Big thanks to @psanford 's [sqlitevfshttp](https://github.com/psanford/sqlite3v
 ### http-server
 
 ```
-> ./bin/http-server -h
+$> ./bin/http-server -h
   -authenticator-uri string
     	A valid sfomuseum/go-http-auth URI. (default "null://")
   -cors-allow-credentials
@@ -401,10 +410,8 @@ _Big thanks to @psanford 's [sqlitevfshttp](https://github.com/psanford/sqlite3v
     	Enable gzip-encoding for data-related and API handlers.
   -enable-www
     	Enable the interactive /debug endpoint to query points and display results.
-  -is-wof
-    	Input data is WOF-flavoured GeoJSON. (Pass a value of '0' or 'false' if you need to index non-WOF documents. (default true)
-  -iterator-uri string
-    	A valid whosonfirst/go-whosonfirst-iterate/v2 URI. Supported schemes are: directory://, featurecollection://, file://, filelist://, geojsonl://, null://, repo://. (default "repo://")
+  -iterator-uri value
+    	Zero or more URIs denoting data sources to use for indexing the spatial database at startup. URIs take the form of {ITERATOR_URI} + "#" + {PIPE-SEPARATED LIST OF ITERATOR SOURCES}. Where {ITERATOR_URI} is expected to be a registered whosonfirst/go-whosonfirst-iterate/v2 iterator (emitter) URI and {ITERATOR SOURCES} are valid input paths for that iterator. Supported whosonfirst/go-whosonfirst-iterate/v2 iterator schemes are: cwd://, directory://, featurecollection://, file://, filelist://, geojsonl://, null://, repo://.
   -leaflet-initial-latitude float
     	The initial latitude for map views to use. (default 37.616906)
   -leaflet-initial-longitude float
@@ -562,8 +569,8 @@ $> ./bin/grpc-server -h
     	The host to listen for requests on (default "localhost")
   -is-wof
     	Input data is WOF-flavoured GeoJSON. (Pass a value of '0' or 'false' if you need to index non-WOF documents. (default true)
-  -iterator-uri string
-    	A valid whosonfirst/go-whosonfirst-iterate/v2 URI. Supported schemes are: directory://, featurecollection://, file://, filelist://, geojsonl://, null://, repo://. (default "repo://")
+  -iterator-uri value
+    	Zero or more URIs denoting data sources to use for indexing the spatial database at startup. URIs take the form of {ITERATOR_URI} + "#" + {PIPE-SEPARATED LIST OF ITERATOR SOURCES}. Where {ITERATOR_URI} is expected to be a registered whosonfirst/go-whosonfirst-iterate/v2 iterator (emitter) URI and {ITERATOR SOURCES} are valid input paths for that iterator. Supported whosonfirst/go-whosonfirst-iterate/v2 iterator schemes are: cwd://, directory://, featurecollection://, file://, filelist://, geojsonl://, null://, repo://.
   -port int
     	The port to listen for requests on (default 8082)
   -properties-reader-uri string
