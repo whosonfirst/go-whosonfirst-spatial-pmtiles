@@ -188,29 +188,33 @@ func bindingVars(ibinding js.IBinding) (vs []*js.Var) {
 }
 
 func addDefinition(decl *js.VarDecl, binding js.IBinding, value js.IExpr, forward bool) {
-	// see if not already defined in variable declaration list
-	// if forward is set, binding=value comes before decl, otherwise the reverse holds true
-	vars := bindingVars(binding)
+	if decl.TokenType != js.ErrorToken {
+		// see if not already defined in variable declaration list
+		// if forward is set, binding=value comes before decl, otherwise the reverse holds true
+		vars := bindingVars(binding)
 
-	// remove variables in destination
-RemoveVarsLoop:
-	for _, vbind := range vars {
-		for i, item := range decl.List {
-			if v, ok := item.Binding.(*js.Var); ok && item.Default == nil && v == vbind {
-				v.Uses--
-				decl.List = append(decl.List[:i], decl.List[i+1:]...)
-				continue RemoveVarsLoop
+		// remove variables in destination
+	RemoveVarsLoop:
+		for _, vbind := range vars {
+			for i, item := range decl.List {
+				if v, ok := item.Binding.(*js.Var); ok && item.Default == nil && v == vbind {
+					v.Uses--
+					decl.List = append(decl.List[:i], decl.List[i+1:]...)
+					continue RemoveVarsLoop
+				}
 			}
-		}
 
-		if value != nil {
-			// variable declaration must be somewhere else, find and remove it
-			for _, decl2 := range decl.Scope.Func.VarDecls {
-				for i, item := range decl2.List {
-					if v, ok := item.Binding.(*js.Var); ok && item.Default == nil && v == vbind {
-						v.Uses--
-						decl2.List = append(decl2.List[:i], decl2.List[i+1:]...)
-						continue RemoveVarsLoop
+			if value != nil {
+				// variable declaration must be somewhere else, find and remove it
+				for _, decl2 := range decl.Scope.Func.VarDecls {
+					if !decl2.InForInOf {
+						for i, item := range decl2.List {
+							if v, ok := item.Binding.(*js.Var); ok && item.Default == nil && v == vbind {
+								v.Uses--
+								decl2.List = append(decl2.List[:i], decl2.List[i+1:]...)
+								continue RemoveVarsLoop
+							}
+						}
 					}
 				}
 			}
@@ -297,60 +301,66 @@ func (m *jsMinifier) countHoistLength(ibinding js.IBinding) int {
 }
 
 func (m *jsMinifier) hoistVars(body *js.BlockStmt) {
-	// Hoist all variable declarations in the current module/function scope to the top.
-	// If the first statement is a var declaration, expand it. Otherwise prepend a new var declaration.
-	// Except for the first var declaration, all others are converted to expressions. This is possible because an ArrayBindingPattern and ObjectBindingPattern can be converted to an ArrayLiteral or ObjectLiteral respectively, as they are supersets of the BindingPatterns.
+	// Hoist all variable declarations in the current module/function scope to the variable
+	// declaration that reduces file size the most. All other declarations are converted to
+	// expressions and their variable names are copied to the only remaining declaration.
+	// This is possible because an ArrayBindingPattern and ObjectBindingPattern can be converted to
+	// an ArrayLiteral or ObjectLiteral respectively, as they are supersets of the BindingPatterns.
 	if 1 < len(body.Scope.VarDecls) {
 		// Select which variable declarations will be hoisted (convert to expression) and which not
 		best := 0
-		score := make([]int, len(body.Scope.VarDecls)) // savings if hoisted
+		scores := make([]int, len(body.Scope.VarDecls)) // savings if hoisting target
 		hoist := make([]bool, len(body.Scope.VarDecls))
 		for i, varDecl := range body.Scope.VarDecls {
 			hoist[i] = true
-			score[i] = 4 // "var "
-			if !varDecl.InForInOf {
-				n := 0
-				nArrays := 0
-				nObjects := 0
-				hasDefinitions := false
-				for j, item := range varDecl.List {
-					if item.Default != nil {
-						if _, ok := item.Binding.(*js.BindingObject); ok {
-							if j != 0 && nArrays == 0 && nObjects == 0 {
-								varDecl.List[0], varDecl.List[j] = varDecl.List[j], varDecl.List[0]
-							}
-							nObjects++
-						} else if _, ok := item.Binding.(*js.BindingArray); ok {
-							if j != 0 && nArrays == 0 && nObjects == 0 {
-								varDecl.List[0], varDecl.List[j] = varDecl.List[j], varDecl.List[0]
-							}
-							nArrays++
+			if varDecl.InForInOf {
+				continue
+			}
+
+			// variable names in for-in or for-of cannot be removed
+			n := 0        // total number of vars with decls
+			score := 3    // "var"
+			nArrays := 0  // of which lhs arrays
+			nObjects := 0 // of which lhs objects
+			hasDefinitions := false
+			for j, item := range varDecl.List {
+				if item.Default != nil {
+					// move arrays/objects to the front (saves a space)
+					if _, ok := item.Binding.(*js.BindingObject); ok {
+						if j != 0 && nArrays == 0 && nObjects == 0 {
+							varDecl.List[0], varDecl.List[j] = varDecl.List[j], varDecl.List[0]
 						}
-						score[i] -= m.countHoistLength(item.Binding) // var names and commas
-						hasDefinitions = true
-						n++
+						nObjects++
+					} else if _, ok := item.Binding.(*js.BindingArray); ok {
+						if j != 0 && nArrays == 0 && nObjects == 0 {
+							varDecl.List[0], varDecl.List[j] = varDecl.List[j], varDecl.List[0]
+						}
+						nArrays++
 					}
-				}
-				if !hasDefinitions {
-					score[i] = 5 - 1 // 1 for a comma
-					if varDecl.InFor {
-						score[i]-- // semicolon can be reused
-					}
-				}
-				if nObjects != 0 && !varDecl.InFor && nObjects == n {
-					score[i] -= 2 // required parenthesis around braces
-				}
-				if nArrays != 0 || nObjects != 0 {
-					score[i]-- // space after var disappears
-				}
-				if score[i] < score[best] || body.Scope.VarDecls[best].InForInOf {
-					// select var decl with the least savings if hoisted
-					best = i
-				}
-				if score[i] < 0 {
-					hoist[i] = false
+					score -= m.countHoistLength(item.Binding) // var names and commas
+					hasDefinitions = true
+					n++
 				}
 			}
+			if nArrays == 0 && nObjects == 0 {
+				score++ // required space after var
+			}
+			if !hasDefinitions && varDecl.InFor {
+				score-- // semicolon can be reused
+			}
+			if nObjects != 0 && !varDecl.InFor && nObjects == n {
+				// required parenthesis around braces to not confound it with a block statement
+				score -= 2
+			}
+			if score < scores[best] || body.Scope.VarDecls[best].InForInOf {
+				// select var decl that reduces the least when hoist target
+				best = i
+			}
+			if score < 0 {
+				// don't hoist if it increases the amount of characters
+				hoist[i] = false
+			}
+			scores[i] = score
 		}
 		if body.Scope.VarDecls[best].InForInOf {
 			// no savings possible

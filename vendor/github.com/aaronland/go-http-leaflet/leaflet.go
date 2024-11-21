@@ -2,8 +2,6 @@ package leaflet
 
 import (
 	"fmt"
-	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -25,7 +23,6 @@ type LeafletOptions struct {
 	AppendJavaScriptAtEOF bool
 	RollupAssets          bool
 	Prefix                string
-	Logger                *log.Logger
 }
 
 // Append the Javascript and CSS URLs for the Leaflet.Fullscreen plugin.
@@ -49,8 +46,6 @@ func (opts *LeafletOptions) EnableDraw() {
 // Return a *LeafletOptions struct with default paths and URIs.
 func DefaultLeafletOptions() *LeafletOptions {
 
-	logger := log.New(io.Discard, "", 0)
-
 	opts := &LeafletOptions{
 		CSS: []string{
 			"/css/leaflet.css",
@@ -59,7 +54,6 @@ func DefaultLeafletOptions() *LeafletOptions {
 			"/javascript/leaflet.js",
 		},
 		DataAttributes: make(map[string]string),
-		Logger:         logger,
 	}
 
 	return opts
@@ -116,9 +110,8 @@ func AppendAssetHandlers(mux *http.ServeMux, opts *LeafletOptions) error {
 	}
 
 	rollup_js_opts := &rollup.RollupJSHandlerOptions{
-		FS:     static.FS,
-		Paths:  rollup_js_paths,
-		Logger: opts.Logger,
+		FS:    static.FS,
+		Paths: rollup_js_paths,
 	}
 
 	rollup_js_handler, err := rollup.RollupJSHandler(rollup_js_opts)
@@ -149,9 +142,8 @@ func AppendAssetHandlers(mux *http.ServeMux, opts *LeafletOptions) error {
 	}
 
 	rollup_css_opts := &rollup.RollupCSSHandlerOptions{
-		FS:     static.FS,
-		Paths:  rollup_css_paths,
-		Logger: opts.Logger,
+		FS:    static.FS,
+		Paths: rollup_css_paths,
 	}
 
 	rollup_css_handler, err := rollup.RollupCSSHandler(rollup_css_opts)

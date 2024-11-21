@@ -28,6 +28,10 @@ func NewSpatialServer(app *app.SpatialApplication) (*SpatialServer, error) {
 
 func (s *SpatialServer) PointInPolygon(ctx context.Context, req *spatial.PointInPolygonRequest) (*spatial.StandardPlacesResults, error) {
 
+	if s.app.IsIndexing() {
+		return nil, fmt.Errorf("Indexing")
+	}
+
 	pip_req := request.PIPRequestFromSpatialRequest(req)
 	pip_rsp, err := pip.QueryPointInPolygon(ctx, s.app, pip_req)
 

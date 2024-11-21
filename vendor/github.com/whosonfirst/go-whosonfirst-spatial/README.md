@@ -48,12 +48,10 @@ import (
 func main() {
 
 	ctx := context.Background()
-	logger := log.Default()
-
-	err := server.Run(ctx, logger)
+	err := server.Run(ctx)
 
 	if err != nil {
-		logger.Fatal(err)
+		log.Fatal(err)
 	}
 }
 ```
@@ -78,12 +76,10 @@ import (
 func main() {
 
 	ctx := context.Background()
-	logger := log.Default()
-
-	err := server.Run(ctx, logger)
+	err := server.Run(ctx)
 
 	if err != nil {
-		logger.Fatal(err)
+		log.Fatal(err)
 	}
 }
 ```

@@ -6,8 +6,6 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-
-	"github.com/aaronland/go-http-tangramjs"
 )
 
 // The name of the commandline flag or query parameter used to assign the `map_provider` variable.
@@ -39,36 +37,6 @@ const LeafletTileURLFlag string = "leaflet-tile-url"
 
 // A valid Leaflet 'tileLayer' layer URL. Only necessary if `map_provider` is "leaflet".
 var leaflet_tile_url string
-
-// The name of the commandline flag or query parameter used to assign the `nextzen_apikey` variable.
-const NextzenAPIKeyFlag string = "nextzen-apikey"
-
-// A valid Nextzen API key. Only necessary if `map-provider` is "tangram".
-var nextzen_apikey string
-
-// The name of the commandline flag or query parameter used to assign the `nextzen_style_url` variable.
-const NextzenStyleURLFlag string = "nextzen-style-url"
-
-// A valid URL for loading a Tangram.js style bundle. Only necessary if `map_provider` is "tangram".
-var nextzen_style_url string
-
-// The name of the commandline flag or query parameter used to assign the `nextzen_tile_url` variable.
-const NextzenTileURLFlag string = "nextzen-tile-url"
-
-// A valid Nextzen tile URL template for loading map tiles. Only necessary if `map_provider` is "tangram".
-var nextzen_tile_url string
-
-// The name of the commandline flag or query parameter used to assign the `tilezen_enable_tilepack` variable.
-const TilezenEnableTilepack string = "tilezen-enable-tilepack"
-
-// A boolean flag to enable to use of Tilezen MBTiles tilepack for tile-serving. Only necessary if `map_provider` is "tangram".
-var tilezen_enable_tilepack bool
-
-// The name of the commandline flag or query parameter used to assign the `tilezen_tilepack_path` variable.
-const TilezenTilepackPath string = "tilezen-tilepack-path"
-
-// The path to the Tilezen MBTiles tilepack to use for serving tiles. Only necessary if `map_provider` is "tangram" and 1tilezen_enable_tilezen` is true.
-var tilezen_tilepack_path string
 
 // The name of the commandline flag or query parameter used to assign the `protomaps_tile_url` variable.
 const ProtomapsTileURLFlag string = "protomaps-tile-url"
@@ -154,12 +122,6 @@ func AppendProviderFlags(fs *flag.FlagSet) error {
 		return fmt.Errorf("Failed to append Leaflet flags, %w", err)
 	}
 
-	err = AppendTangramProviderFlags(fs)
-
-	if err != nil {
-		return fmt.Errorf("Failed to append TangramJS flags, %w", err)
-	}
-
 	err = AppendProtomapsProviderFlags(fs)
 
 	if err != nil {
@@ -176,18 +138,6 @@ func AppendLeafletFlags(fs *flag.FlagSet) error {
 	fs.BoolVar(&leaflet_enable_draw, LeafletEnableDrawFlag, false, "Enable the Leaflet.Draw plugin.")
 
 	fs.StringVar(&leaflet_tile_url, LeafletTileURLFlag, "", "A valid Leaflet 'tileLayer' layer URL. Only necessary if -map-provider is \"leaflet\".")
-	return nil
-}
-
-func AppendTangramProviderFlags(fs *flag.FlagSet) error {
-
-	fs.StringVar(&nextzen_apikey, NextzenAPIKeyFlag, "", "A valid Nextzen API key. Only necessary if -map-provider is \"tangram\".")
-	fs.StringVar(&nextzen_style_url, NextzenStyleURLFlag, "/tangram/refill-style.zip", "A valid URL for loading a Tangram.js style bundle. Only necessary if -map-provider is \"tangram\".")
-	fs.StringVar(&nextzen_tile_url, NextzenTileURLFlag, tangramjs.NEXTZEN_MVT_ENDPOINT, "A valid Nextzen tile URL template for loading map tiles. Only necessary if -map-provider is \"tangram\".")
-
-	fs.BoolVar(&tilezen_enable_tilepack, TilezenEnableTilepack, false, "Enable to use of Tilezen MBTiles tilepack for tile-serving. Only necessary if -map-provider is \"tangram\".")
-	fs.StringVar(&tilezen_tilepack_path, TilezenTilepackPath, "", "The path to the Tilezen MBTiles tilepack to use for serving tiles. Only necessary if -map-provider is \"tangram\" and -tilezen-enable-tilezen is true.")
-
 	return nil
 }
 
@@ -254,28 +204,6 @@ func ProviderURIFromFlagSet(fs *flag.FlagSet) (string, error) {
 
 		q.Set(ProtomapsPaintRulesURIFlag, protomaps_paint_rules_uri)
 		q.Set(ProtomapsLabelRulesURIFlag, protomaps_label_rules_uri)
-
-	case "tangram":
-
-		q.Set("nextzen-apikey", nextzen_apikey)
-
-		if nextzen_style_url != "" {
-			q.Set("nextzen-style-url", nextzen_style_url)
-		}
-
-		if nextzen_tile_url != "" {
-			q.Set("nextzen-tile-url", nextzen_tile_url)
-		}
-
-		if tilezen_enable_tilepack {
-
-			q.Set("tilezen-enable-tilepack", strconv.FormatBool(tilezen_enable_tilepack))
-			q.Set("tilezen-tilepack-path", tilezen_tilepack_path)
-			q.Set("tilezen-tilepack-url", "/tilezen/")
-
-			q.Del("nextzen-tile-url")
-			q.Set("nextzen-tile-url", "/tilezen/vector/v1/512/all/{z}/{x}/{y}.mvt")
-		}
 
 	default:
 		// pass

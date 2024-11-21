@@ -40,7 +40,7 @@ func PointInPolygonHandler(app *spatial_app.SpatialApplication, opts *PointInPol
 			return
 		}
 
-		if app.Iterator.IsIndexing() {
+		if app.IsIndexing() {
 			http.Error(rsp, "Indexing records", http.StatusServiceUnavailable)
 			return
 		}

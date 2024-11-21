@@ -14,20 +14,18 @@ import (
 )
 
 type RunOptions struct {
-	Writer             writer.Writer
-	WriterURI          string
-	Exporter           export.Exporter
-	ExporterURI        string
-	MapshaperServerURI string
-	SpatialDatabase    database.SpatialDatabase
-	SpatialDatabaseURI string
-	ToIterator         string
-	FromIterator       string
-	SPRFilterInputs    *filter.SPRInputs
-	SPRResultsFunc     hierarchy_filter.FilterSPRResultsFunc                   // This one chooses one result among many (or nil)
-	PIPUpdateFunc      hierarchy.PointInPolygonHierarchyResolverUpdateCallback // This one constructs a map[string]interface{} to update the target record (or not)
-	To                 []string
-	From               []string
+	Writer                writer.Writer
+	WriterURI             string
+	Exporter              export.Exporter
+	ExporterURI           string
+	MapshaperServerURI    string
+	SpatialDatabase       database.SpatialDatabase
+	SpatialDatabaseURI    string
+	TargetIteratorSources map[string][]string
+	SourceIteratorSources map[string][]string
+	SPRFilterInputs       *filter.SPRInputs
+	SPRResultsFunc        hierarchy_filter.FilterSPRResultsFunc                   // This one chooses one result among many (or nil)
+	PIPUpdateFunc         hierarchy.PointInPolygonHierarchyResolverUpdateCallback // This one constructs a map[string]interface{} to update the target record (or not)
 }
 
 func RunOptionsFromFlagSet(ctx context.Context, fs *flag.FlagSet) (*RunOptions, error) {
@@ -42,8 +40,6 @@ func RunOptionsFromFlagSet(ctx context.Context, fs *flag.FlagSet) (*RunOptions, 
 	inputs.IsSuperseded = is_superseded
 	inputs.IsSuperseding = is_superseding
 
-	hierarchy_paths := fs.Args()
-
 	opts := &RunOptions{
 		WriterURI:          writer_uri,
 		ExporterURI:        exporter_uri,
@@ -51,10 +47,14 @@ func RunOptionsFromFlagSet(ctx context.Context, fs *flag.FlagSet) (*RunOptions, 
 		MapshaperServerURI: mapshaper_server,
 		SPRResultsFunc:     hierarchy_filter.FirstButForgivingSPRResultsFunc, // sudo make me configurable
 		SPRFilterInputs:    inputs,
-		ToIterator:         iterator_uri,
-		FromIterator:       spatial_iterator_uri,
-		To:                 hierarchy_paths,
-		From:               spatial_paths,
+	}
+
+	if len(source_iterator_uris) > 0 {
+		opts.SourceIteratorSources = source_iterator_uris.AsMap()
+	}
+
+	if len(target_iterator_uris) > 0 {
+		opts.TargetIteratorSources = target_iterator_uris.AsMap()
 	}
 
 	return opts, nil

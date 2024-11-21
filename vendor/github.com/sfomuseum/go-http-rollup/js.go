@@ -6,9 +6,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"io/fs"
-	"log"
+	"log/slog"
 
-	aa_log "github.com/aaronland/go-log/v2"
 	"github.com/tdewolff/minify/v2"
 	"github.com/tdewolff/minify/v2/js"
 )
@@ -16,7 +15,6 @@ import (
 type RollupJSHandlerOptions struct {
 	FS fs.FS
 	Paths map[string][]string
-	Logger *log.Logger
 }
 
 func RollupJSHandler(opts *RollupJSHandlerOptions) (http.Handler, error) {
@@ -49,7 +47,7 @@ func RollupJSHandler(opts *RollupJSHandlerOptions) (http.Handler, error) {
 			r, err := opts.FS.Open(path)
 
 			if err != nil {
-				aa_log.Error(opts.Logger, "Failed to open %s for reading, %v", path, err)				
+				slog.Error("Failed to open JavaScript file for reading", "path", path, "error", err)
 				http.Error(rsp, err.Error(), http.StatusInternalServerError)
 				return
 			}
@@ -59,7 +57,7 @@ func RollupJSHandler(opts *RollupJSHandlerOptions) (http.Handler, error) {
 			err = m.Minify("text/javascript", rsp, r)
 
 			if err != nil {
-				aa_log.Error(opts.Logger, "Failed to minify %s, %v", path, err)								
+				slog.Error("Failed to minify JavaScript file", "path", path, "error", err)				
 				http.Error(rsp, err.Error(), http.StatusInternalServerError)
 				return
 			}

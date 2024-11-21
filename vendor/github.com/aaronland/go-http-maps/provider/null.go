@@ -2,8 +2,6 @@ package provider
 
 import (
 	"context"
-	"io"
-	"log"
 	"net/http"
 )
 
@@ -11,7 +9,6 @@ const NULL_SCHEME string = "null"
 
 type NullProvider struct {
 	Provider
-	logger *log.Logger
 }
 
 func init() {
@@ -22,12 +19,7 @@ func init() {
 
 func NewNullProvider(ctx context.Context, uri string) (Provider, error) {
 
-	logger := log.New(io.Discard, "", 0)
-
-	p := &NullProvider{
-		logger: logger,
-	}
-
+	p := &NullProvider{}
 	return p, nil
 }
 
@@ -41,10 +33,5 @@ func (p *NullProvider) AppendResourcesHandler(handler http.Handler) http.Handler
 
 func (p *NullProvider) AppendAssetHandlers(mux *http.ServeMux) error {
 
-	return nil
-}
-
-func (p *NullProvider) SetLogger(logger *log.Logger) error {
-	p.logger = logger
 	return nil
 }

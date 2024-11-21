@@ -4,9 +4,8 @@ import (
 	"net/http"
 	"path/filepath"
 	"io/fs"
-	"log"
-
-	aa_log "github.com/aaronland/go-log/v2"
+	"log/slog"
+	
 	"github.com/tdewolff/minify/v2"
 	"github.com/tdewolff/minify/v2/css"
 )
@@ -14,7 +13,6 @@ import (
 type RollupCSSHandlerOptions struct {
 	FS fs.FS
 	Paths map[string][]string
-	Logger *log.Logger
 }
 
 func RollupCSSHandler(opts *RollupCSSHandlerOptions) (http.Handler, error) {
@@ -41,7 +39,7 @@ func RollupCSSHandler(opts *RollupCSSHandlerOptions) (http.Handler, error) {
 			r, err := opts.FS.Open(path)
 
 			if err != nil {
-				aa_log.Error(opts.Logger, "Failed to open %s for reading, %v", path, err)
+				slog.Error("Failed to open CSS path for reading", "path", path, "error", err)
 				http.Error(rsp, err.Error(), http.StatusInternalServerError)
 				return
 			}
@@ -51,7 +49,7 @@ func RollupCSSHandler(opts *RollupCSSHandlerOptions) (http.Handler, error) {
 			err = m.Minify("text/css", rsp, r)
 
 			if err != nil {
-				aa_log.Error(opts.Logger, "Failed to minify %s, %v", path, err)				
+				slog.Error("Failed to minify CSS", "path", path, "error", err)
 				http.Error(rsp, err.Error(), http.StatusInternalServerError)
 				return
 			}

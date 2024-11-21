@@ -34,25 +34,25 @@ func NewSPRFilterFromQuery(query url.Values) (spatial.Filter, error) {
 	is_deprecated, err := atoi(query["is_deprecated"])
 
 	if err != nil {
-		return nil, fmt.Errorf("Invalid ?is_deprecated= parameter, %w", err)		
+		return nil, fmt.Errorf("Invalid ?is_deprecated= parameter, %w", err)
 	}
 
 	is_ceased, err := atoi(query["is_ceased"])
 
 	if err != nil {
-		return nil, fmt.Errorf("Invalid ?is_ceased= parameter, %w", err)				
+		return nil, fmt.Errorf("Invalid ?is_ceased= parameter, %w", err)
 	}
 
 	is_superseded, err := atoi(query["is_superseded"])
 
 	if err != nil {
-		return nil, fmt.Errorf("Invalid ?is_superseded= parameter, %w", err)						
+		return nil, fmt.Errorf("Invalid ?is_superseded= parameter, %w", err)
 	}
 
 	is_superseding, err := atoi(query["is_superseding"])
 
 	if err != nil {
-		return nil, fmt.Errorf("Invalid ?is_superseding= parameter, %w", err)								
+		return nil, fmt.Errorf("Invalid ?is_superseding= parameter, %w", err)
 	}
 
 	inputs.IsCurrent = is_current

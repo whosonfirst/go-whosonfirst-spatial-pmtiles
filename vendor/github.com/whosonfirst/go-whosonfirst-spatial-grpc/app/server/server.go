@@ -4,7 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
+	"log/slog"
 	"net"
 
 	grpc_server "github.com/whosonfirst/go-whosonfirst-spatial-grpc/server"
@@ -13,7 +13,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-func Run(ctx context.Context, logger *log.Logger) error {
+func Run(ctx context.Context) error {
 
 	fs, err := DefaultFlagSet()
 
@@ -21,10 +21,10 @@ func Run(ctx context.Context, logger *log.Logger) error {
 		return fmt.Errorf("Failed to derive default flag set, %w", err)
 	}
 
-	return RunWithFlagSet(ctx, fs, logger)
+	return RunWithFlagSet(ctx, fs)
 }
 
-func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet, logger *log.Logger) error {
+func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 
 	opts, err := RunOptionsFromFlagSet(ctx, fs)
 
@@ -32,18 +32,16 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet, logger *log.Logger) e
 		return fmt.Errorf("Failed to derive options from flagset, %w", err)
 	}
 
-	return RunWithOptions(ctx, opts, logger)
+	return RunWithOptions(ctx, opts)
 }
 
-func RunWithOptions(ctx context.Context, opts *RunOptions, logger *log.Logger) error {
+func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 
 	spatial_opts := &app.SpatialApplicationOptions{
 		SpatialDatabaseURI:     opts.SpatialDatabaseURI,
 		PropertiesReaderURI:    opts.PropertiesReaderURI,
-		IteratorURI:            opts.IteratorURI,
 		EnableCustomPlacetypes: opts.EnableCustomPlacetypes,
 		CustomPlacetypes:       opts.CustomPlacetypes,
-		IsWhosOnFirst:          opts.IsWhosOnFirst,
 	}
 
 	spatial_app, err := app.NewSpatialApplication(ctx, spatial_opts)
@@ -52,14 +50,14 @@ func RunWithOptions(ctx context.Context, opts *RunOptions, logger *log.Logger) e
 		return fmt.Errorf("Failed to create new spatial application, %w", err)
 	}
 
-	if len(opts.IteratorSources) > 0 {
+	go func() {
 
-		err = spatial_app.IndexPaths(ctx, opts.IteratorSources...)
+		err := spatial_app.IndexDatabaseWithIterators(ctx, opts.IteratorSources)
 
 		if err != nil {
-			return fmt.Errorf("Failed to index paths, %v", err)
+			slog.Error("Failed to index database", "error", err)
 		}
-	}
+	}()
 
 	spatial_server, err := grpc_server.NewSpatialServer(spatial_app)
 
@@ -72,7 +70,7 @@ func RunWithOptions(ctx context.Context, opts *RunOptions, logger *log.Logger) e
 	spatial.RegisterSpatialServer(grpc_server, spatial_server)
 
 	addr := fmt.Sprintf("%s:%d", opts.Host, opts.Port)
-	log.Printf("Listening on %s\n", addr)
+	slog.Info("Listening for requests", "address", addr)
 
 	lis, err := net.Listen("tcp", addr)
 

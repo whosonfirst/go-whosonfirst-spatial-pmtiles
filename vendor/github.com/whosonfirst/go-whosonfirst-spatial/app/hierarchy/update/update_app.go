@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"io"
-	_ "log/slog"
+	"log/slog"
 
 	"github.com/whosonfirst/go-whosonfirst-export/v2"
-	"github.com/whosonfirst/go-whosonfirst-feature/geometry"
+	"github.com/whosonfirst/go-whosonfirst-iterate/v2/emitter"
 	"github.com/whosonfirst/go-whosonfirst-iterate/v2/iterator"
 	"github.com/whosonfirst/go-whosonfirst-spatial/database"
 	"github.com/whosonfirst/go-whosonfirst-spatial/filter"
@@ -17,17 +17,10 @@ import (
 	"github.com/whosonfirst/go-writer/v3"
 )
 
-type updateApplicationPaths struct {
-	To   []string
-	From []string
-}
-
 // updateApplication is a struct to wrap the details of (optionally) populating a spatial
 // database and updating the hierarchies of (n) files derived from an iterator including
 // writing (publishing) the updated records.
 type updateApplication struct {
-	to                  string
-	from                string
 	resolver            *hierarchy.PointInPolygonHierarchyResolver
 	writer              writer.Writer
 	exporter            export.Exporter
@@ -38,22 +31,24 @@ type updateApplication struct {
 	hierarchyUpdateFunc hierarchy.PointInPolygonHierarchyResolverUpdateCallback
 }
 
-func (app *updateApplication) Run(ctx context.Context, paths *updateApplicationPaths) error {
+func (app *updateApplication) Run(ctx context.Context, sources map[string][]string, targets map[string][]string) error {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// These are the data we are indexing to HIERARCHY from
+	// These are the data we are indexing hierarchies FROM
 
-	err := app.indexSpatialDatabase(ctx, paths.From...)
+	sources_cb := func(ctx context.Context, path string, r io.ReadSeeker, args ...interface{}) error {
 
-	if err != nil {
-		return err
+		slog.Debug("Process source", "path", path)
+		return database.IndexDatabaseWithReader(ctx, app.spatial_db, r)
 	}
 
-	// These are the data we are HIERARCHY-ing
+	// These are the data we are hierarchy-ing TO
 
-	to_cb := func(ctx context.Context, path string, fh io.ReadSeeker, args ...interface{}) error {
+	targets_cb := func(ctx context.Context, path string, fh io.ReadSeeker, args ...interface{}) error {
+
+		slog.Debug("Process target", "path", path)
 
 		body, err := io.ReadAll(fh)
 
@@ -70,13 +65,33 @@ func (app *updateApplication) Run(ctx context.Context, paths *updateApplicationP
 		return nil
 	}
 
-	to_iter, err := iterator.NewIterator(ctx, app.to, to_cb)
+	iterate := func(ctx context.Context, iter_map map[string][]string, iter_cb emitter.EmitterCallbackFunc) error {
 
-	if err != nil {
-		return fmt.Errorf("Failed to create new HIERARCHY (to) iterator for input, %v", err)
+		for iter_uri, iter_sources := range iter_map {
+
+			iter, err := iterator.NewIterator(ctx, iter_uri, iter_cb)
+
+			if err != nil {
+				return fmt.Errorf("Failed to create iterator for %s, %w", iter_uri, err)
+			}
+
+			err = iter.IterateURIs(ctx, iter_sources...)
+
+			if err != nil {
+				return fmt.Errorf("Failed to iterate sources for %s, %w", iter_uri, err)
+			}
+		}
+
+		return nil
 	}
 
-	err = to_iter.IterateURIs(ctx, paths.To...)
+	err := iterate(ctx, sources, sources_cb)
+
+	if err != nil {
+		return err
+	}
+
+	err = iterate(ctx, targets, targets_cb)
 
 	if err != nil {
 		return err
@@ -87,45 +102,6 @@ func (app *updateApplication) Run(ctx context.Context, paths *updateApplicationP
 	// (20210219/thisisaaronland)
 
 	return app.writer.Close(ctx)
-}
-
-func (app *updateApplication) indexSpatialDatabase(ctx context.Context, uris ...string) error {
-
-	from_cb := func(ctx context.Context, path string, fh io.ReadSeeker, args ...interface{}) error {
-
-		body, err := io.ReadAll(fh)
-
-		if err != nil {
-			return fmt.Errorf("Failed to read %s, %w", path, err)
-		}
-
-		geom_type, err := geometry.Type(body)
-
-		if err != nil {
-			return fmt.Errorf("Failed to derive geometry type for %s, %w", path, err)
-		}
-
-		switch geom_type {
-		case "Polygon", "MultiPolygon":
-			return app.spatial_db.IndexFeature(ctx, body)
-		default:
-			return nil
-		}
-	}
-
-	from_iter, err := iterator.NewIterator(ctx, app.from, from_cb)
-
-	if err != nil {
-		return fmt.Errorf("Failed to create spatial (from) iterator, %v", err)
-	}
-
-	err = from_iter.IterateURIs(ctx, uris...)
-
-	if err != nil {
-		return fmt.Errorf("Failed to iteratre URIs, %w", err)
-	}
-
-	return nil
 }
 
 // UpdateAndPublishFeature will invoke the `PointInPolygonAndUpdate` method using the `hierarchy.PointInPolygonHierarchyResolver` instance
