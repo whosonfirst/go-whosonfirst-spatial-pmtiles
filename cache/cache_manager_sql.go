@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log/slog"
 	"net/url"
 	"os"
 	"strings"
@@ -129,10 +130,17 @@ func (m *SQLCacheManager) CacheFeature(ctx context.Context, body []byte) (*Featu
 		return nil, fmt.Errorf("Failed to store feature cache for %s, %w", fc.Id, err)
 	}
 
+	// slog.Info("SET", "id", fc.Id)
 	return fc, nil
 }
 
 func (m *SQLCacheManager) GetFeatureCache(ctx context.Context, id string) (*FeatureCache, error) {
+
+	status := "MISS"
+
+	defer func() {
+		slog.Debug(status, "id", id)
+	}()
 
 	if m.feature_collection == nil {
 		return nil, fmt.Errorf("No feature collection defined")
@@ -154,6 +162,8 @@ func (m *SQLCacheManager) GetFeatureCache(ctx context.Context, id string) (*Feat
 		//
 	}
 
+	status = "HIT"
+
 	fc := FeatureCache{
 		Id:   id,
 		Body: body,
@@ -161,55 +171,6 @@ func (m *SQLCacheManager) GetFeatureCache(ctx context.Context, id string) (*Feat
 
 	return &fc, nil
 }
-
-/*
-func (m *SQLCacheManager) pruneCaches(ctx context.Context, t time.Time) {
-	go m.pruneFeatureCache(ctx, t)
-}
-
-func (m *SQLCacheManager) pruneFeatureCache(ctx context.Context, t time.Time) error {
-
-	if m.feature_collection == nil {
-		return nil
-	}
-
-	slog.Debug("Prune tile cache", "older than", t)
-
-	ts := t.Unix()
-
-	q := m.feature_collection.Query()
-	q = q.Where("Created", "<=", ts)
-
-	iter := q.Get(ctx)
-
-	defer iter.Stop()
-
-	for {
-
-		var fc FeatureCache
-
-		err := iter.Next(ctx, &fc)
-
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			slog.Error("Failed to get next iterator", "error", err)
-		} else {
-
-			slog.Debug("Remove from feature cache", "id", fc.Id, "created", fc.Created)
-
-			err := m.feature_collection.Delete(ctx, &fc)
-
-			if err != nil {
-				slog.Error("Failed to delete from feature cache", "id", fc.Id, "error", err)
-			}
-		}
-	}
-
-	return nil
-}
-
-*/
 
 func (m *SQLCacheManager) Close() error {
 

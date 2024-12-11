@@ -159,6 +159,10 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 
 	if enable_feature_cache {
 
+		// To do: Read from DB URI. Given that we weren't doing this for the original
+		// docstore/mem stuff it seems okay just to swap out defaults (except that we
+		// aren't loading mattn/go-sqlite3 by default so...TBD.
+
 		cache_manager_uri := "sql://sqlite3?dsn={tmp}"
 		cache_manager, err := cache.NewCacheManager(ctx, cache_manager_uri)
 
