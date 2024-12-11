@@ -5,14 +5,36 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net/url"
+	"strconv"
 	"time"
 
+	aa_docstore "github.com/aaronland/gocloud-docstore"
 	"gocloud.dev/docstore"
 )
 
+func init() {
+
+	ctx := context.Background()
+
+	err := RegisterCacheManager(ctx, "awsdynamodb", NewDocstoreCacheManager)
+
+	if err != nil {
+		panic(err)
+	}
+
+	for _, scheme := range docstore.DefaultURLMux().CollectionSchemes() {
+
+		err := RegisterCacheManager(ctx, scheme, NewDocstoreCacheManager)
+
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
 type DocstoreCacheManager struct {
 	feature_collection *docstore.Collection
-	tile_collection    *docstore.Collection
 	ticker             *time.Ticker
 }
 
@@ -21,7 +43,44 @@ type DocstoreCacheManagerOptions struct {
 	CacheTTL          int
 }
 
-func NewDocstoreCacheManager(ctx context.Context, opts *DocstoreCacheManagerOptions) CacheManager {
+func NewDocstoreCacheManager(ctx context.Context, uri string) (CacheManager, error) {
+
+	u, err := url.Parse(uri)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to parse URI, %w", err)
+	}
+
+	q := u.Query()
+
+	col, err := aa_docstore.OpenCollection(ctx, uri)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to open docstore collection, %w", err)
+	}
+
+	ttl := 3600
+
+	if q.Has("ttl") {
+
+		v, err := strconv.Atoi(q.Get("ttl"))
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to parse ?ttl= parameter, %w", err)
+		}
+
+		ttl = v
+	}
+
+	opts := &DocstoreCacheManagerOptions{
+		FeatureCollection: col,
+		CacheTTL:          ttl,
+	}
+
+	return NewDocstoreCacheManagerWithOptions(ctx, opts), nil
+}
+
+func NewDocstoreCacheManagerWithOptions(ctx context.Context, opts *DocstoreCacheManagerOptions) CacheManager {
 
 	m := &DocstoreCacheManager{
 		feature_collection: opts.FeatureCollection,
@@ -144,10 +203,6 @@ func (m *DocstoreCacheManager) Close() error {
 
 	if m.feature_collection != nil {
 		m.feature_collection.Close()
-	}
-
-	if m.tile_collection != nil {
-		m.tile_collection.Close()
 	}
 
 	return nil

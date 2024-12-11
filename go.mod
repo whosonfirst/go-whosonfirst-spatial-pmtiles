@@ -1,14 +1,16 @@
 module github.com/whosonfirst/go-whosonfirst-spatial-pmtiles
 
-go 1.23
+go 1.23.3
 
 require (
+	github.com/aaronland/go-roster v1.0.0
 	github.com/aaronland/gocloud-blob v0.3.1
 	github.com/aaronland/gocloud-docstore v0.0.8
 	github.com/json-iterator/go v1.1.12
 	github.com/jtacoma/uritemplates v1.0.0
 	github.com/paulmach/orb v0.11.1
 	github.com/protomaps/go-pmtiles v1.22.1
+	github.com/sfomuseum/go-database v0.0.1
 	github.com/tidwall/gjson v1.18.0
 	github.com/tidwall/sjson v1.2.5
 	github.com/whosonfirst/go-ioutil v1.0.2
@@ -52,7 +54,6 @@ require (
 	github.com/aaronland/go-pagination v0.2.0 // indirect
 	github.com/aaronland/go-pagination-sql v0.2.0 // indirect
 	github.com/aaronland/go-pool/v2 v2.0.0 // indirect
-	github.com/aaronland/go-roster v1.0.0 // indirect
 	github.com/aaronland/go-sqlite-modernc v0.0.3 // indirect
 	github.com/aaronland/go-sqlite/v2 v2.2.0 // indirect
 	github.com/aaronland/go-string v1.0.0 // indirect
