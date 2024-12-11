@@ -10,7 +10,7 @@ require (
 	github.com/jtacoma/uritemplates v1.0.0
 	github.com/paulmach/orb v0.11.1
 	github.com/protomaps/go-pmtiles v1.22.1
-	github.com/sfomuseum/go-database v0.0.1
+	github.com/sfomuseum/go-database v0.0.2
 	github.com/tidwall/gjson v1.18.0
 	github.com/tidwall/sjson v1.2.5
 	github.com/whosonfirst/go-ioutil v1.0.2

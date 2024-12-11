@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 	"net/url"
+	"os"
+	"strings"
 
 	"github.com/sfomuseum/go-database"
 )
@@ -12,7 +14,6 @@ import (
 func init() {
 
 	ctx := context.Background()
-
 	err := RegisterCacheManager(ctx, "sql", NewSQLCacheManager)
 
 	if err != nil {
@@ -22,6 +23,8 @@ func init() {
 
 type SQLCacheManager struct {
 	feature_collection *sql.DB
+	is_tmp             bool
+	tmp_path           string
 }
 
 type SQLCacheManagerOptions struct {
@@ -36,10 +39,31 @@ func NewSQLCacheManager(ctx context.Context, uri string) (CacheManager, error) {
 		return nil, fmt.Errorf("Failed to parse URI, %w", err)
 	}
 
+	engine := u.Host
 	q := u.Query()
 
-	engine := u.Host
 	dsn := q.Get("dsn")
+
+	is_tmp := false
+	tmp_path := ""
+
+	// START OF wrap me in a function?
+
+	if strings.Contains(dsn, "{tmp}") {
+
+		f, err := os.CreateTemp("", ".db")
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to create temp file, %w", err)
+		}
+
+		tmp_path = f.Name()
+		is_tmp = true
+
+		dsn = strings.Replace(dsn, "{tmp}", tmp_path, 1)
+	}
+
+	// END OF wrap me in a function?
 
 	conn, err := sql.Open(engine, dsn)
 
@@ -78,6 +102,8 @@ func NewSQLCacheManager(ctx context.Context, uri string) (CacheManager, error) {
 
 	m := &SQLCacheManager{
 		feature_collection: conn,
+		is_tmp:             is_tmp,
+		tmp_path:           tmp_path,
 	}
 
 	return m, nil
@@ -187,10 +213,12 @@ func (m *SQLCacheManager) pruneFeatureCache(ctx context.Context, t time.Time) er
 
 func (m *SQLCacheManager) Close() error {
 
-	// m.ticker.Stop()
-
 	if m.feature_collection != nil {
 		m.feature_collection.Close()
+	}
+
+	if m.is_tmp {
+		os.Remove(m.tmp_path)
 	}
 
 	return nil
