@@ -19,8 +19,6 @@ import (
 	_ "gocloud.dev/docstore/awsdynamodb"
 	_ "gocloud.dev/docstore/memdocstore"
 
-	aa_docstore "github.com/aaronland/gocloud-docstore"
-	"github.com/jtacoma/uritemplates"
 	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/encoding/mvt"
 	"github.com/paulmach/orb/geojson"
@@ -31,10 +29,10 @@ import (
 	"github.com/whosonfirst/go-ioutil"
 	"github.com/whosonfirst/go-reader"
 	"github.com/whosonfirst/go-whosonfirst-spatial"
+	"github.com/whosonfirst/go-whosonfirst-spatial-pmtiles/cache"
 	"github.com/whosonfirst/go-whosonfirst-spatial/database"
 	"github.com/whosonfirst/go-whosonfirst-spr/v2"
 	"github.com/whosonfirst/go-whosonfirst-uri"
-	"gocloud.dev/docstore"
 )
 
 func init() {
@@ -49,7 +47,7 @@ type PMTilesSpatialDatabase struct {
 	database                    string
 	layer                       string
 	enable_feature_cache        bool
-	cache_manager               *CacheManager
+	cache_manager               cache.CacheManager
 	zoom                        int
 	spatial_database_uri        string
 	spatial_databases_counter   *sync.Map
@@ -161,53 +159,19 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 
 	if enable_feature_cache {
 
-		cache_ttl := 3600
+		// To do: Read from DB URI. Given that we weren't doing this for the original
+		// docstore/mem stuff it seems okay just to swap out defaults. Note that we
+		// are using https://pkg.go.dev/modernc.org/sqlite which is assumed to have
+		// already been loaded (by go-whosonnfirst-spatial-sqlite)
 
-		q_cache_ttl := q.Get("cache-ttl")
-
-		if q_cache_ttl != "" {
-
-			ttl, err := strconv.Atoi(q_cache_ttl)
-
-			if err != nil {
-				return nil, fmt.Errorf("Failed to parse ?cache-ttl= parameter, %w", err)
-			}
-
-			if ttl < 0 {
-				return nil, fmt.Errorf("Invalid cache-ttl value")
-			}
-
-			cache_ttl = ttl
-		}
-
-		feature_cache_uri_t := fmt.Sprintf("mem://%s/{key}", FEATURES_CACHE_TABLE)
-
-		q_feature_cache_uri_t := q.Get("feature-cache-uri")
-
-		if q_feature_cache_uri_t != "" {
-			feature_cache_uri_t = q_feature_cache_uri_t
-		}
-
-		feature_cache_key := "Id"
-
-		feature_cache_v := map[string]interface{}{
-			"key": feature_cache_key,
-		}
-
-		feature_cache, err := openCollection(ctx, feature_cache_uri_t, feature_cache_v)
+		cache_manager_uri := "sql://sqlite?dsn={tmp}"
+		cache_manager, err := cache.NewCacheManager(ctx, cache_manager_uri)
 
 		if err != nil {
-			return nil, fmt.Errorf("could not open feature cache collection: %w", err)
+			return nil, fmt.Errorf("Failed to create cache manager, %w", err)
 		}
 
-		cache_manager_opts := &CacheManagerOptions{
-			FeatureCollection: feature_cache,
-			CacheTTL:          cache_ttl,
-		}
-
-		cache_manager := NewCacheManager(ctx, cache_manager_opts)
 		db.cache_manager = cache_manager
-
 		db.enable_feature_cache = enable_feature_cache
 	}
 
@@ -356,7 +320,7 @@ func (db *PMTilesSpatialDatabase) Disconnect(ctx context.Context) error {
 		return true
 	})
 
-	db.cache_manager.Close(ctx)
+	db.cache_manager.Close()
 	return nil
 }
 
@@ -659,27 +623,4 @@ func (db *PMTilesSpatialDatabase) decodeMVT(ctx context.Context, body []byte) ([
 	}
 
 	return body, nil
-}
-
-func openCollection(ctx context.Context, uri_t string, values map[string]interface{}) (*docstore.Collection, error) {
-
-	t, err := uritemplates.Parse(uri_t)
-
-	if err != nil {
-		return nil, fmt.Errorf("Failed to parse URI template, %w", err)
-	}
-
-	col_uri, err := t.Expand(values)
-
-	if err != nil {
-		return nil, fmt.Errorf("Failed to expand URI template values, %w", err)
-	}
-
-	col, err := aa_docstore.OpenCollection(ctx, col_uri)
-
-	if err != nil {
-		return nil, fmt.Errorf("Failed to open collection, %w", err)
-	}
-
-	return col, nil
 }
