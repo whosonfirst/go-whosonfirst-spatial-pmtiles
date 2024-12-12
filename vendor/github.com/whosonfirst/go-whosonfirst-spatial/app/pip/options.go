@@ -51,7 +51,6 @@ func RunOptionsFromFlagSet(ctx context.Context, fs *flag.FlagSet) (*RunOptions, 
 		PropertiesReaderURI:    properties_reader_uri,
 		EnableCustomPlacetypes: enable_custom_placetypes,
 		CustomPlacetypes:       custom_placetypes,
-		IsWhosOnFirst:          is_wof,
 		// PIPRequest flags
 		Latitude:            latitude,
 		Longitude:           longitude,

@@ -16,6 +16,7 @@ var target_iterator_uris spatial_flags.MultiIteratorURIFlag
 
 var exporter_uri string
 var writer_uri string
+var verbose bool
 
 var spatial_database_uri string
 var mapshaper_server string
@@ -54,6 +55,8 @@ func DefaultFlagSet(ctx context.Context) (*flag.FlagSet, error) {
 	fs.Var(&is_superseded, "is-superseded", "One or more existential flags (-1, 0, 1) to filter PIP results.")
 
 	fs.Var(&is_superseding, "is-superseding", "One or more existential flags (-1, 0, 1) to filter PIP results.")
+
+	fs.BoolVar(&verbose, "verbose", false, "Enable (verbose) debug logging.")
 
 	fs.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Perform point-in-polygon (PIP), and related update, operations on a set of Who's on First records.\n")

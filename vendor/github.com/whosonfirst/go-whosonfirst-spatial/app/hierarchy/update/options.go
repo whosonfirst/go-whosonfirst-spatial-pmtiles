@@ -26,6 +26,7 @@ type RunOptions struct {
 	SPRFilterInputs       *filter.SPRInputs
 	SPRResultsFunc        hierarchy_filter.FilterSPRResultsFunc                   // This one chooses one result among many (or nil)
 	PIPUpdateFunc         hierarchy.PointInPolygonHierarchyResolverUpdateCallback // This one constructs a map[string]interface{} to update the target record (or not)
+	Verbose               bool
 }
 
 func RunOptionsFromFlagSet(ctx context.Context, fs *flag.FlagSet) (*RunOptions, error) {
@@ -47,6 +48,7 @@ func RunOptionsFromFlagSet(ctx context.Context, fs *flag.FlagSet) (*RunOptions, 
 		MapshaperServerURI: mapshaper_server,
 		SPRResultsFunc:     hierarchy_filter.FirstButForgivingSPRResultsFunc, // sudo make me configurable
 		SPRFilterInputs:    inputs,
+		Verbose:            verbose,
 	}
 
 	if len(source_iterator_uris) > 0 {
