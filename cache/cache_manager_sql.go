@@ -99,6 +99,8 @@ func NewSQLCacheManager(ctx context.Context, uri string) (CacheManager, error) {
 		if err != nil {
 			return nil, fmt.Errorf("Failed to assign pragma, %w", err)
 		}
+
+		conn.SetMaxOpenConns(1)
 	}
 
 	m := &SQLCacheManager{
