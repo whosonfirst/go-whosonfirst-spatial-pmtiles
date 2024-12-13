@@ -1,0 +1,5 @@
+CREATE VIRTUAL TABLE {{ .Name }} USING fts5(
+	id, placetype,
+	name, names_all, names_preferred, names_variant, names_colloquial,		
+	is_current, is_ceased, is_deprecated, is_superseded
+);
