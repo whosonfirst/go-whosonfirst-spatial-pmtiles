@@ -78,6 +78,8 @@ Database URIs for the `go-whosonfirst-spatial-sqlite` package take the form of:
 "sqlite://" + {DATABASE_SQL_ENGINE} + "?dsn=" + {DATABASE_SQL_DSN}
 ```
 
+Where `DATABASE_SQL` refers to the build-in [database/sql](https://pkg.go.dev/database/sql) package.
+
 For example:
 
 ```

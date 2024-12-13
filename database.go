@@ -15,6 +15,7 @@ import (
 
 	_ "github.com/aaronland/gocloud-blob/s3"
 	_ "github.com/whosonfirst/go-whosonfirst-spatial-sqlite"
+	_ "modernc.org/sqlite"
 	_ "gocloud.dev/blob/fileblob"
 	_ "gocloud.dev/docstore/awsdynamodb"
 	_ "gocloud.dev/docstore/memdocstore"
@@ -127,7 +128,9 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 
 	// This triggers "distance errors" which I don't really understand yet
 	// spatial_database_uri := "rtree://"
-	spatial_database_uri := "sqlite://?dsn=modernc://mem"
+
+	dsn := url.QueryEscape("file::memory:?mode=memory&cache=shared")
+	spatial_database_uri := fmt.Sprintf("sqlite://sqlite?dsn=%s", dsn)
 
 	db := &PMTilesSpatialDatabase{
 		server:                      server,

@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	database_sql "github.com/sfomuseum/go-database/sql"
+	_ "modernc.org/sqlite"	
 )
 
 func init() {
@@ -173,6 +174,7 @@ func (m *SQLCacheManager) GetFeatureCache(ctx context.Context, id string) (*Feat
 
 	switch {
 	case err == sql.ErrNoRows:
+		slog.Error("POO", "id", id, "error", err)
 		return nil, fmt.Errorf("Failed to retrieve feature, %w", err)
 	case err != nil:
 		return nil, fmt.Errorf("Failed to query ID, %w", err)

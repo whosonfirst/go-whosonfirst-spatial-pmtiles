@@ -104,8 +104,6 @@ func NewSQLiteSpatialDatabaseWriter(ctx context.Context, uri string) (writer.Wri
 // instance for performing spatial operations derived from 'uri'.
 func NewSQLiteSpatialDatabase(ctx context.Context, uri string) (database.SpatialDatabase, error) {
 
-	slog.Info(uri)
-
 	db, err := database_sql.OpenWithURI(ctx, uri)
 
 	if err != nil {
@@ -149,6 +147,22 @@ func NewSQLiteSpatialDatabaseWithDatabase(ctx context.Context, uri string, db *s
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create geojson table, %w", err)
+	}
+
+	db_opts := database_sql.DefaultConfigureDatabaseOptions()
+
+	db_opts.Tables = []database_sql.Table{
+		rtree_table,
+		spr_table,
+		geojson_table,
+	}
+
+	db_opts.CreateTablesIfNecessary = true
+
+	err = database_sql.ConfigureDatabase(ctx, db, db_opts)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to configure database, %w", err)
 	}
 
 	expires := 5 * time.Minute
