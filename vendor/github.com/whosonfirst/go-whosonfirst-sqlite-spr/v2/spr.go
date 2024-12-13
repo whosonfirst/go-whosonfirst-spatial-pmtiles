@@ -4,16 +4,16 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/aaronland/go-sqlite/v2"
+	"strconv"
+	"strings"
+
 	"github.com/sfomuseum/go-edtf"
 	"github.com/sfomuseum/go-edtf/parser"
 	"github.com/whosonfirst/go-whosonfirst-flags"
 	"github.com/whosonfirst/go-whosonfirst-flags/existential"
 	wof_spr "github.com/whosonfirst/go-whosonfirst-spr/v2"
 	"github.com/whosonfirst/go-whosonfirst-uri"
-	_ "log"
-	"strconv"
-	"strings"
+	database_sql "github.com/sfomuseum/go-database/sql"
 )
 
 // SQLiteResults is a struct that implements the `whosonfirst/go-whosonfirst-spr.StandardPlacesResults`
@@ -174,13 +174,7 @@ func (spr *SQLiteStandardPlacesResult) LastModified() int64 {
 	return spr.WOFLastModified
 }
 
-func RetrieveSPR(ctx context.Context, spr_db sqlite.Database, spr_table sqlite.Table, id int64, alt_label string) (wof_spr.StandardPlacesResult, error) {
-
-	conn, err := spr_db.Conn(ctx)
-
-	if err != nil {
-		return nil, err
-	}
+func RetrieveSPR(ctx context.Context, spr_db *sql.DB, spr_table database_sql.Table, id int64, alt_label string) (wof_spr.StandardPlacesResult, error) {
 
 	args := []interface{}{
 		id,
@@ -203,7 +197,7 @@ func RetrieveSPR(ctx context.Context, spr_db sqlite.Database, spr_table sqlite.T
 		lastmodified
 	FROM %s WHERE id = ? AND alt_label = ?`, spr_table.Name())
 
-	row := conn.QueryRowContext(ctx, spr_q, args...)
+	row := spr_db.QueryRowContext(ctx, spr_q, args...)
 	return RetrieveSPRWithRow(ctx, row)
 }
 

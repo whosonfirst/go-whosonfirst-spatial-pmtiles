@@ -17,11 +17,12 @@ require (
 	github.com/whosonfirst/go-whosonfirst-feature v0.0.28
 	github.com/whosonfirst/go-whosonfirst-spatial v0.11.1
 	github.com/whosonfirst/go-whosonfirst-spatial-grpc v0.2.1
-	github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.10.0
+	github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.11.1
 	github.com/whosonfirst/go-whosonfirst-spatial-www v0.3.1
 	github.com/whosonfirst/go-whosonfirst-spr/v2 v2.3.7
 	github.com/whosonfirst/go-whosonfirst-uri v1.3.0
 	gocloud.dev v0.40.0
+	modernc.org/sqlite v1.29.1
 )
 
 require (
@@ -50,11 +51,9 @@ require (
 	github.com/aaronland/go-http-server v1.5.0 // indirect
 	github.com/aaronland/go-http-static v0.0.3 // indirect
 	github.com/aaronland/go-json-query v0.1.5 // indirect
-	github.com/aaronland/go-pagination v0.2.0 // indirect
+	github.com/aaronland/go-pagination v0.3.0 // indirect
 	github.com/aaronland/go-pagination-sql v0.2.0 // indirect
 	github.com/aaronland/go-pool/v2 v2.0.0 // indirect
-	github.com/aaronland/go-sqlite-modernc v0.0.3 // indirect
-	github.com/aaronland/go-sqlite/v2 v2.2.0 // indirect
 	github.com/aaronland/go-string v1.0.0 // indirect
 	github.com/aaronland/go-uid v0.4.0 // indirect
 	github.com/aaronland/go-uid-artisanal v0.0.4 // indirect
@@ -115,6 +114,7 @@ require (
 	github.com/jtacoma/uritemplates v1.0.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.14 // indirect
+	github.com/mattn/go-sqlite3 v1.14.16 // indirect
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
@@ -152,6 +152,7 @@ require (
 	github.com/whosonfirst/go-rfc-5646 v0.1.0 // indirect
 	github.com/whosonfirst/go-sanitize v0.1.0 // indirect
 	github.com/whosonfirst/go-whosonfirst-crawl v0.2.2 // indirect
+	github.com/whosonfirst/go-whosonfirst-database v0.0.2 // indirect
 	github.com/whosonfirst/go-whosonfirst-export/v2 v2.8.3 // indirect
 	github.com/whosonfirst/go-whosonfirst-flags v0.5.2 // indirect
 	github.com/whosonfirst/go-whosonfirst-format v0.4.1 // indirect
@@ -161,10 +162,9 @@ require (
 	github.com/whosonfirst/go-whosonfirst-placetypes v0.7.3 // indirect
 	github.com/whosonfirst/go-whosonfirst-reader v1.0.2 // indirect
 	github.com/whosonfirst/go-whosonfirst-sources v0.1.0 // indirect
+	github.com/whosonfirst/go-whosonfirst-spelunker v0.0.5 // indirect
 	github.com/whosonfirst/go-whosonfirst-spr-geojson v0.0.8 // indirect
-	github.com/whosonfirst/go-whosonfirst-sql v0.0.3 // indirect
-	github.com/whosonfirst/go-whosonfirst-sqlite-features/v2 v2.0.3 // indirect
-	github.com/whosonfirst/go-whosonfirst-sqlite-spr/v2 v2.0.0 // indirect
+	github.com/whosonfirst/go-whosonfirst-sqlite-spr/v2 v2.1.0 // indirect
 	github.com/whosonfirst/go-whosonfirst-writer/v3 v3.1.4 // indirect
 	github.com/whosonfirst/go-writer-featurecollection/v3 v3.0.0-20220916180959-42588e308a3e // indirect
 	github.com/whosonfirst/go-writer/v3 v3.1.1 // indirect
@@ -196,7 +196,6 @@ require (
 	modernc.org/libc v1.41.0 // indirect
 	modernc.org/mathutil v1.6.0 // indirect
 	modernc.org/memory v1.7.2 // indirect
-	modernc.org/sqlite v1.29.1 // indirect
 	modernc.org/strutil v1.2.0 // indirect
 	modernc.org/token v1.1.0 // indirect
 	zombiezen.com/go/sqlite v1.1.2 // indirect

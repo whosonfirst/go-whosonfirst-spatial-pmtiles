@@ -21,10 +21,10 @@ This code depends on (4) tables as indexed by the `go-whosonfirst-sqlite-feature
 * [properties](https://github.com/whosonfirst/go-whosonfirst-sqlite-features#properties) - this table is used to append extra properties (to the SPR response) for `spatial.PropertiesResponseResults` responses.
 * [geojson](https://github.com/whosonfirst/go-whosonfirst-sqlite-features#geojson) - this table is used to satisfy the `whosonfirst/go-reader.Reader` requirements in the `spatial.SpatialDatabase` interface. It is meant to be a simple ID to bytes (or filehandle) lookup rather than a data structure that is parsed or queried.
 
-Here's an example of the creating a compatible SQLite database for all the [administative data in Canada](https://github.com/whosonfirst-data/whosonfirst-data-admin-ca) using the `wof-sqlite-index-features` tool which is part of the [go-whosonfirst-sqlite-features-index](https://github.com/whosonfirst/go-whosonfirst-sqlite-features-index) package:
+Here's an example of the creating a compatible SQLite database for all the [administative data in Canada](https://github.com/whosonfirst-data/whosonfirst-data-admin-ca) using the `wof-sqlite-index` tool which is part of the [go-whosonfirst-database-sqlite](https://github.com/whosonfirst/go-whosonfirst-database-sqlite) package:
 
 ```
-$> ./bin/wof-sqlite-index-features \
+$> ./bin/wof-sqlite-index \
 	-index-alt-files \
 	-spatial-tables \
 	-timings \
@@ -48,7 +48,7 @@ And then...
 
 ```
 $> ./bin/pip \
-	-database-uri 'sqlite://?dsn=/usr/local/data/ca-alt.db' \
+	-database-uri 'sqlite://sqlite3?dsn=/usr/local/data/ca-alt.db' \
 	-latitude 45.572744 \
 	-longitude -73.586295
 | jq \
@@ -70,6 +70,26 @@ $> ./bin/pip \
 
 _TBW: Indexing tables on start-up._
 
+## Database URIs and "drivers"
+
+Database URIs for the `go-whosonfirst-spatial-sqlite` package take the form of:
+
+```
+"sqlite://" + {DATABASE_SQL_ENGINE} + "?dsn=" + {DATABASE_SQL_DSN}
+```
+
+Where `DATABASE_SQL` refers to the build-in [database/sql](https://pkg.go.dev/database/sql) package.
+
+For example:
+
+```
+sqlite://sqlite3?dsn=test.db
+```
+
+By default this package bundles support for the [mattn/go-sqlite3](https://github.com/mattn/go-sqlite3) driver but does NOT enable it by default. You will need to pass in the `-tag mattn` argument when building tools to enable it. This is the default behaviour in the `cli` Makefile target for building binary tools.
+
+If you want or need to use the [modernc.org/sqlite](https://pkg.go.dev/modernc.org/sqlite) driver take a look at the [database_mattn.go](database_mattn.go) file for an example of how you might go about enabling it. As of this writing the `modernc.org/sqlite` package is not bundled with this package because it adds ~200MB of code to the `vendor` directory.
+
 ## Example
 
 ```
@@ -79,8 +99,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	
+
+	_ "github.com/mattn/go-sqlite3"
 	_ "github.com/whosonfirst/go-whosonfirst-spatial-sqlite"
+	
 	"github.com/whosonfirst/go-whosonfirst-spatial/database"
 	"github.com/whosonfirst/go-whosonfirst-spatial/filter"
 	"github.com/whosonfirst/go-whosonfirst-spatial/geo"
@@ -90,8 +112,8 @@ import (
 
 func main() {
 
-	database_uri := "sqlite://?dsn=whosonfirst.db"
-	properties_uri := "sqlite://?dsn=whosonfirst.db"
+	database_uri := "sqlite://sqlite3?dsn=whosonfirst.db"
+	properties_uri := "sqlite://sqlite3?dsn=whosonfirst.db"
 	latitude := 37.616951
 	longitude := -122.383747
 
@@ -124,6 +146,13 @@ _Error handling removed for the sake of brevity._
 _To be written_
 
 ## Tools
+
+$> make cli
+go build -tags mattn -ldflags="-s -w" -mod vendor -o bin/http-server cmd/http-server/main.go
+go build -tags mattn -ldflags="-s -w" -mod vendor -o bin/grpc-server cmd/grpc-server/main.go
+go build -tags mattn -ldflags="-s -w" -mod vendor -o bin/grpc-client cmd/grpc-client/main.go
+go build -tags mattn -ldflags="-s -w" -mod vendor -o bin/update-hierarchies cmd/update-hierarchies/main.go
+go build -tags mattn -ldflags="-s -w" -mod vendor -o bin/pip cmd/pip/main.go
 
 ### pip
 
@@ -181,7 +210,7 @@ For example:
 
 ```
 $> ./bin/pip \
-	-spatial-database-uri 'sqlite://?dsn=/usr/local/data/sfomuseum-data-architecture.db' \
+	-spatial-database-uri 'sqlite://sqlite3?dsn=/usr/local/data/sfomuseum-data-architecture.db' \
 	-latitude 37.616951 \
 	-longitude -122.383747 \
 	-properties 'wof:hierarchy' \
@@ -248,7 +277,7 @@ It is possible to filter results by one or more existential flags (`-is-current`
 
 ```
 $> ./bin/pip \
-	-spatial-database-uri 'sqlite://?dsn=/usr/local/data/sfom-arch.db' \
+	-spatial-database-uri 'sqlite://sqlite3?dsn=/usr/local/data/sfom-arch.db' \
 	-latitude 37.616951 \
 	-longitude -122.383747
 
@@ -262,7 +291,7 @@ But when filtered using the `-is-current 1` flag there is only a single result:
 
 ```
 $> ./bin/pip \
-	-spatial-database-uri 'sqlite://?dsn=/usr/local/data/sfom-arch.db' \
+	-spatial-database-uri 'sqlite://sqlite3?dsn=/usr/local/data/sfom-arch.db' \
 	-latitude 37.616951 \
 	-longitude -122.383747 \
 	-is-current 1
@@ -303,7 +332,7 @@ You can also filter results to one or more specific alternate geometry labels. F
 
 ```
 $> ./bin/pip \
-	-spatial-database-uri 'sqlite://?dsn=/usr/local/data/ca-alt.db' \
+	-spatial-database-uri 'sqlite://sqlite3?dsn=/usr/local/data/ca-alt.db' \
 	-latitude 45.572744 \
 	-longitude -73.586295 \
 	-alternate-geometry quattroshapes \
@@ -317,10 +346,10 @@ $> ./bin/pip \
       "wof:name": "85874359 alt geometry (quattroshapes)",
 ```
 
-Note: These examples assumes a database that was previously indexed using the [whosonfirst/go-whosonfirst-sqlite-features](https://github.com/whosonfirst/go-whosonfirst-sqlite-features) `wof-sqlite-index-features` tool. For example:
+Note: These examples assumes a database that was previously indexed using the [whosonfirst/go-whosonfirst-database-sqlite](https://github.com/whosonfirst/go-whosonfirst-database-sqlite) `wof-sqlite-index` tool. For example:
 
 ```
-$> ./bin/wof-sqlite-index-features \
+$> ./bin/wof-sqlite-index \
 	-rtree \
 	-spr \
 	-properties \
@@ -333,7 +362,7 @@ The exclude alternate geometries from query results pass the `-geometries defaul
 
 ```
 $> ./bin/pip \
-	-spatial-database-uri 'sqlite://?dsn=/usr/local/data/ca-alt.db' \
+	-spatial-database-uri 'sqlite://sqlite3?dsn=/usr/local/data/ca-alt.db' \
 	-latitude 45.572744 \
 	-longitude -73.586295 \
 	-geometries default
@@ -352,7 +381,7 @@ To limit query results to _only_ alternate geometries pass the `-geometries alte
 
 ```
 $> ./bin/pip \
-	-spatial-database-uri 'sqlite://?dsn=/usr/local/data/ca-alt.db' \
+	-spatial-database-uri 'sqlite://sqlite3?dsn=/usr/local/data/ca-alt.db' \
 	-latitude 45.572744 \
 	-longitude -73.586295 \
 	-geometries alternate
@@ -372,7 +401,7 @@ Support for remotely-hosted SQLite databases is available. For example:
 
 ```
 $> go run -mod vendor cmd/pip/main.go \
-	-spatial-database-uri 'sqlite://?dsn=http://localhost:8080/sfomuseum-architecture.db' \
+	-spatial-database-uri 'sqlite://sqlite3?dsn=http://localhost:8080/sfomuseum-architecture.db' \
 	-latitude 37.616951 \
 	-longitude -122.383747 \
 	-is-current 1 \
@@ -447,7 +476,7 @@ For example:
 ```
 $> bin/http-server \
 	-enable-www \
-	-spatial-database-uri 'sqlite:///?dsn=modernc:///usr/local/data/sfomuseum-data-architecture.db'
+	-spatial-database-uri 'sqlite://sqlite3?dsn=modernc:///usr/local/data/sfomuseum-data-architecture.db'
 ```
 
 A couple things to note:
@@ -462,7 +491,7 @@ If you don't need, or want, to expose a user-facing interface simply remove the 
 
 ```
 $> bin/http-server \
-	-spatial-database-uri 'sqlite:///?dsn=modernc:///usr/local/data/sfomuseum-data-architecture.db' 
+	-spatial-database-uri 'sqlite://sqlite3?dsn/usr/local/data/sfomuseum-data-architecture.db' 
 ```
 
 And then to query the point-in-polygon API you would do something like this:
@@ -508,7 +537,7 @@ By default, results are returned as a list of ["standard places response"](https
 ```
 $> bin/http-server \
 	-enable-geojson \
-	-spatial-database-uri 'sqlite:///?dsn=modernc:///usr/local/data/sfomuseum-data-architecture.db'
+	-spatial-database-uri 'sqlite://sqlite3?dsn=/usr/local/data/sfomuseum-data-architecture.db'
 ```
 
 And then:
@@ -582,7 +611,7 @@ $> ./bin/grpc-server -h
 For example:
 
 ```
-$> ./bin/grpc-server -spatial-database-uri 'sqlite://?dsn=modernc:///usr/local/data/arch.db' 
+$> ./bin/grpc-server -spatial-database-uri 'sqlite://sqlite3?dsn=modernc:///usr/local/data/arch.db' 
 2024/07/19 10:52:47 Listening on localhost:8082
 ```
 
@@ -647,7 +676,6 @@ $> ./bin/grpc-client -latitude 37.621131 -longitude -122.384292 | jq '.places[][
 * https://github.com/whosonfirst/go-whosonfirst-spatial
 * https://github.com/whosonfirst/go-whosonfirst-spatial-www
 * https://github.com/whosonfirst/go-whosonfirst-spatial-grpc
-* https://github.com/whosonfirst/go-whosonfirst-sqlite
-* https://github.com/whosonfirst/go-whosonfirst-sqlite-features
-* https://github.com/whosonfirst/go-whosonfirst-sqlite-features-index
+* https://github.com/whosonfirst/go-whosonfirst-database
+* https://github.com/whosonfirst/go-whosonfirst-database-sqlite
 * https://github.com/whosonfirst/go-reader
