@@ -9,7 +9,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/sfomuseum/go-database"
+	database_sql "github.com/sfomuseum/go-database/sql"
 )
 
 func init() {
@@ -20,6 +20,31 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+}
+
+type SQLFeaturesTable struct {
+	database_sql.Table
+}
+
+func (t *SQLFeaturesTable) Name() string {
+	return "features"
+}
+
+func (t *SQLFeaturesTable) Schema(db *sql.DB) (string, error) {
+	switch database_sql.Driver(db) {
+	case database_sql.SQLITE_DRIVER:
+		return "CREATE TABLE features (id TEXT PRIMARY KEY, body TEXT)", nil
+	default:
+		return "", fmt.Errorf("Unsupported database driver %s", database_sql.Driver(db))
+	}
+}
+
+func (t *SQLFeaturesTable) InitializeTable(ctx context.Context, db *sql.DB) error {
+	return database_sql.CreateTableIfNecessary(ctx, db, t)
+}
+
+func (t *SQLFeaturesTable) IndexRecord(ctx context.Context, db *sql.DB, i interface{}) error {
+	return nil
 }
 
 type SQLCacheManager struct {
@@ -72,19 +97,17 @@ func NewSQLCacheManager(ctx context.Context, uri string) (CacheManager, error) {
 		return nil, fmt.Errorf("Failed to open database connection, %w", err)
 	}
 
-	features_table := &database.SQLTable{
-		Name:   "features",
-		Schema: "CREATE TABLE features (id TEXT PRIMARY KEY, body TEXT)",
-	}
+	features_table := new(SQLFeaturesTable)
 
-	db_opts := database.DefaultConfigureSQLDatabaseOptions()
+	db_opts := database_sql.DefaultConfigureDatabaseOptions()
 
 	db_opts.CreateTablesIfNecessary = true
-	db_opts.Tables = []*database.SQLTable{
+
+	db_opts.Tables = []database_sql.Table{
 		features_table,
 	}
 
-	err = database.ConfigureSQLDatabase(ctx, conn, db_opts)
+	err = database_sql.ConfigureDatabase(ctx, conn, db_opts)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to configure database, %w", err)
@@ -92,13 +115,6 @@ func NewSQLCacheManager(ctx context.Context, uri string) (CacheManager, error) {
 
 	switch engine {
 	case "sqlite", "sqlite3":
-
-		pragma := database.DefaultSQLitePragma()
-		err := database.ConfigureSQLitePragma(ctx, conn, pragma)
-
-		if err != nil {
-			return nil, fmt.Errorf("Failed to assign pragma, %w", err)
-		}
 
 		conn.SetMaxOpenConns(1)
 	}

@@ -593,9 +593,9 @@ github.com/rs/cors/internal
 # github.com/schollz/progressbar/v3 v3.13.1
 ## explicit; go 1.13
 github.com/schollz/progressbar/v3
-# github.com/sfomuseum/go-database v0.0.2
+# github.com/sfomuseum/go-database v0.0.7
 ## explicit; go 1.23.3
-github.com/sfomuseum/go-database
+github.com/sfomuseum/go-database/sql
 # github.com/sfomuseum/go-edtf v1.2.1
 ## explicit; go 1.12
 github.com/sfomuseum/go-edtf
