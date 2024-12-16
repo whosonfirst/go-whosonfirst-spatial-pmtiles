@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	database_sql "github.com/sfomuseum/go-database/sql"
-	_ "modernc.org/sqlite"	
+	_ "modernc.org/sqlite"
 )
 
 func init() {
