@@ -29,6 +29,6 @@ lambda:
 lambda-server:
 	if test -f bootstrap; then rm -f bootstrap; fi
 	if test -f server.zip; then rm -f server.zip; fi
-	GOARCH=arm64 GOOS=linux go build -mod $(GOMOD) -ldflags="-s -w" -tags lambda.norpc -o bootstrap cmd/server/main.go
+	GOARCH=arm64 GOOS=linux go build -mod $(GOMOD) -ldflags="-s -w" -tags lambda.norpc -o bootstrap cmd/http-server/main.go
 	zip server.zip bootstrap
 	rm -f bootstrap
