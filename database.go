@@ -110,6 +110,19 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 		zoom = z
 	}
 
+	db_ttl := 30
+
+	if q.Has("database-ttl") {
+
+		v, err := strconv.Atoi(q.Get("database-ttl"))
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to parse ?database-tll= parameter, %w", err)
+		}
+
+		db_ttl = v
+	}
+
 	logger := slog.Default()
 	log_logger := slog.NewLogLogger(logger.Handler(), slog.LevelInfo)
 
@@ -123,7 +136,7 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 
 	spatial_databases_counter := NewCounter()
 	spatial_databases_releaser := new(sync.Map)
-	spatial_databases_ttl := time.Duration(60) * time.Second
+	spatial_databases_ttl := time.Duration(db_ttl) * time.Second
 	spatial_databases_cache := new(sync.Map)
 	spatial_databases_mutex := new(sync.RWMutex)
 
