@@ -10,15 +10,15 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
+	// "sync/atomic"
 	"time"
 
 	_ "github.com/aaronland/gocloud-blob/s3"
 	_ "github.com/whosonfirst/go-whosonfirst-spatial-sqlite"
-	_ "modernc.org/sqlite"
 	_ "gocloud.dev/blob/fileblob"
 	_ "gocloud.dev/docstore/awsdynamodb"
 	_ "gocloud.dev/docstore/memdocstore"
+	_ "modernc.org/sqlite"
 
 	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/encoding/mvt"
@@ -44,17 +44,19 @@ func init() {
 
 type PMTilesSpatialDatabase struct {
 	database.SpatialDatabase
-	server                      *pmtiles.Server
-	database                    string
-	layer                       string
-	enable_feature_cache        bool
-	cache_manager               cache.CacheManager
-	zoom                        int
-	spatial_database_uri        string
-	spatial_databases_counter   *sync.Map
-	spatial_databases_increment int32
-	spatial_databases_cache     *sync.Map
-	spatial_databases_mutex     *sync.RWMutex
+	server                     *pmtiles.Server
+	database                   string
+	layer                      string
+	enable_feature_cache       bool
+	cache_manager              cache.CacheManager
+	zoom                       int
+	spatial_database_uri       string
+	spatial_databases_counter  *Counter
+	spatial_databases_releaser *sync.Map
+	// The number of seconds to wait before scheduling the deletion of a (cached) spatial databases with zero pointers
+	spatial_databases_ttl   time.Duration
+	spatial_databases_cache *sync.Map
+	spatial_databases_mutex *sync.RWMutex
 }
 
 func NewPMTilesSpatialDatabaseReader(ctx context.Context, uri string) (reader.Reader, error) {
@@ -119,8 +121,9 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 
 	server.Start()
 
-	spatial_databases_counter := new(sync.Map)
-	spatial_databases_increment := int32(0)
+	spatial_databases_counter := NewCounter()
+	spatial_databases_releaser := new(sync.Map)
+	spatial_databases_ttl := time.Duration(60) * time.Second
 	spatial_databases_cache := new(sync.Map)
 	spatial_databases_mutex := new(sync.RWMutex)
 
@@ -133,15 +136,16 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 	spatial_database_uri := fmt.Sprintf("sqlite://sqlite?dsn=%s", dsn)
 
 	db := &PMTilesSpatialDatabase{
-		server:                      server,
-		database:                    q_database,
-		layer:                       q_layer,
-		zoom:                        zoom,
-		spatial_database_uri:        spatial_database_uri,
-		spatial_databases_counter:   spatial_databases_counter,
-		spatial_databases_increment: spatial_databases_increment,
-		spatial_databases_cache:     spatial_databases_cache,
-		spatial_databases_mutex:     spatial_databases_mutex,
+		server:                     server,
+		database:                   q_database,
+		layer:                      q_layer,
+		zoom:                       zoom,
+		spatial_database_uri:       spatial_database_uri,
+		spatial_databases_counter:  spatial_databases_counter,
+		spatial_databases_releaser: spatial_databases_releaser,
+		spatial_databases_ttl:      spatial_databases_ttl,
+		spatial_databases_cache:    spatial_databases_cache,
+		spatial_databases_mutex:    spatial_databases_mutex,
 	}
 
 	enable_feature_cache := false
@@ -227,49 +231,64 @@ func (db *PMTilesSpatialDatabase) releaseSpatialDatabase(ctx context.Context, co
 	defer db.spatial_databases_mutex.Unlock()
 
 	db_name := db.spatialDatabaseNameFromCoord(ctx, coord)
+	count := db.spatial_databases_counter.Increment(db_name, -1)
 
-	new_increment := atomic.AddInt32(&db.spatial_databases_increment, 1)
-	db.spatial_databases_counter.Store(db_name, new_increment)
+	logger := slog.Default()
+	logger = logger.With("db", db_name)
+	logger = logger.With("count", count)
 
-	go func(test_increment int32) {
+	// logger.Info("Release database")
 
-		ttl := 10
+	if count == 0 {
 
-		select {
-		case <-ctx.Done():
-			return
-		case <-time.After(time.Duration(ttl) * time.Second):
+		_, scheduled := db.spatial_databases_releaser.LoadOrStore(db_name, true)
 
-			db.spatial_databases_mutex.Lock()
-			defer db.spatial_databases_mutex.Unlock()
+		logger = logger.With("scheduled", scheduled)
 
-			db_name := db.spatialDatabaseNameFromCoord(ctx, coord)
-			current_increment := int32(0)
-
-			v, exists := db.spatial_databases_counter.Load(db_name)
-
-			if exists {
-				current_increment = v.(int32)
-			}
-
-			if current_increment >= test_increment {
-				return
-			}
-
-			db_v, exists := db.spatial_databases_cache.Load(db_name)
-
-			if !exists {
-				return
-			}
-
-			spatial_db := db_v.(database.SpatialDatabase)
-			spatial_db.Disconnect(ctx)
-			db.spatial_databases_cache.Delete(db_name)
-
+		if scheduled {
 			return
 		}
 
-	}(new_increment)
+		// logger.Info("Schedule release")
+
+		go func() {
+
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(db.spatial_databases_ttl):
+
+				db.spatial_databases_mutex.Lock()
+
+				defer func() {
+					db.spatial_databases_releaser.Delete(db_name)
+					db.spatial_databases_mutex.Unlock()
+				}()
+
+				db_name := db.spatialDatabaseNameFromCoord(ctx, coord)
+				counter := db.spatial_databases_counter.Count(db_name)
+
+				if counter > 0 {
+					logger.Info("Skip release", "new count", counter)
+					return
+				}
+
+				db_v, exists := db.spatial_databases_cache.Load(db_name)
+
+				if !exists {
+					return
+				}
+
+				spatial_db := db_v.(database.SpatialDatabase)
+				spatial_db.Disconnect(ctx)
+				db.spatial_databases_cache.Delete(db_name)
+
+				logger.Info("Delete database")
+				return
+			}
+
+		}()
+	}
 
 }
 
@@ -506,6 +525,7 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseFromCoord(ctx context.Context, 
 	v, exists := db.spatial_databases_cache.Load(db_name)
 
 	if exists {
+		db.spatial_databases_counter.Increment(db_name, 1)
 		return v.(database.SpatialDatabase), nil
 	}
 
@@ -520,6 +540,7 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseFromCoord(ctx context.Context, 
 	}
 
 	db.spatial_databases_cache.Store(db_name, spatial_db)
+	db.spatial_databases_counter.Increment(db_name, 1)
 	return spatial_db, nil
 }
 
