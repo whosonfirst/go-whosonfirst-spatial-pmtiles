@@ -83,7 +83,7 @@ func (a *SharedSecretAuthenticator) WrapHandler(next http.Handler) http.Handler 
 }
 
 // GetAccountForRequest returns an stub `Account` instance for requests that contain a valid `X-Shared-Secret` HTTP header.
-func (a *SharedSecretAuthenticator) GetAccountForRequest(req *http.Request) (*Account, error) {
+func (a *SharedSecretAuthenticator) GetAccountForRequest(req *http.Request) (Account, error) {
 
 	secret := req.Header.Get(SHARED_SECRET_HEADER)
 
@@ -91,11 +91,7 @@ func (a *SharedSecretAuthenticator) GetAccountForRequest(req *http.Request) (*Ac
 		return nil, NotAuthorized{}
 	}
 
-	acct := &Account{
-		Id:   SHARED_SECRET_ACCOUNT_ID,
-		Name: SHARED_SECRET_ACCOUNT_NAME,
-	}
-
+	acct := NewAccount(SHARED_SECRET_ACCOUNT_ID, SHARED_SECRET_ACCOUNT_NAME)
 	return acct, nil
 }
 

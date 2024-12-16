@@ -25,6 +25,8 @@ func Driver(db *sql.DB) string {
 	switch driver_type {
 	case "*sqlite3.SQLiteDriver", "*sqlite.Driver":
 		return SQLITE_DRIVER
+	case "*pq.Driver":
+		return POSTGRES_DRIVER
 	default:
 		slog.Warn("Unhandled driver type", "type", driver_type)
 		return ""

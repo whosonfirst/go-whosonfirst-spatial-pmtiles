@@ -2,7 +2,7 @@ package api
 
 import (
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
 
 	"github.com/aaronland/go-http-sanitize"
@@ -25,7 +25,6 @@ const GEOJSON string = "application/geo+json"
 
 type PointInPolygonHandlerOptions struct {
 	EnableGeoJSON bool
-	Logger        *log.Logger
 	LogTimings    bool
 }
 
@@ -54,7 +53,7 @@ func PointInPolygonHandler(app *spatial_app.SpatialApplication, opts *PointInPol
 			if opts.LogTimings {
 
 				for _, t := range app.Timings {
-					opts.Logger.Println(t)
+					slog.Debug("Timings", "timing", t)
 				}
 			}
 		}()

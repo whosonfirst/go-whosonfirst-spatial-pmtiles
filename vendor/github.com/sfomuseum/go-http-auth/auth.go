@@ -17,7 +17,7 @@ type Authenticator interface {
 	// WrapHandler wraps a `http.Handler` with any implementation-specific middleware.
 	WrapHandler(http.Handler) http.Handler
 	// GetAccountForRequest returns an `Account` instance  for an HTTP request.
-	GetAccountForRequest(*http.Request) (*Account, error)
+	GetAccountForRequest(*http.Request) (Account, error)
 	// SigninHandler returns a `http.Handler` for implementing account signin.
 	SigninHandler() http.Handler
 	// SignoutHandler returns a `http.Handler` for implementing account signout.

@@ -31,8 +31,7 @@ func (a *NoneAuthenticator) WrapHandler(h http.Handler) http.Handler {
 }
 
 // GetAccountForRequest returns an stub `Account` instance.
-func (a *NoneAuthenticator) GetAccountForRequest(req *http.Request) (*Account, error) {
-
+func (a *NoneAuthenticator) GetAccountForRequest(req *http.Request) (Account, error) {
 	return nil, NotAuthorized{}
 }
 
