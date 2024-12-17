@@ -355,7 +355,10 @@ func (db *PMTilesSpatialDatabase) Disconnect(ctx context.Context) error {
 		return true
 	})
 
-	db.cache_manager.Close()
+	if db.cache_manager != nil {
+		db.cache_manager.Close()
+	}
+
 	return nil
 }
 
