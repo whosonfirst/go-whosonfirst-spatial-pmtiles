@@ -139,7 +139,6 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 		layer:                   q_layer,
 		zoom:                    zoom,
 		spatial_database_uri:    spatial_database_uri,
-		cache_spatial_databases: cache_spatial_databases,
 	}
 	
 	cache_spatial_databases := true
@@ -157,6 +156,8 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 			
 			db_ttl = v
 		}
+
+		cache_spatial_databases = cache_spatial_databases
 		
 		spatial_databases_counter := NewCounter()
 		spatial_databases_releaser := new(sync.Map)
