@@ -6,6 +6,7 @@ require (
 	github.com/aaronland/go-roster v1.0.0
 	github.com/aaronland/gocloud-blob v0.4.0
 	github.com/aaronland/gocloud-docstore v0.0.8
+	github.com/dgraph-io/ristretto/v2 v2.0.1
 	github.com/json-iterator/go v1.1.12
 	github.com/paulmach/orb v0.11.1
 	github.com/protomaps/go-pmtiles v1.22.3

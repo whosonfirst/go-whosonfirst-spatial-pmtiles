@@ -408,6 +408,11 @@ github.com/cenkalti/backoff/v4
 # github.com/cespare/xxhash/v2 v2.3.0
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
+# github.com/dgraph-io/ristretto/v2 v2.0.1
+## explicit; go 1.21
+github.com/dgraph-io/ristretto/v2
+github.com/dgraph-io/ristretto/v2/z
+github.com/dgraph-io/ristretto/v2/z/simd
 # github.com/dhconnelly/rtreego v1.2.0
 ## explicit; go 1.13
 github.com/dhconnelly/rtreego

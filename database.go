@@ -20,6 +20,7 @@ import (
 	_ "gocloud.dev/docstore/memdocstore"
 	_ "modernc.org/sqlite"
 
+	"github.com/dgraph-io/ristretto/v2"
 	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/encoding/mvt"
 	"github.com/paulmach/orb/geojson"
@@ -58,6 +59,8 @@ type PMTilesSpatialDatabase struct {
 	spatial_databases_ttl   int
 	spatial_databases_cache *sync.Map
 	spatial_databases_mutex *sync.RWMutex
+
+	rcache *ristretto.Cache[string, database.SpatialDatabase]
 }
 
 func NewPMTilesSpatialDatabaseReader(ctx context.Context, uri string) (reader.Reader, error) {
@@ -161,6 +164,18 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 		spatial_databases_mutex:    spatial_databases_mutex,
 	}
 
+	rcache, err := ristretto.NewCache(&ristretto.Config[string, database.SpatialDatabase]{
+		NumCounters: 1e7,     // number of keys to track frequency of (10M).
+		MaxCost:     1 << 30, // maximum cost of cache (1GB).
+		BufferItems: 64,      // number of keys per Get buffer.
+	})
+
+	db.rcache = rcache
+
+	if err != nil {
+		return nil, err
+	}
+
 	enable_feature_cache := false
 
 	q_enable_cache := q.Get("enable-cache")
@@ -239,6 +254,8 @@ func (db *PMTilesSpatialDatabase) PointInPolygon(ctx context.Context, coord *orb
 }
 
 func (db *PMTilesSpatialDatabase) releaseSpatialDatabase(ctx context.Context, coord *orb.Point) {
+
+	return
 
 	db.spatial_databases_mutex.Lock()
 	defer db.spatial_databases_mutex.Unlock()
@@ -540,12 +557,20 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseFromCoord(ctx context.Context, 
 
 	db_name := db.spatialDatabaseNameFromCoord(ctx, coord)
 
-	v, exists := db.spatial_databases_cache.Load(db_name)
+	v, exists := db.rcache.Get(db_name)
 
 	if exists {
-		db.spatial_databases_counter.Increment(db_name, 1)
-		return v.(database.SpatialDatabase), nil
+		return v, nil
 	}
+
+	/*
+		v, exists := db.spatial_databases_cache.Load(db_name)
+
+		if exists {
+			db.spatial_databases_counter.Increment(db_name, 1)
+			return v.(database.SpatialDatabase), nil
+		}
+	*/
 
 	zoom := uint32(db.zoom)
 	z := maptile.Zoom(zoom)
@@ -557,8 +582,16 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseFromCoord(ctx context.Context, 
 		return nil, fmt.Errorf("Failed to create spatial database, %w", err)
 	}
 
-	db.spatial_databases_cache.Store(db_name, spatial_db)
-	db.spatial_databases_counter.Increment(db_name, 1)
+	defer func() {
+		db.rcache.Set(db_name, spatial_db, 1)
+		db.rcache.Wait()
+	}()
+
+	/*
+		db.spatial_databases_cache.Store(db_name, spatial_db)
+		db.spatial_databases_counter.Increment(db_name, 1)
+	*/
+
 	return spatial_db, nil
 }
 
