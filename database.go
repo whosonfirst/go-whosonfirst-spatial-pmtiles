@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"math/rand/v2"
 	"net/url"
 	"strconv"
 	"strings"
 	"sync"
-	// "sync/atomic"
 	"time"
 
 	_ "github.com/aaronland/gocloud-blob/s3"
@@ -53,8 +53,9 @@ type PMTilesSpatialDatabase struct {
 	spatial_database_uri       string
 	spatial_databases_counter  *Counter
 	spatial_databases_releaser *sync.Map
-	// The number of seconds to wait before scheduling the deletion of a (cached) spatial databases with zero pointers
-	spatial_databases_ttl   time.Duration
+	// The maximum number of milliseconds to wait before scheduling the deletion of a (cached) spatial databases with zero pointers.
+	// This value is used to determine a random number of milliseconds to wait before deleting a (cached) spatial database.
+	spatial_databases_ttl   int
 	spatial_databases_cache *sync.Map
 	spatial_databases_mutex *sync.RWMutex
 }
@@ -110,7 +111,7 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 		zoom = z
 	}
 
-	db_ttl := 30
+	db_ttl := 2000
 
 	if q.Has("database-ttl") {
 
@@ -136,7 +137,7 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 
 	spatial_databases_counter := NewCounter()
 	spatial_databases_releaser := new(sync.Map)
-	spatial_databases_ttl := time.Duration(db_ttl) * time.Second
+	spatial_databases_ttl := database_tll
 	spatial_databases_cache := new(sync.Map)
 	spatial_databases_mutex := new(sync.RWMutex)
 
@@ -252,58 +253,57 @@ func (db *PMTilesSpatialDatabase) releaseSpatialDatabase(ctx context.Context, co
 
 	if count == 0 {
 
-		/*
-			_, scheduled := db.spatial_databases_releaser.LoadOrStore(db_name, true)
+		_, scheduled := db.spatial_databases_releaser.LoadOrStore(db_name, true)
 
-			logger = logger.With("scheduled", scheduled)
+		logger = logger.With("scheduled", scheduled)
 
-			if scheduled {
+		if scheduled {
+			return
+		}
+
+		logger.Debug("Schedule release")
+
+		ttl_ms := rand.IntN(db.database_ttl)
+		ttl_d := time.Duration(ttl_ms) * time.Millisecond
+
+		go func(db_name string, ttl time.Duration) {
+
+			logger.Debug("Schedule deletion", "t", ttl)
+
+			select {
+			case <-ctx.Done():
 				return
-			}
+			case <-time.After(ttl):
 
-			logger.Debug("Schedule release")
-		*/
+				db.spatial_databases_mutex.Lock()
 
-		go func(db_name string) {
+				defer func() {
+					db.spatial_databases_releaser.Delete(db_name)
+					db.spatial_databases_mutex.Unlock()
+				}()
 
-			/*
-				select {
-				case <-ctx.Done():
-					return
-				case <-time.After(db.spatial_databases_ttl):
-			*/
-			db.spatial_databases_mutex.Lock()
+				counter := db.spatial_databases_counter.Count(db_name)
 
-			defer func() {
-				db.spatial_databases_releaser.Delete(db_name)
-				db.spatial_databases_mutex.Unlock()
-			}()
-
-			// db_name := db.spatialDatabaseNameFromCoord(ctx, coord)
-			counter := db.spatial_databases_counter.Count(db_name)
-
-			if counter > 0 {
-				logger.Debug("Skip release", "new count", counter)
-				return
-			}
-
-			db_v, exists := db.spatial_databases_cache.Load(db_name)
-
-			if !exists {
-				return
-			}
-
-			spatial_db := db_v.(database.SpatialDatabase)
-			spatial_db.Disconnect(ctx)
-			db.spatial_databases_cache.Delete(db_name)
-
-			/*
-					logger.Debug("Delete database")
+				if counter > 0 {
+					logger.Debug("Skip release", "new count", counter)
 					return
 				}
-			*/
 
-		}(db_name)
+				db_v, exists := db.spatial_databases_cache.Load(db_name)
+
+				if !exists {
+					return
+				}
+
+				spatial_db := db_v.(database.SpatialDatabase)
+				spatial_db.Disconnect(ctx)
+				db.spatial_databases_cache.Delete(db_name)
+
+				logger.Debug("Delete database")
+				return
+			}
+
+		}(db_name, ttl_d)
 	}
 
 }
