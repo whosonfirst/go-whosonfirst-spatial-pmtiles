@@ -51,6 +51,8 @@ type PMTilesSpatialDatabase struct {
 	cache_manager              cache.CacheManager
 	zoom                       int
 	spatial_database_uri       string
+
+	cache_spatial_databases bool
 	spatial_databases_counter  *Counter
 	spatial_databases_releaser *sync.Map
 	// The maximum number of milliseconds to wait before scheduling the deletion of a (cached) spatial databases with zero pointers.
@@ -208,33 +210,22 @@ func (db *PMTilesSpatialDatabase) RemoveFeature(context.Context, string) error {
 
 func (db *PMTilesSpatialDatabase) PointInPolygon(ctx context.Context, coord *orb.Point, filters ...spatial.Filter) (spr.StandardPlacesResults, error) {
 
-	/*
-
-		$> ./bin/server -tile-path file:///usr/local/whosonfirst/go-whosonfirst-tippecanoe -enable-example -example-database wof
-		2022/11/24 14:41:32 Listening for requests on http://localhost:8080
-		2022/11/24 14:41:48 fetching wof 0-16384
-		2022/11/24 14:41:48 fetched wof 0-0
-		2022/11/24 14:41:48 fetching wof 39541-13802
-		2022/11/24 14:41:48 fetched wof 39541-13802
-		2022/11/24 14:41:48 [200] served /wof/8/41/98.mvt in 3.485603ms
-
-		> go run cmd/query/main.go -spatial-database-uri 'pmtiles://?tiles=file:///usr/local/whosonfirst/go-whosonfirst-tippecanoe&database=wof'
-		2022/11/25 18:33:32 fetching wof 0-16384
-		2022/11/25 18:33:32 fetched wof 0-0
-		2022/11/25 18:33:32 fetching wof 39541-13802
-		2022/11/25 18:33:32 fetched wof 39541-13802
-		map[wof:0xc0001005a0]
-
-	*/
-
 	spatial_db, err := db.spatialDatabaseFromCoord(ctx, coord)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create spatial database, %w", err)
 	}
 
-	defer db.releaseSpatialDatabase(ctx, coord)
+	
+	defer func(){
 
+		if db.cache_spatial_databases {
+			db.releaseSpatialDatabase(ctx, coord)
+		} else {
+			spatial_db.Disconnect(ctx)
+		}
+	}()
+	
 	return spatial_db.PointInPolygon(ctx, coord, filters...)
 }
 
@@ -535,30 +526,41 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseNameFromCoord(ctx context.Conte
 
 func (db *PMTilesSpatialDatabase) spatialDatabaseFromCoord(ctx context.Context, coord *orb.Point) (database.SpatialDatabase, error) {
 
-	db.spatial_databases_mutex.Lock()
-	defer db.spatial_databases_mutex.Unlock()
+	var db_name string
+	var spatial_db database.SpatialDatabase
+	
+	if db.cache_spatial_databases {
+		
+		db.spatial_databases_mutex.Lock()
+		
+		defer func(){
+			
+			db.spatial_databases_cache.Store(db_name, spatial_db)
+			db.spatial_databases_counter.Increment(db_name, 1)
+			
+			db.spatial_databases_mutex.Unlock()	
+		}()
 
-	db_name := db.spatialDatabaseNameFromCoord(ctx, coord)
-
-	v, exists := db.spatial_databases_cache.Load(db_name)
-
-	if exists {
-		db.spatial_databases_counter.Increment(db_name, 1)
-		return v.(database.SpatialDatabase), nil
+		db_name = db.spatialDatabaseNameFromCoord(ctx, coord)		
+		v, exists := db.spatial_databases_cache.Load(db_name)
+		
+		if exists {
+			db.spatial_databases_counter.Increment(db_name, 1)
+			return v.(database.SpatialDatabase), nil
+		}
 	}
-
+	
 	zoom := uint32(db.zoom)
 	z := maptile.Zoom(zoom)
 	t := maptile.At(*coord, z)
 
-	spatial_db, err := db.spatialDatabaseFromTile(ctx, t)
+	tile_db, err := db.spatialDatabaseFromTile(ctx, t)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create spatial database, %w", err)
 	}
 
-	db.spatial_databases_cache.Store(db_name, spatial_db)
-	db.spatial_databases_counter.Increment(db_name, 1)
+	spatial_db = tile_db
 	return spatial_db, nil
 }
 
