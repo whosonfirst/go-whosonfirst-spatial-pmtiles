@@ -137,7 +137,6 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 
 	spatial_databases_counter := NewCounter()
 	spatial_databases_releaser := new(sync.Map)
-	spatial_databases_ttl := database_tll
 	spatial_databases_cache := new(sync.Map)
 	spatial_databases_mutex := new(sync.RWMutex)
 
@@ -157,7 +156,7 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 		spatial_database_uri:       spatial_database_uri,
 		spatial_databases_counter:  spatial_databases_counter,
 		spatial_databases_releaser: spatial_databases_releaser,
-		spatial_databases_ttl:      spatial_databases_ttl,
+		spatial_databases_ttl:      db_ttl,
 		spatial_databases_cache:    spatial_databases_cache,
 		spatial_databases_mutex:    spatial_databases_mutex,
 	}
@@ -263,7 +262,7 @@ func (db *PMTilesSpatialDatabase) releaseSpatialDatabase(ctx context.Context, co
 
 		logger.Debug("Schedule release")
 
-		ttl_ms := rand.IntN(db.database_ttl)
+		ttl_ms := rand.IntN(db.spatial_databases_ttl)
 		ttl_d := time.Duration(ttl_ms) * time.Millisecond
 
 		go func(db_name string, ttl time.Duration) {
