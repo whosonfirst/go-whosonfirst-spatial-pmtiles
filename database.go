@@ -250,10 +250,9 @@ func (db *PMTilesSpatialDatabase) releaseSpatialDatabase(ctx context.Context, co
 	logger = logger.With("db", db_name)
 	logger = logger.With("count", count)
 
-	// logger.Info("Release database")
-
 	if count == 0 {
 
+		/*
 		_, scheduled := db.spatial_databases_releaser.LoadOrStore(db_name, true)
 
 		logger = logger.With("scheduled", scheduled)
@@ -262,7 +261,7 @@ func (db *PMTilesSpatialDatabase) releaseSpatialDatabase(ctx context.Context, co
 			return
 		}
 
-		// logger.Info("Schedule release")
+		logger.Debug("Schedule release")
 
 		go func() {
 
@@ -282,10 +281,10 @@ func (db *PMTilesSpatialDatabase) releaseSpatialDatabase(ctx context.Context, co
 				counter := db.spatial_databases_counter.Count(db_name)
 
 				if counter > 0 {
-					logger.Info("Skip release", "new count", counter)
+					logger.Debug("Skip release", "new count", counter)
 					return
 				}
-
+		*/
 				db_v, exists := db.spatial_databases_cache.Load(db_name)
 
 				if !exists {
@@ -296,11 +295,13 @@ func (db *PMTilesSpatialDatabase) releaseSpatialDatabase(ctx context.Context, co
 				spatial_db.Disconnect(ctx)
 				db.spatial_databases_cache.Delete(db_name)
 
-				logger.Info("Delete database")
+		/*
+				logger.Debug("Delete database")
 				return
 			}
 
 		}()
+		*/
 	}
 
 }
