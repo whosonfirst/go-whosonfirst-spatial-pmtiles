@@ -253,55 +253,57 @@ func (db *PMTilesSpatialDatabase) releaseSpatialDatabase(ctx context.Context, co
 	if count == 0 {
 
 		/*
-		_, scheduled := db.spatial_databases_releaser.LoadOrStore(db_name, true)
+			_, scheduled := db.spatial_databases_releaser.LoadOrStore(db_name, true)
 
-		logger = logger.With("scheduled", scheduled)
+			logger = logger.With("scheduled", scheduled)
 
-		if scheduled {
-			return
-		}
-
-		logger.Debug("Schedule release")
-
-		go func() {
-
-			select {
-			case <-ctx.Done():
-				return
-			case <-time.After(db.spatial_databases_ttl):
-
-				db.spatial_databases_mutex.Lock()
-
-				defer func() {
-					db.spatial_databases_releaser.Delete(db_name)
-					db.spatial_databases_mutex.Unlock()
-				}()
-
-				db_name := db.spatialDatabaseNameFromCoord(ctx, coord)
-				counter := db.spatial_databases_counter.Count(db_name)
-
-				if counter > 0 {
-					logger.Debug("Skip release", "new count", counter)
-					return
-				}
-		*/
-				db_v, exists := db.spatial_databases_cache.Load(db_name)
-
-				if !exists {
-					return
-				}
-
-				spatial_db := db_v.(database.SpatialDatabase)
-				spatial_db.Disconnect(ctx)
-				db.spatial_databases_cache.Delete(db_name)
-
-		/*
-				logger.Debug("Delete database")
+			if scheduled {
 				return
 			}
 
-		}()
+			logger.Debug("Schedule release")
 		*/
+
+		go func(db_name string) {
+
+			/*
+				select {
+				case <-ctx.Done():
+					return
+				case <-time.After(db.spatial_databases_ttl):
+			*/
+			db.spatial_databases_mutex.Lock()
+
+			defer func() {
+				db.spatial_databases_releaser.Delete(db_name)
+				db.spatial_databases_mutex.Unlock()
+			}()
+
+			// db_name := db.spatialDatabaseNameFromCoord(ctx, coord)
+			counter := db.spatial_databases_counter.Count(db_name)
+
+			if counter > 0 {
+				logger.Debug("Skip release", "new count", counter)
+				return
+			}
+
+			db_v, exists := db.spatial_databases_cache.Load(db_name)
+
+			if !exists {
+				return
+			}
+
+			spatial_db := db_v.(database.SpatialDatabase)
+			spatial_db.Disconnect(ctx)
+			db.spatial_databases_cache.Delete(db_name)
+
+			/*
+					logger.Debug("Delete database")
+					return
+				}
+			*/
+
+		}(db_name)
 	}
 
 }
