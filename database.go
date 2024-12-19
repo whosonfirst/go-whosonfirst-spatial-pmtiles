@@ -274,12 +274,20 @@ func (db *PMTilesSpatialDatabase) pruneSpatialDatabases(ctx context.Context) {
 
 	t1 := time.Now()
 
-	defer logger.Info("Finished pruning databases", "time", time.Since(t1))
+	defer func() {
+		logger.Info("Finished pruning databases", "time", time.Since(t1))
+	}()
 
 	to_prune := make([]string, 0)
 	now := time.Now()
 
+	total := 0
+	candidates := 0
+	pruned := 0
+
 	range_func := func(k any, v any) bool {
+
+		total += 1
 
 		db_name := k.(string)
 		t_remove := v.(time.Time)
@@ -293,8 +301,10 @@ func (db *PMTilesSpatialDatabase) pruneSpatialDatabases(ctx context.Context) {
 	}
 
 	db.spatial_databases_releaser.Range(range_func)
+	candidates = len(to_prune)
 
-	logger = logger.With("count", len(to_prune))
+	logger = logger.With("total", total)
+	logger = logger.With("candidates", candidates)
 
 	db.spatial_databases_mutex.Lock()
 	defer db.spatial_databases_mutex.Unlock()
@@ -318,7 +328,11 @@ func (db *PMTilesSpatialDatabase) pruneSpatialDatabases(ctx context.Context) {
 
 		db.spatial_databases_cache.Delete(db_name)
 		db.spatial_databases_releaser.Delete(db_name)
+
+		pruned += 1
 	}
+
+	logger = logger.With("pruned", pruned)
 }
 
 func (db *PMTilesSpatialDatabase) releaseSpatialDatabase(ctx context.Context, coord *orb.Point) {
@@ -347,7 +361,7 @@ func (db *PMTilesSpatialDatabase) releaseSpatialDatabase(ctx context.Context, co
 			return
 		}
 
-		logger.Info("Scheduled for removal", "time", then)
+		// logger.Info("Scheduled for removal", "time", then)
 		return
 
 		/*
