@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	_ "github.com/aaronland/gocloud-blob/s3"
@@ -21,7 +22,6 @@ import (
 	_ "gocloud.dev/docstore/memdocstore"
 	_ "modernc.org/sqlite"
 
-	// "github.com/dgraph-io/ristretto/v2"
 	"github.com/dustin/go-humanize"
 	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/encoding/mvt"
@@ -47,20 +47,14 @@ func init() {
 
 type PMTilesSpatialDatabase struct {
 	database.SpatialDatabase
-	server               *pmtiles.Server
-	database             string
-	layer                string
-	enable_feature_cache bool
-	cache_manager        cache.CacheManager
-	zoom                 int
-	spatial_database_uri string
-
-	/*
-		// The maximum number of milliseconds to wait before scheduling the deletion of a (cached) spatial databases with zero pointers.
-		// This value is used to determine a random number of milliseconds to wait before deleting a (cached) spatial database.
-		spatial_databases_ttl   int
-	*/
-
+	server                        *pmtiles.Server
+	database                      string
+	layer                         string
+	enable_feature_cache          bool
+	cache_manager                 cache.CacheManager
+	zoom                          int
+	spatial_database_uri          string
+	spatial_databases_ttl         int
 	spatial_databases_counter     *Counter
 	spatial_databases_releaser    *sync.Map
 	spatial_databases_cache       *sync.Map
@@ -68,7 +62,7 @@ type PMTilesSpatialDatabase struct {
 	spatial_databases_ticker      *time.Ticker
 	spatial_databases_ticker_done chan bool
 
-	// rcache                  *ristretto.Cache[string, database.SpatialDatabase]
+	count_pip int64
 }
 
 func NewPMTilesSpatialDatabaseReader(ctx context.Context, uri string) (reader.Reader, error) {
@@ -148,11 +142,13 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 
 	server.Start()
 
+	spatial_databases_ttl := 60 // seconds
+
 	spatial_databases_counter := NewCounter()
 	spatial_databases_releaser := new(sync.Map)
 	spatial_databases_cache := new(sync.Map)
 	spatial_databases_mutex := new(sync.RWMutex)
-	spatial_databases_ticker := time.NewTicker(10 * time.Second)
+	spatial_databases_ticker := time.NewTicker(time.Duration(spatial_databases_ttl) * time.Second)
 	spatial_databases_ticker_done := make(chan bool)
 
 	// To do: Check for query value
@@ -164,36 +160,21 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 	spatial_database_uri := fmt.Sprintf("sqlite://sqlite?dsn=%s", dsn)
 
 	db := &PMTilesSpatialDatabase{
-		server:               server,
-		database:             q_database,
-		layer:                q_layer,
-		zoom:                 zoom,
-		spatial_database_uri: spatial_database_uri,
-		/*
-			spatial_databases_ttl:      db_ttl,
-		*/
-
+		server:                        server,
+		database:                      q_database,
+		layer:                         q_layer,
+		zoom:                          zoom,
+		spatial_database_uri:          spatial_database_uri,
+		spatial_databases_ttl:         spatial_databases_ttl,
 		spatial_databases_counter:     spatial_databases_counter,
 		spatial_databases_releaser:    spatial_databases_releaser,
 		spatial_databases_cache:       spatial_databases_cache,
 		spatial_databases_mutex:       spatial_databases_mutex,
 		spatial_databases_ticker:      spatial_databases_ticker,
 		spatial_databases_ticker_done: spatial_databases_ticker_done,
+
+		count_pip: int64(0),
 	}
-
-	/*
-		rcache, err := ristretto.NewCache(&ristretto.Config[string, database.SpatialDatabase]{
-			NumCounters: 1e7,     // number of keys to track frequency of (10M).
-			MaxCost:     1 << 30, // maximum cost of cache (1GB).
-			BufferItems: 64,      // number of keys per Get buffer.
-		})
-
-		db.rcache = rcache
-
-		if err != nil {
-			return nil, err
-		}
-	*/
 
 	go func() {
 
@@ -213,8 +194,8 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 				after := memstats.HeapAlloc
 
 				diff := after - before
-				
-				slog.Info("Prune spatial databases", "before", humanize.Bytes(before), "after", humanize.Bytes(after), "diff", humanize.Bytes(diff))
+
+				slog.Info("Prune spatial databases", "before", humanize.Bytes(before), "after", humanize.Bytes(after), "diff", humanize.Bytes(diff), "count", atomic.LoadInt64(&db.count_pip))
 			}
 		}
 
@@ -275,7 +256,10 @@ func (db *PMTilesSpatialDatabase) PointInPolygon(ctx context.Context, coord *orb
 		return nil, fmt.Errorf("Failed to create spatial database, %w", err)
 	}
 
-	defer db.releaseSpatialDatabase(ctx, coord)
+	defer func() {
+		db.releaseSpatialDatabase(ctx, coord)
+		go atomic.AddInt64(&db.count_pip, 1)
+	}()
 
 	return spatial_db.PointInPolygon(ctx, coord, filters...)
 }
@@ -359,17 +343,25 @@ func (db *PMTilesSpatialDatabase) releaseSpatialDatabase(ctx context.Context, co
 	logger = logger.With("db", db_name)
 	logger = logger.With("count", count)
 
-	if count == 0 {
-
-		ttl_ms := rand.IntN(2000)
-		ttl_d := time.Duration(ttl_ms) * time.Millisecond
-
-		now := time.Now()
-		then := now.Add(ttl_d)
-
-		db.spatial_databases_releaser.LoadOrStore(db_name, then)
+	if count > 0 {
+		return
 	}
 
+	_, exists := db.spatial_databases_releaser.Load(db_name)
+
+	if exists {
+		return
+	}
+
+	i := int(float32(db.spatial_databases_ttl*1000) / 3.0)
+
+	ttl_ms := rand.IntN(i)
+	ttl_d := time.Duration(ttl_ms) * time.Millisecond
+
+	now := time.Now()
+	then := now.Add(ttl_d)
+
+	db.spatial_databases_releaser.LoadOrStore(db_name, then)
 }
 
 func (db *PMTilesSpatialDatabase) PointInPolygonCandidates(ctx context.Context, coord *orb.Point, filters ...spatial.Filter) ([]*spatial.PointInPolygonCandidate, error) {
@@ -607,14 +599,6 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseFromCoord(ctx context.Context, 
 
 	db_name := db.spatialDatabaseNameFromCoord(ctx, coord)
 
-	/*
-		v, exists := db.rcache.Get(db_name)
-
-		if exists {
-			return v, nil
-		}
-	*/
-
 	v, exists := db.spatial_databases_cache.Load(db_name)
 
 	if exists {
@@ -631,13 +615,6 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseFromCoord(ctx context.Context, 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create spatial database, %w", err)
 	}
-
-	/*
-		defer func() {
-			db.rcache.Set(db_name, spatial_db, 1)
-			db.rcache.Wait()
-		}()
-	*/
 
 	db.spatial_databases_cache.Store(db_name, spatial_db)
 	db.spatial_databases_counter.Increment(db_name, 1)
