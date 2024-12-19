@@ -6,7 +6,7 @@ require (
 	github.com/aaronland/go-roster v1.0.0
 	github.com/aaronland/gocloud-blob v0.4.0
 	github.com/aaronland/gocloud-docstore v0.0.8
-	github.com/dgraph-io/ristretto/v2 v2.0.1
+	github.com/dustin/go-humanize v1.0.1
 	github.com/json-iterator/go v1.1.12
 	github.com/paulmach/orb v0.11.1
 	github.com/protomaps/go-pmtiles v1.22.3
@@ -94,7 +94,6 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/dhconnelly/rtreego v1.2.0 // indirect
 	github.com/dominikbraun/graph v0.23.0 // indirect
-	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/g8rswimmer/error-chain v1.0.0 // indirect
@@ -146,6 +145,7 @@ require (
 	github.com/sfomuseum/iso8601duration v1.1.0 // indirect
 	github.com/sfomuseum/runtimevar v1.2.0 // indirect
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e // indirect
+	github.com/stretchr/testify v1.10.0 // indirect
 	github.com/tdewolff/minify/v2 v2.20.32 // indirect
 	github.com/tdewolff/parse/v2 v2.7.14 // indirect
 	github.com/tidwall/match v1.1.1 // indirect

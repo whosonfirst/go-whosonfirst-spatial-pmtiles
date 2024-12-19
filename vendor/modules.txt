@@ -408,11 +408,6 @@ github.com/cenkalti/backoff/v4
 # github.com/cespare/xxhash/v2 v2.3.0
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
-# github.com/dgraph-io/ristretto/v2 v2.0.1
-## explicit; go 1.21
-github.com/dgraph-io/ristretto/v2
-github.com/dgraph-io/ristretto/v2/z
-github.com/dgraph-io/ristretto/v2/z/simd
 # github.com/dhconnelly/rtreego v1.2.0
 ## explicit; go 1.13
 github.com/dhconnelly/rtreego
@@ -647,6 +642,8 @@ github.com/sfomuseum/runtimevar
 github.com/skip2/go-qrcode
 github.com/skip2/go-qrcode/bitset
 github.com/skip2/go-qrcode/reedsolomon
+# github.com/stretchr/testify v1.10.0
+## explicit; go 1.17
 # github.com/tdewolff/minify/v2 v2.20.32
 ## explicit; go 1.18
 github.com/tdewolff/minify/v2
