@@ -56,8 +56,8 @@ type PMTilesSpatialDatabase struct {
 	spatial_database_uri          string
 	spatial_databases_ttl         int
 	spatial_databases_counter     *Counter
-	spatial_databases_releaser    *sync.Map
-	spatial_databases_cache       *sync.Map
+	spatial_databases_releaser    map[string]time.Time                // *sync.Map
+	spatial_databases_cache       map[string]database.SpatialDatabase // *sync.Map
 	spatial_databases_mutex       *sync.RWMutex
 	spatial_databases_ticker      *time.Ticker
 	spatial_databases_ticker_done chan bool
@@ -145,8 +145,8 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 	spatial_databases_ttl := 60 // seconds
 
 	spatial_databases_counter := NewCounter()
-	spatial_databases_releaser := new(sync.Map)
-	spatial_databases_cache := new(sync.Map)
+	spatial_databases_releaser := make(map[string]time.Time)             // new(sync.Map)
+	spatial_databases_cache := make(map[string]database.SpatialDatabase) // new(sync.Map)
 	spatial_databases_mutex := new(sync.RWMutex)
 	spatial_databases_ticker := time.NewTicker(time.Duration(spatial_databases_ttl) * time.Second)
 	spatial_databases_ticker_done := make(chan bool)
@@ -266,6 +266,9 @@ func (db *PMTilesSpatialDatabase) PointInPolygon(ctx context.Context, coord *orb
 
 func (db *PMTilesSpatialDatabase) pruneSpatialDatabases(ctx context.Context) {
 
+	db.spatial_databases_mutex.Lock()
+	defer db.spatial_databases_mutex.Unlock()
+
 	logger := slog.Default()
 
 	t1 := time.Now()
@@ -281,29 +284,40 @@ func (db *PMTilesSpatialDatabase) pruneSpatialDatabases(ctx context.Context) {
 	candidates := 0
 	pruned := 0
 
-	range_func := func(k any, v any) bool {
+	/*
+		range_func := func(k any, v any) bool {
 
-		total += 1
+			total += 1
 
-		db_name := k.(string)
-		t_remove := v.(time.Time)
+			db_name := k.(string)
+			t_remove := v.(time.Time)
 
-		if now.Before(t_remove) {
+			if now.Before(t_remove) {
+				return true
+			}
+
+			to_prune = append(to_prune, db_name)
 			return true
 		}
 
+		db.spatial_databases_releaser.Range(range_func)
+	*/
+
+	for db_name, t_remove := range db.spatial_databases_releaser {
+
+		total += 1
+		
+		if now.Before(t_remove) {
+			continue
+		}
+
 		to_prune = append(to_prune, db_name)
-		return true
 	}
 
-	db.spatial_databases_releaser.Range(range_func)
 	candidates = len(to_prune)
 
 	logger = logger.With("total", total)
 	logger = logger.With("candidates", candidates)
-
-	db.spatial_databases_mutex.Lock()
-	defer db.spatial_databases_mutex.Unlock()
 
 	for _, db_name := range to_prune {
 
@@ -313,17 +327,22 @@ func (db *PMTilesSpatialDatabase) pruneSpatialDatabases(ctx context.Context) {
 			continue
 		}
 
-		v, exists := db.spatial_databases_cache.Load(db_name)
+		// v, exists := db.spatial_databases_cache.Load(db_name)
+
+		expired_db, exists := db.spatial_databases_cache[db_name]
 
 		if !exists {
 			continue
 		}
 
-		expired_db := v.(database.SpatialDatabase)
+		// expired_db := v.(database.SpatialDatabase)
 		expired_db.Disconnect(ctx)
 
-		db.spatial_databases_cache.Delete(db_name)
-		db.spatial_databases_releaser.Delete(db_name)
+		// db.spatial_databases_cache.Delete(db_name)
+		// db.spatial_databases_releaser.Delete(db_name)
+
+		delete(db.spatial_databases_cache, db_name)
+		delete(db.spatial_databases_releaser, db_name)
 
 		pruned += 1
 	}
@@ -347,7 +366,8 @@ func (db *PMTilesSpatialDatabase) releaseSpatialDatabase(ctx context.Context, co
 		return
 	}
 
-	_, exists := db.spatial_databases_releaser.Load(db_name)
+	// _, exists := db.spatial_databases_releaser.Load(db_name)
+	_, exists := db.spatial_databases_releaser[db_name]
 
 	if exists {
 		return
@@ -361,7 +381,8 @@ func (db *PMTilesSpatialDatabase) releaseSpatialDatabase(ctx context.Context, co
 	now := time.Now()
 	then := now.Add(ttl_d)
 
-	db.spatial_databases_releaser.LoadOrStore(db_name, then)
+	db.spatial_databases_releaser[db_name] = then
+	// db.spatial_databases_releaser.LoadOrStore(db_name, then)
 }
 
 func (db *PMTilesSpatialDatabase) PointInPolygonCandidates(ctx context.Context, coord *orb.Point, filters ...spatial.Filter) ([]*spatial.PointInPolygonCandidate, error) {
@@ -407,12 +428,18 @@ func (db *PMTilesSpatialDatabase) PointInPolygonCandidatesWithChannels(ctx conte
 
 func (db *PMTilesSpatialDatabase) Disconnect(ctx context.Context) error {
 
-	db.spatial_databases_cache.Range(func(k interface{}, v interface{}) bool {
-		spatial_db := v.(database.SpatialDatabase)
+	/*
+		db.spatial_databases_cache.Range(func(k interface{}, v interface{}) bool {
+			spatial_db := v.(database.SpatialDatabase)
+			spatial_db.Disconnect(ctx)
+			db.spatial_databases_cache.Delete(k.(string))
+			return true
+		})
+	*/
+
+	for _, spatial_db := range db.spatial_databases_cache {
 		spatial_db.Disconnect(ctx)
-		db.spatial_databases_cache.Delete(k.(string))
-		return true
-	})
+	}
 
 	db.spatial_databases_ticker_done <- true
 
@@ -599,11 +626,14 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseFromCoord(ctx context.Context, 
 
 	db_name := db.spatialDatabaseNameFromCoord(ctx, coord)
 
-	v, exists := db.spatial_databases_cache.Load(db_name)
+	// v, exists := db.spatial_databases_cache.Load(db_name)
+
+	v, exists := db.spatial_databases_cache[db_name]
 
 	if exists {
 		db.spatial_databases_counter.Increment(db_name, 1)
-		return v.(database.SpatialDatabase), nil
+		// return v.(database.SpatialDatabase), nil
+		return v, nil
 	}
 
 	zoom := uint32(db.zoom)
@@ -616,7 +646,9 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseFromCoord(ctx context.Context, 
 		return nil, fmt.Errorf("Failed to create spatial database, %w", err)
 	}
 
-	db.spatial_databases_cache.Store(db_name, spatial_db)
+	// db.spatial_databases_cache.Store(db_name, spatial_db)
+	db.spatial_databases_cache[db_name] = spatial_db
+
 	db.spatial_databases_counter.Increment(db_name, 1)
 
 	return spatial_db, nil
