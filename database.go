@@ -266,9 +266,6 @@ func (db *PMTilesSpatialDatabase) PointInPolygon(ctx context.Context, coord *orb
 
 func (db *PMTilesSpatialDatabase) pruneSpatialDatabases(ctx context.Context) {
 
-	db.spatial_databases_mutex.Lock()
-	defer db.spatial_databases_mutex.Unlock()
-
 	logger := slog.Default()
 
 	t1 := time.Now()
@@ -306,7 +303,7 @@ func (db *PMTilesSpatialDatabase) pruneSpatialDatabases(ctx context.Context) {
 	for db_name, t_remove := range db.spatial_databases_releaser {
 
 		total += 1
-		
+
 		if now.Before(t_remove) {
 			continue
 		}
@@ -319,41 +316,45 @@ func (db *PMTilesSpatialDatabase) pruneSpatialDatabases(ctx context.Context) {
 	logger = logger.With("total", total)
 	logger = logger.With("candidates", candidates)
 
-	for _, db_name := range to_prune {
+	if candidates > 0 {
 
-		count := db.spatial_databases_counter.Count(db_name)
+		db.spatial_databases_mutex.Lock()
+		defer db.spatial_databases_mutex.Unlock()
 
-		if count > 0 {
-			continue
+		for _, db_name := range to_prune {
+
+			count := db.spatial_databases_counter.Count(db_name)
+
+			if count > 0 {
+				continue
+			}
+
+			// v, exists := db.spatial_databases_cache.Load(db_name)
+
+			expired_db, exists := db.spatial_databases_cache[db_name]
+
+			if !exists {
+				continue
+			}
+
+			// expired_db := v.(database.SpatialDatabase)
+			expired_db.Disconnect(ctx)
+
+			// db.spatial_databases_cache.Delete(db_name)
+			// db.spatial_databases_releaser.Delete(db_name)
+
+			delete(db.spatial_databases_cache, db_name)
+			delete(db.spatial_databases_releaser, db_name)
+
+			pruned += 1
 		}
 
-		// v, exists := db.spatial_databases_cache.Load(db_name)
-
-		expired_db, exists := db.spatial_databases_cache[db_name]
-
-		if !exists {
-			continue
-		}
-
-		// expired_db := v.(database.SpatialDatabase)
-		expired_db.Disconnect(ctx)
-
-		// db.spatial_databases_cache.Delete(db_name)
-		// db.spatial_databases_releaser.Delete(db_name)
-
-		delete(db.spatial_databases_cache, db_name)
-		delete(db.spatial_databases_releaser, db_name)
-
-		pruned += 1
+		logger = logger.With("pruned", pruned)
 	}
 
-	logger = logger.With("pruned", pruned)
 }
 
 func (db *PMTilesSpatialDatabase) releaseSpatialDatabase(ctx context.Context, coord *orb.Point) {
-
-	db.spatial_databases_mutex.Lock()
-	defer db.spatial_databases_mutex.Unlock()
 
 	db_name := db.spatialDatabaseNameFromCoord(ctx, coord)
 	count := db.spatial_databases_counter.Increment(db_name, -1)
@@ -366,6 +367,9 @@ func (db *PMTilesSpatialDatabase) releaseSpatialDatabase(ctx context.Context, co
 		return
 	}
 
+	db.spatial_databases_mutex.Lock()
+	defer db.spatial_databases_mutex.Unlock()
+	
 	// _, exists := db.spatial_databases_releaser.Load(db_name)
 	_, exists := db.spatial_databases_releaser[db_name]
 
