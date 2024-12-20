@@ -100,15 +100,24 @@ func (t *NamesTable) IndexFeature(ctx context.Context, db *sql.DB, f []byte) err
 	lastmod := properties.LastModified(f)
 	names := properties.Names(f)
 
+	db_driver := database_sql.Driver(db)
+
 	tx, err := db.Begin()
 
 	if err != nil {
 		return database_sql.BeginTransactionError(t, err)
 	}
 
-	sql := fmt.Sprintf(`DELETE FROM %s WHERE id = ?`, t.Name())
+	var delete_q string
 
-	stmt, err := tx.Prepare(sql)
+	switch db_driver {
+	case database_sql.POSTGRES_DRIVER:
+		delete_q = fmt.Sprintf(`DELETE FROM %s WHERE id = $1`, t.Name())
+	default:
+		delete_q = fmt.Sprintf(`DELETE FROM %s WHERE id = ?`, t.Name())
+	}
+
+	stmt, err := tx.Prepare(delete_q)
 
 	if err != nil {
 		return database_sql.PrepareStatementError(t, err)
@@ -132,23 +141,47 @@ func (t *NamesTable) IndexFeature(ctx context.Context, db *sql.DB, f []byte) err
 
 		for _, n := range names {
 
-			sql := fmt.Sprintf(`INSERT INTO %s (
-	    			id, placetype, country,
-				language, extlang,
-				region, script, variant,
-	    			extension, privateuse,
-				name,
-	    			lastmodified
-			) VALUES (
-	    		  	?, ?, ?,
-				?, ?,
-				?, ?, ?,
-				?, ?,
-				?,
-				?
-			)`, t.Name())
+			var insert_q string
 
-			stmt, err := tx.Prepare(sql)
+			switch db_driver {
+			case database_sql.POSTGRES_DRIVER:
+
+				insert_q = fmt.Sprintf(`INSERT INTO %s (
+	    				id, placetype, country,
+					language, extlang,
+					region, script, variant,
+	    				extension, privateuse,
+					name,
+	    				lastmodified
+				) VALUES (
+	    		  		$1, $2, $3,
+					$4, $5,
+					$6, $7, $8,
+					$9, $10,
+					$11,
+					$12
+				)`, t.Name())
+
+			default:
+
+				insert_q = fmt.Sprintf(`INSERT INTO %s (
+	    				id, placetype, country,
+					language, extlang,
+					region, script, variant,
+	    				extension, privateuse,
+					name,
+	    				lastmodified
+				) VALUES (
+	    		  		?, ?, ?,
+					?, ?,
+					?, ?, ?,
+					?, ?,
+					?,
+					?
+				)`, t.Name())
+			}
+
+			stmt, err := tx.Prepare(insert_q)
 
 			if err != nil {
 				return database_sql.PrepareStatementError(t, err)

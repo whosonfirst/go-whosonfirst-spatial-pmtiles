@@ -74,19 +74,38 @@ func (t *SupersedesTable) IndexFeature(ctx context.Context, db *sql.DB, f []byte
 
 	lastmod := properties.LastModified(f)
 
+	db_driver := database_sql.Driver(db)
+
 	tx, err := db.Begin()
 
 	if err != nil {
 		return database_sql.BeginTransactionError(t, err)
 	}
 
-	sql := fmt.Sprintf(`INSERT OR REPLACE INTO %s (
+	var insert_q string
+
+	switch db_driver {
+	case database_sql.POSTGRES_DRIVER:
+
+		insert_q = fmt.Sprintf(`INSERT INTO %s (
+				id, superseded_id, superseded_by_id, lastmodified
+			) VALUES (
+			  	 $1, $2, $3, $4
+			) ON CONFLICT(id) DO UPDATE SET
+				superseded_id = EXCLUDED.superseded_id,
+				superseded_by_id = EXCLUDED.superseded_by_id,
+				lastmodified = EXCLUDED.lastmodified`, t.Name())
+
+	default:
+
+		insert_q = fmt.Sprintf(`INSERT OR REPLACE INTO %s (
 				id, superseded_id, superseded_by_id, lastmodified
 			) VALUES (
 			  	 ?, ?, ?, ?
 			)`, t.Name())
+	}
 
-	stmt, err := tx.Prepare(sql)
+	stmt, err := tx.Prepare(insert_q)
 
 	if err != nil {
 		return database_sql.PrepareStatementError(t, err)

@@ -1,0 +1,12 @@
+CREATE TABLE {{ .Name }} (
+	id BIGINT NOT NULL,
+	geometry GEOMETRY,
+	type TEXT,
+	is_alt BOOLEAN,
+	alt_label TEXT,
+	lastmodified BIGINT
+);
+
+CREATE INDEX {{ .Name}}_by_geometry ON geometries USING GIST(geometry);
+CREATE UNIQUE INDEX {{ .Name }}_by_id ON {{ .Name }} (id, alt_label);
+CREATE INDEX {{ .Name }}_geometries_by_lastmod ON {{ .Name }} (lastmodified);
