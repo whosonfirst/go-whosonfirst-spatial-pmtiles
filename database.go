@@ -54,8 +54,8 @@ type PMTilesSpatialDatabase struct {
 	spatial_database_uri             string
 	spatial_databases_ttl            int
 	spatial_databases_counter        *Counter
-	spatial_databases_releaser       map[string]time.Time                // *sync.Map
-	spatial_databases_cache          map[string]database.SpatialDatabase // *sync.Map
+	spatial_databases_releaser       map[string]time.Time
+	spatial_databases_cache          map[string]database.SpatialDatabase
 	spatial_databases_cache_mutex    *sync.RWMutex
 	spatial_databases_releaser_mutex *sync.RWMutex
 
@@ -116,21 +116,6 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 		zoom = z
 	}
 
-	/*
-		db_ttl := 2000
-
-		if q.Has("database-ttl") {
-
-			v, err := strconv.Atoi(q.Get("database-ttl"))
-
-			if err != nil {
-				return nil, fmt.Errorf("Failed to parse ?database-tll= parameter, %w", err)
-			}
-
-			db_ttl = v
-		}
-	*/
-
 	logger := slog.Default()
 	log_logger := slog.NewLogLogger(logger.Handler(), slog.LevelDebug)
 
@@ -143,6 +128,17 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 	server.Start()
 
 	spatial_databases_ttl := 30 // seconds
+
+	if q.Has("database-ttl") {
+
+		v, err := strconv.Atoi(q.Get("database-ttl"))
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to parse ?database-tll= parameter, %w", err)
+		}
+
+		spatial_databases_ttl = v
+	}
 
 	spatial_databases_counter := NewCounter()
 
@@ -395,6 +391,18 @@ func (db *PMTilesSpatialDatabase) Disconnect(ctx context.Context) error {
 	if db.cache_manager != nil {
 		db.cache_manager.Close()
 	}
+
+	db.spatial_databases_cache_mutex.Lock()
+	db.spatial_databases_releaser_mutex.Lock()
+
+	for db_name, spatial_db := range db.spatial_databases_cache {
+		spatial_db.Disconnect(ctx)
+		delete(db.spatial_databases_cache, db_name)
+		delete(db.spatial_databases_releaser, db_name)
+	}
+
+	db.spatial_databases_cache_mutex.Unlock()
+	db.spatial_databases_releaser_mutex.Unlock()
 
 	return nil
 }
