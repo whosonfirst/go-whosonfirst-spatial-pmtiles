@@ -8,7 +8,8 @@ import (
 	"log/slog"
 	"math/rand/v2"
 	"net/url"
-	"runtime"
+	"os"
+	// "runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -22,7 +23,7 @@ import (
 	_ "gocloud.dev/docstore/memdocstore"
 	_ "modernc.org/sqlite"
 
-	"github.com/dustin/go-humanize"
+	// "github.com/dustin/go-humanize"
 	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/encoding/mvt"
 	"github.com/paulmach/orb/geojson"
@@ -45,20 +46,31 @@ func init() {
 	reader.RegisterReader(ctx, "pmtiles", NewPMTilesSpatialDatabaseReader)
 }
 
+type spatialDatabaseTmpfile struct {
+	Path    string
+	Created int64
+	Name    string
+}
+
 type PMTilesSpatialDatabase struct {
 	database.SpatialDatabase
-	server                        *pmtiles.Server
-	database                      string
-	layer                         string
-	enable_feature_cache          bool
-	cache_manager                 cache.CacheManager
-	zoom                          int
-	spatial_database_uri          string
-	spatial_databases_ttl         int
-	spatial_databases_counter     *Counter
-	spatial_databases_releaser    map[string]time.Time                // *sync.Map
-	spatial_databases_cache       map[string]database.SpatialDatabase // *sync.Map
-	spatial_databases_mutex       *sync.RWMutex
+	server                           *pmtiles.Server
+	database                         string
+	layer                            string
+	enable_feature_cache             bool
+	cache_manager                    cache.CacheManager
+	zoom                             int
+	spatial_database_uri             string
+	spatial_databases_ttl            int
+	spatial_databases_counter        *Counter
+	spatial_databases_releaser       map[string]time.Time                // *sync.Map
+	spatial_databases_cache          map[string]database.SpatialDatabase // *sync.Map
+	spatial_databases_mutex          *sync.RWMutex
+	spatial_databases_releaser_mutex *sync.RWMutex
+
+	spatial_databases_paths       map[string]*spatialDatabaseTmpfile
+	spatial_databases_paths_mutex *sync.RWMutex
+
 	spatial_databases_ticker      *time.Ticker
 	spatial_databases_ticker_done chan bool
 
@@ -145,10 +157,19 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 	spatial_databases_ttl := 60 // seconds
 
 	spatial_databases_counter := NewCounter()
-	spatial_databases_releaser := make(map[string]time.Time)             // new(sync.Map)
-	spatial_databases_cache := make(map[string]database.SpatialDatabase) // new(sync.Map)
+
+	spatial_databases_releaser := make(map[string]time.Time)
+	spatial_databases_releaser_mutex := new(sync.RWMutex)
+
+	spatial_databases_cache := make(map[string]database.SpatialDatabase)
 	spatial_databases_mutex := new(sync.RWMutex)
+
+	spatial_databases_paths := make(map[string]*spatialDatabaseTmpfile)
+	spatial_databases_paths_mutex := new(sync.RWMutex)
+
 	spatial_databases_ticker := time.NewTicker(time.Duration(spatial_databases_ttl) * time.Second)
+	spatial_databases_paths_ticker := time.NewTicker(time.Duration(1) * time.Minute)
+
 	spatial_databases_ticker_done := make(chan bool)
 
 	// To do: Check for query value
@@ -156,22 +177,32 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 	// This triggers "distance errors" which I don't really understand yet
 	// spatial_database_uri := "rtree://"
 
-	dsn := url.QueryEscape("file::memory:?mode=memory&cache=shared")
+	// The problem with this is that all the databases are in fact one shared database
+	// which causes all the queries to slow down over time.
+	// dsn := url.QueryEscape("file::memory:?mode=memory&cache=shared")
+
+	// TBD... https://github.com/mroth/ramdisk
+	dsn := "{tmp}"
+
 	spatial_database_uri := fmt.Sprintf("sqlite://sqlite?dsn=%s", dsn)
 
 	db := &PMTilesSpatialDatabase{
-		server:                        server,
-		database:                      q_database,
-		layer:                         q_layer,
-		zoom:                          zoom,
-		spatial_database_uri:          spatial_database_uri,
-		spatial_databases_ttl:         spatial_databases_ttl,
-		spatial_databases_counter:     spatial_databases_counter,
-		spatial_databases_releaser:    spatial_databases_releaser,
-		spatial_databases_cache:       spatial_databases_cache,
-		spatial_databases_mutex:       spatial_databases_mutex,
-		spatial_databases_ticker:      spatial_databases_ticker,
-		spatial_databases_ticker_done: spatial_databases_ticker_done,
+		server:                           server,
+		database:                         q_database,
+		layer:                            q_layer,
+		zoom:                             zoom,
+		spatial_database_uri:             spatial_database_uri,
+		spatial_databases_ttl:            spatial_databases_ttl,
+		spatial_databases_counter:        spatial_databases_counter,
+		spatial_databases_releaser:       spatial_databases_releaser,
+		spatial_databases_releaser_mutex: spatial_databases_releaser_mutex,
+		spatial_databases_cache:          spatial_databases_cache,
+		spatial_databases_mutex:          spatial_databases_mutex,
+		spatial_databases_ticker:         spatial_databases_ticker,
+		spatial_databases_ticker_done:    spatial_databases_ticker_done,
+
+		spatial_databases_paths:       spatial_databases_paths,
+		spatial_databases_paths_mutex: spatial_databases_paths_mutex,
 
 		count_pip: int64(0),
 	}
@@ -182,20 +213,27 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 			select {
 			case <-db.spatial_databases_ticker_done:
 				return
+			case <-spatial_databases_paths_ticker.C:
+
+				db.pruneTmpfiles(ctx)
+
 			case <-spatial_databases_ticker.C:
 
-				var memstats runtime.MemStats
-				runtime.ReadMemStats(&memstats)
-				before := memstats.HeapAlloc
+				/*
+					var memstats runtime.MemStats
+					runtime.ReadMemStats(&memstats)
+					before := memstats.HeapAlloc
+
+
+					runtime.ReadMemStats(&memstats)
+					after := memstats.HeapAlloc
+
+					diff := after - before
+
+					slog.Info("Prune spatial databases", "before", humanize.Bytes(before), "after", humanize.Bytes(after), "diff", humanize.Bytes(diff), "count", atomic.LoadInt64(&db.count_pip))
+				*/
 
 				db.pruneSpatialDatabases(ctx)
-
-				runtime.ReadMemStats(&memstats)
-				after := memstats.HeapAlloc
-
-				diff := after - before
-
-				slog.Info("Prune spatial databases", "before", humanize.Bytes(before), "after", humanize.Bytes(after), "diff", humanize.Bytes(diff), "count", atomic.LoadInt64(&db.count_pip))
 			}
 		}
 
@@ -264,94 +302,108 @@ func (db *PMTilesSpatialDatabase) PointInPolygon(ctx context.Context, coord *orb
 	return spatial_db.PointInPolygon(ctx, coord, filters...)
 }
 
+func (db *PMTilesSpatialDatabase) pruneTmpfiles(ctx context.Context) {
+
+	now := time.Now()
+	ts_now := now.Unix()
+
+	total := 0
+	pruned := 0
+
+	defer func() {
+		slog.Info("Time to prune tempfiles", "time", time.Since(now))
+	}()
+
+	wg := new(sync.WaitGroup)
+
+	db.spatial_databases_paths_mutex.Lock()
+
+	for tile_path, tmpfile := range db.spatial_databases_paths {
+
+		total += 1
+
+		ts_then := tmpfile.Created
+		ts_diff := ts_now - ts_then
+
+		if ts_diff < 300 {
+			// slog.Info("Skip prune", "diff", ts_diff)
+			continue
+		}
+
+		count := db.spatial_databases_counter.Count(tmpfile.Name)
+
+		if count > 0 {
+			// slog.Info("Skip prune", "count", count)
+			continue
+		}
+
+		slog.Info("Prune tmpfile", "tile path", tile_path, "path", tmpfile.Path)
+		delete(db.spatial_databases_paths, tile_path)
+
+		pruned += 1
+
+		wg.Add(1)
+
+		go func(tmp_path string) {
+			defer wg.Done()
+			slog.Info("Remove", "path", tmp_path)
+			os.Remove(tmp_path)
+		}(tmpfile.Path)
+	}
+
+	wg.Wait()
+
+	db.spatial_databases_paths_mutex.Unlock()
+}
+
 func (db *PMTilesSpatialDatabase) pruneSpatialDatabases(ctx context.Context) {
 
 	logger := slog.Default()
 
-	t1 := time.Now()
-
-	defer func() {
-		logger.Info("Finished pruning databases", "time", time.Since(t1))
-	}()
-
-	to_prune := make([]string, 0)
-	now := time.Now()
-
 	total := 0
-	candidates := 0
 	pruned := 0
 
-	/*
-		range_func := func(k any, v any) bool {
+	now := time.Now()
 
-			total += 1
+	defer func() {
+		logger.Info("Finished pruning databases", "total", total, "pruned", pruned, "time", time.Since(now))
+	}()
 
-			db_name := k.(string)
-			t_remove := v.(time.Time)
+	db.spatial_databases_mutex.Lock()
+	db.spatial_databases_releaser_mutex.Lock()
 
-			if now.Before(t_remove) {
-				return true
-			}
+	defer func() {
+		db.spatial_databases_mutex.Unlock()
+		db.spatial_databases_releaser_mutex.Unlock()
+	}()
 
-			to_prune = append(to_prune, db_name)
-			return true
-		}
-
-		db.spatial_databases_releaser.Range(range_func)
-	*/
+	new_releaser := make(map[string]time.Time)
+	new_cache := make(map[string]database.SpatialDatabase)
 
 	for db_name, t_remove := range db.spatial_databases_releaser {
 
 		total += 1
 
-		if now.Before(t_remove) {
-			continue
-		}
+		spatial_db, db_exists := db.spatial_databases_cache[db_name]
 
-		to_prune = append(to_prune, db_name)
-	}
+		if db_exists {
 
-	candidates = len(to_prune)
+			if now.Before(t_remove) {
 
-	logger = logger.With("total", total)
-	logger = logger.With("candidates", candidates)
-
-	if candidates > 0 {
-
-		db.spatial_databases_mutex.Lock()
-		defer db.spatial_databases_mutex.Unlock()
-
-		for _, db_name := range to_prune {
-
-			count := db.spatial_databases_counter.Count(db_name)
-
-			if count > 0 {
+				new_releaser[db_name] = t_remove
+				new_cache[db_name] = spatial_db
 				continue
 			}
 
-			// v, exists := db.spatial_databases_cache.Load(db_name)
-
-			expired_db, exists := db.spatial_databases_cache[db_name]
-
-			if !exists {
-				continue
-			}
-
-			// expired_db := v.(database.SpatialDatabase)
-			expired_db.Disconnect(ctx)
-
-			// db.spatial_databases_cache.Delete(db_name)
-			// db.spatial_databases_releaser.Delete(db_name)
-
-			delete(db.spatial_databases_cache, db_name)
-			delete(db.spatial_databases_releaser, db_name)
-
+			go spatial_db.Disconnect(ctx)
 			pruned += 1
 		}
-
-		logger = logger.With("pruned", pruned)
 	}
 
+	db.spatial_databases_cache = new_cache
+	db.spatial_databases_releaser = new_releaser
+
+	return
 }
 
 func (db *PMTilesSpatialDatabase) releaseSpatialDatabase(ctx context.Context, coord *orb.Point) {
@@ -367,10 +419,9 @@ func (db *PMTilesSpatialDatabase) releaseSpatialDatabase(ctx context.Context, co
 		return
 	}
 
-	db.spatial_databases_mutex.Lock()
-	defer db.spatial_databases_mutex.Unlock()
-	
-	// _, exists := db.spatial_databases_releaser.Load(db_name)
+	db.spatial_databases_releaser_mutex.Lock()
+	defer db.spatial_databases_releaser_mutex.Unlock()
+
 	_, exists := db.spatial_databases_releaser[db_name]
 
 	if exists {
@@ -386,7 +437,6 @@ func (db *PMTilesSpatialDatabase) releaseSpatialDatabase(ctx context.Context, co
 	then := now.Add(ttl_d)
 
 	db.spatial_databases_releaser[db_name] = then
-	// db.spatial_databases_releaser.LoadOrStore(db_name, then)
 }
 
 func (db *PMTilesSpatialDatabase) PointInPolygonCandidates(ctx context.Context, coord *orb.Point, filters ...spatial.Filter) ([]*spatial.PointInPolygonCandidate, error) {
@@ -432,20 +482,11 @@ func (db *PMTilesSpatialDatabase) PointInPolygonCandidatesWithChannels(ctx conte
 
 func (db *PMTilesSpatialDatabase) Disconnect(ctx context.Context) error {
 
-	/*
-		db.spatial_databases_cache.Range(func(k interface{}, v interface{}) bool {
-			spatial_db := v.(database.SpatialDatabase)
-			spatial_db.Disconnect(ctx)
-			db.spatial_databases_cache.Delete(k.(string))
-			return true
-		})
-	*/
-
-	for _, spatial_db := range db.spatial_databases_cache {
-		spatial_db.Disconnect(ctx)
-	}
-
 	db.spatial_databases_ticker_done <- true
+
+	for _, tmpfile := range db.spatial_databases_paths {
+		os.Remove(tmpfile.Path)
+	}
 
 	if db.cache_manager != nil {
 		db.cache_manager.Close()
@@ -496,7 +537,11 @@ func (db *PMTilesSpatialDatabase) ReaderURI(ctx context.Context, path string) st
 	return path
 }
 
-func (db *PMTilesSpatialDatabase) spatialDatabaseFromTile(ctx context.Context, t maptile.Tile) (database.SpatialDatabase, error) {
+func (db *PMTilesSpatialDatabase) spatialDatabaseFromTile(ctx context.Context, coord *orb.Point) (database.SpatialDatabase, error) {
+
+	zoom := uint32(db.zoom)
+	z := maptile.Zoom(zoom)
+	t := maptile.At(*coord, z)
 
 	path := fmt.Sprintf("/%s/%d/%d/%d.mvt", db.database, t.Z, t.X, t.Y)
 
@@ -521,11 +566,66 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseFromTile(ctx context.Context, t
 	logger = logger.With("spatial database uri", db.spatial_database_uri)
 	logger = logger.With("count features", len(features))
 
-	spatial_db, err := database.NewSpatialDatabase(ctx, db.spatial_database_uri)
+	// If db.spatial_database_uri dsn == "{tmp}"
+	// derive tmp path then update dsn and cache path
+	// Check to see if path already exists...
+
+	db_uri, err := url.Parse(db.spatial_database_uri)
+
+	if err != nil {
+		return nil, err
+	}
+
+	db_q := db_uri.Query()
+
+	switch db_q.Get("dsn") {
+	case "{tmp}":
+
+		db_q.Del("dsn")
+
+		db.spatial_databases_paths_mutex.RLock()
+
+		tmpfile, exists := db.spatial_databases_paths[path]
+
+		db.spatial_databases_paths_mutex.RUnlock()
+
+		if exists {
+			db_q.Set("dsn", fmt.Sprintf("%s&no-pragma=1", tmpfile.Path))
+		} else {
+
+			f, err := os.CreateTemp("", ".db")
+
+			if err != nil {
+				return nil, fmt.Errorf("Failed to create temp file, %w", err)
+			}
+
+			db_path := f.Name()
+			now := time.Now()
+
+			db_name := db.spatialDatabaseNameFromCoord(ctx, coord)
+			new_dsn := fmt.Sprintf("%s?", db_path)
+
+			tmpfile := spatialDatabaseTmpfile{
+				Path:    new_dsn,
+				Created: now.Unix(),
+				Name:    db_name,
+			}
+
+			db.spatial_databases_paths_mutex.Lock()
+			db.spatial_databases_paths[path] = &tmpfile
+			db.spatial_databases_paths_mutex.Unlock()
+
+			db_q.Set("dsn", new_dsn)
+		}
+
+		db_uri.RawQuery = db_q.Encode()
+	}
+
+	spatial_db, err := database.NewSpatialDatabase(ctx, db_uri.String())
 
 	if err != nil {
 		logger.Error("Failed to instantiate spatial database", "error", err)
-		return nil, fmt.Errorf("Failed to create spatial database for '%s', %w", db.spatial_database_uri, err)
+		return nil, fmt.Errorf("Failed to create spatial database for '%s', %w", db_uri.String(), err)
 	}
 
 	seen := make(map[string]bool)
@@ -625,35 +725,28 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseNameFromCoord(ctx context.Conte
 
 func (db *PMTilesSpatialDatabase) spatialDatabaseFromCoord(ctx context.Context, coord *orb.Point) (database.SpatialDatabase, error) {
 
-	db.spatial_databases_mutex.Lock()
-	defer db.spatial_databases_mutex.Unlock()
-
 	db_name := db.spatialDatabaseNameFromCoord(ctx, coord)
 
-	// v, exists := db.spatial_databases_cache.Load(db_name)
-
+	db.spatial_databases_mutex.RLock()
 	v, exists := db.spatial_databases_cache[db_name]
+	db.spatial_databases_mutex.RUnlock()
 
 	if exists {
 		db.spatial_databases_counter.Increment(db_name, 1)
-		// return v.(database.SpatialDatabase), nil
 		return v, nil
 	}
 
-	zoom := uint32(db.zoom)
-	z := maptile.Zoom(zoom)
-	t := maptile.At(*coord, z)
-
-	spatial_db, err := db.spatialDatabaseFromTile(ctx, t)
+	spatial_db, err := db.spatialDatabaseFromTile(ctx, coord)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create spatial database, %w", err)
 	}
 
-	// db.spatial_databases_cache.Store(db_name, spatial_db)
-	db.spatial_databases_cache[db_name] = spatial_db
-
 	db.spatial_databases_counter.Increment(db_name, 1)
+
+	db.spatial_databases_mutex.Lock()
+	db.spatial_databases_cache[db_name] = spatial_db
+	db.spatial_databases_mutex.Unlock()
 
 	return spatial_db, nil
 }
