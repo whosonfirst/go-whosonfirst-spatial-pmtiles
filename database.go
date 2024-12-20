@@ -56,7 +56,7 @@ type PMTilesSpatialDatabase struct {
 	spatial_databases_counter        *Counter
 	spatial_databases_releaser       map[string]time.Time                // *sync.Map
 	spatial_databases_cache          map[string]database.SpatialDatabase // *sync.Map
-	spatial_databases_mutex          *sync.RWMutex
+	spatial_databases_cache_mutex    *sync.RWMutex
 	spatial_databases_releaser_mutex *sync.RWMutex
 
 	spatial_databases_ticker      *time.Ticker
@@ -142,7 +142,7 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 
 	server.Start()
 
-	spatial_databases_ttl := 20 // seconds
+	spatial_databases_ttl := 30 // seconds
 
 	spatial_databases_counter := NewCounter()
 
@@ -150,7 +150,7 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 	spatial_databases_releaser_mutex := new(sync.RWMutex)
 
 	spatial_databases_cache := make(map[string]database.SpatialDatabase)
-	spatial_databases_mutex := new(sync.RWMutex)
+	spatial_databases_cache_mutex := new(sync.RWMutex)
 
 	spatial_databases_ticker := time.NewTicker(time.Duration(spatial_databases_ttl) * time.Second)
 	spatial_databases_ticker_done := make(chan bool)
@@ -160,12 +160,10 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 	// This triggers "distance errors" which I don't really understand yet
 	// spatial_database_uri := "rtree://"
 
-	// The problem with this is that all the databases are in fact one shared database
-	// which causes all the queries to slow down over time.
-	dsn := url.QueryEscape("file:{dbname}?mode=memory&cache=shared")	// file::memory:?mode=memory&cache=shared")
-
-	// TBD... https://github.com/mroth/ramdisk
-	// dsn := "{tmp}"
+	// Note the {dbname}. This gets swapped out in spatialDatabaseFromTile.
+	// That's important because it allows the creation of discrete databases
+	// in memory which can be disconnected/deleted in order to free up memory.
+	dsn := url.QueryEscape("file:{dbname}?mode=memory&cache=shared")
 
 	spatial_database_uri := fmt.Sprintf("sqlite://sqlite?dsn=%s", dsn)
 
@@ -180,11 +178,10 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 		spatial_databases_releaser:       spatial_databases_releaser,
 		spatial_databases_releaser_mutex: spatial_databases_releaser_mutex,
 		spatial_databases_cache:          spatial_databases_cache,
-		spatial_databases_mutex:          spatial_databases_mutex,
+		spatial_databases_cache_mutex:    spatial_databases_cache_mutex,
 		spatial_databases_ticker:         spatial_databases_ticker,
 		spatial_databases_ticker_done:    spatial_databases_ticker_done,
-
-		count_pip: int64(0),
+		count_pip:                        int64(0),
 	}
 
 	go func() {
@@ -194,21 +191,6 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 			case <-db.spatial_databases_ticker_done:
 				return
 			case <-spatial_databases_ticker.C:
-
-				/*
-					var memstats runtime.MemStats
-					runtime.ReadMemStats(&memstats)
-					before := memstats.HeapAlloc
-
-
-					runtime.ReadMemStats(&memstats)
-					after := memstats.HeapAlloc
-
-					diff := after - before
-
-					slog.Info("Prune spatial databases", "before", humanize.Bytes(before), "after", humanize.Bytes(after), "diff", humanize.Bytes(diff), "count", atomic.LoadInt64(&db.count_pip))
-				*/
-
 				db.pruneSpatialDatabases(ctx)
 			}
 		}
@@ -291,19 +273,18 @@ func (db *PMTilesSpatialDatabase) pruneSpatialDatabases(ctx context.Context) {
 		logger.Info("Time to prune databases", "total", total, "pruned", pruned, "time", time.Since(now))
 	}()
 
-	db.spatial_databases_mutex.Lock()
+	db.spatial_databases_cache_mutex.Lock()
 	db.spatial_databases_releaser_mutex.Lock()
 
 	defer func() {
-		db.spatial_databases_mutex.Unlock()
+		db.spatial_databases_cache_mutex.Unlock()
 		db.spatial_databases_releaser_mutex.Unlock()
 	}()
 
-	new_releaser := make(map[string]time.Time)
-	new_cache := make(map[string]database.SpatialDatabase)
+	// new_releaser := make(map[string]time.Time)
+	// new_cache := make(map[string]database.SpatialDatabase)
+	// wg := new(sync.WaitGroup)
 
-	wg := new(sync.WaitGroup)
-	
 	for db_name, t_remove := range db.spatial_databases_releaser {
 
 		total += 1
@@ -313,30 +294,22 @@ func (db *PMTilesSpatialDatabase) pruneSpatialDatabases(ctx context.Context) {
 		if db_exists {
 
 			if now.Before(t_remove) {
-				
-				new_releaser[db_name] = t_remove
-				new_cache[db_name] = spatial_db
+				// new_releaser[db_name] = t_remove
+				// new_cache[db_name] = spatial_db
 				continue
 			}
 
-			wg.Add(1)
+			// This is important. Without it memory is not freed up.
+			spatial_db.Disconnect(ctx)
+			delete(db.spatial_databases_cache, db_name)
+			delete(db.spatial_databases_releaser, db_name)
 
-			go func(spatial_db database.SpatialDatabase) {
-				defer wg.Done()
-				// This is important. Without it memory is not freed up.
-				spatial_db.Disconnect(ctx)
-			}(spatial_db)
-			
-			// delete(db.spatial_databases_cache, db_name)
-			// delete(db.spatial_databases_releaser, db_name)
-			
 			pruned += 1
 		}
 	}
 
-	wg.Wait()
-	db.spatial_databases_cache = new_cache
-	db.spatial_databases_releaser = new_releaser
+	// db.spatial_databases_cache = new_cache
+	// db.spatial_databases_releaser = new_releaser
 
 	return
 }
@@ -504,12 +477,12 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseFromTile(ctx context.Context, c
 	if err != nil {
 		return nil, err
 	}
-	
+
 	db_q := db_uri.Query()
 	dsn := db_q.Get("dsn")
-	
+
 	if strings.Contains(dsn, "{dbname}") {
-		
+
 		dbname := fmt.Sprintf("%d-%d-%d", t.X, t.Y, t.Z)
 		new_dsn := strings.Replace(dsn, "{dbname}", dbname, 1)
 
@@ -518,7 +491,7 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseFromTile(ctx context.Context, c
 
 		db_uri.RawQuery = db_q.Encode()
 	}
-	
+
 	spatial_db, err := database.NewSpatialDatabase(ctx, db_uri.String())
 
 	if err != nil {
@@ -639,17 +612,20 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseFromCoord(ctx context.Context, 
 
 	db_name := db.spatialDatabaseNameFromCoord(ctx, coord)
 
-	db.spatial_databases_mutex.RLock()
+	db.spatial_databases_cache_mutex.Lock()
+	defer db.spatial_databases_cache_mutex.Unlock()
+
+	// db.spatial_databases_cache_mutex.RLock()
 	v, exists := db.spatial_databases_cache[db_name]
-	db.spatial_databases_mutex.RUnlock()
+	// db.spatial_databases_cache_mutex.RUnlock()
 
 	if exists {
 		db.spatial_databases_counter.Increment(db_name, 1)
 		return v, nil
 	}
 
-	db.spatial_databases_mutex.Lock()
-	defer db.spatial_databases_mutex.Unlock()
+	// db.spatial_databases_cache_mutex.Lock()
+	// defer db.spatial_databases_cache_mutex.Unlock()
 
 	spatial_db, err := db.spatialDatabaseFromTile(ctx, coord)
 
