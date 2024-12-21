@@ -277,10 +277,6 @@ func (db *PMTilesSpatialDatabase) pruneSpatialDatabases(ctx context.Context) {
 		db.spatial_databases_releaser_mutex.Unlock()
 	}()
 
-	// new_releaser := make(map[string]time.Time)
-	// new_cache := make(map[string]database.SpatialDatabase)
-	// wg := new(sync.WaitGroup)
-
 	for db_name, t_remove := range db.spatial_databases_releaser {
 
 		total += 1
@@ -290,8 +286,6 @@ func (db *PMTilesSpatialDatabase) pruneSpatialDatabases(ctx context.Context) {
 		if db_exists {
 
 			if now.Before(t_remove) {
-				// new_releaser[db_name] = t_remove
-				// new_cache[db_name] = spatial_db
 				continue
 			}
 
@@ -303,9 +297,6 @@ func (db *PMTilesSpatialDatabase) pruneSpatialDatabases(ctx context.Context) {
 			pruned += 1
 		}
 	}
-
-	// db.spatial_databases_cache = new_cache
-	// db.spatial_databases_releaser = new_releaser
 
 	return
 }
@@ -475,10 +466,6 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseFromTile(ctx context.Context, c
 
 	logger = logger.With("spatial database uri", db.spatial_database_uri)
 	logger = logger.With("count features", len(features))
-
-	// If db.spatial_database_uri dsn == "{tmp}"
-	// derive tmp path then update dsn and cache path
-	// Check to see if path already exists...
 
 	db_uri, err := url.Parse(db.spatial_database_uri)
 
