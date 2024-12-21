@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"log/slog"
 	"net/url"
 	"strconv"
@@ -52,6 +53,8 @@ type SQLiteSpatialDatabase struct {
 	geojson_table database_sql.Table
 	gocache       *gocache.Cache
 	dsn           string
+	is_tmp bool
+	tmp_path string
 }
 
 // RTreeSpatialIndex is a struct representing an RTree based spatial index
@@ -104,20 +107,6 @@ func NewSQLiteSpatialDatabaseWriter(ctx context.Context, uri string) (writer.Wri
 // instance for performing spatial operations derived from 'uri'.
 func NewSQLiteSpatialDatabase(ctx context.Context, uri string) (database.SpatialDatabase, error) {
 
-	db, err := database_sql.OpenWithURI(ctx, uri)
-
-	if err != nil {
-		return nil, fmt.Errorf("Failed to create new database, %w", err)
-	}
-
-	return NewSQLiteSpatialDatabaseWithDatabase(ctx, uri, db)
-}
-
-// NewSQLiteSpatialDatabaseWithDatabase returns a new `whosonfirst/go-whosonfirst-spatial/database.database.SpatialDatabase`
-// instance for performing spatial operations derived from 'uri' and an existing `aaronland/go-sqlite/database.SQLiteDatabase`
-// instance defined by 'sqlite_db'.
-func NewSQLiteSpatialDatabaseWithDatabase(ctx context.Context, uri string, db *sql.DB) (database.SpatialDatabase, error) {
-
 	u, err := url.Parse(uri)
 
 	if err != nil {
@@ -125,8 +114,53 @@ func NewSQLiteSpatialDatabaseWithDatabase(ctx context.Context, uri string, db *s
 	}
 
 	q := u.Query()
-
 	dsn := q.Get("dsn")
+
+	is_tmp := false
+	tmp_path := ""
+	
+	if dsn == "{tmp}" {
+
+		f, err := os.CreateTemp("", ".db")
+		
+                if err != nil {
+                        return nil, fmt.Errorf("Failed to create temp file, %w", err)
+		}
+
+		tmp_path = f.Name()
+                is_tmp = true
+
+		q.Del("dsn")
+		q.Set("dsn", tmp_path)
+
+		u.RawQuery = q.Encode()
+		uri = u.String()
+	}
+	
+	db, err := database_sql.OpenWithURI(ctx, uri)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create new database, %w", err)
+	}
+
+	spatial_db, err := NewSQLiteSpatialDatabaseWithDatabase(ctx, uri, db)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if is_tmp {
+		spatial_db.(*SQLiteSpatialDatabase).is_tmp = is_tmp
+		spatial_db.(*SQLiteSpatialDatabase).tmp_path = tmp_path
+	}
+
+	return spatial_db, nil
+}
+
+// NewSQLiteSpatialDatabaseWithDatabase returns a new `whosonfirst/go-whosonfirst-spatial/database.database.SpatialDatabase`
+// instance for performing spatial operations derived from 'uri' and an existing `aaronland/go-sqlite/database.SQLiteDatabase`
+// instance defined by 'sqlite_db'.
+func NewSQLiteSpatialDatabaseWithDatabase(ctx context.Context, uri string, db *sql.DB) (database.SpatialDatabase, error) {
 
 	rtree_table, err := tables.NewRTreeTableWithDatabase(ctx, db)
 
@@ -178,7 +212,6 @@ func NewSQLiteSpatialDatabaseWithDatabase(ctx context.Context, uri string, db *s
 		spr_table:     spr_table,
 		geojson_table: geojson_table,
 		gocache:       gc,
-		dsn:           dsn,
 		mu:            mu,
 	}
 
@@ -187,7 +220,17 @@ func NewSQLiteSpatialDatabaseWithDatabase(ctx context.Context, uri string, db *s
 
 // Disconnect will close the underlying database connection.
 func (r *SQLiteSpatialDatabase) Disconnect(ctx context.Context) error {
-	return r.db.Close()
+
+	if r.is_tmp {
+		
+		err := os.Remove(r.tmp_path)
+
+		if err != nil {
+			slog.Error("Failed to remove tmp db", "pth", r.tmp_path, "error", err)
+		}
+	}
+
+	return r.db.Close()	
 }
 
 // IndexFeature will index a Who's On First GeoJSON Feature record, defined in 'body', in the spatial database.
@@ -217,6 +260,16 @@ func (r *SQLiteSpatialDatabase) IndexFeature(ctx context.Context, body []byte) e
 		}
 	}
 
+	/*
+	q := "SELECT COUNT(id) FROM geojson"
+	row := r.db.QueryRowContext(ctx, q)
+
+	var c int
+	row.Scan(&c)
+
+	slog.Info("INDEX", "count", c)
+	*/
+	
 	return nil
 }
 

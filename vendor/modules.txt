@@ -509,8 +509,8 @@ github.com/mattn/go-isatty
 # github.com/mattn/go-runewidth v0.0.14
 ## explicit; go 1.9
 github.com/mattn/go-runewidth
-# github.com/mattn/go-sqlite3 v1.14.16
-## explicit; go 1.16
+# github.com/mattn/go-sqlite3 v1.14.24
+## explicit; go 1.19
 github.com/mattn/go-sqlite3
 # github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db
 ## explicit
@@ -681,7 +681,7 @@ github.com/whosonfirst/go-sanitize
 # github.com/whosonfirst/go-whosonfirst-crawl v0.2.2
 ## explicit; go 1.18
 github.com/whosonfirst/go-whosonfirst-crawl
-# github.com/whosonfirst/go-whosonfirst-database v0.0.2
+# github.com/whosonfirst/go-whosonfirst-database v0.0.8
 ## explicit; go 1.23.3
 github.com/whosonfirst/go-whosonfirst-database/sql/tables
 # github.com/whosonfirst/go-whosonfirst-export/v2 v2.8.3
@@ -747,7 +747,7 @@ github.com/whosonfirst/go-whosonfirst-spatial-grpc/app/server
 github.com/whosonfirst/go-whosonfirst-spatial-grpc/request
 github.com/whosonfirst/go-whosonfirst-spatial-grpc/server
 github.com/whosonfirst/go-whosonfirst-spatial-grpc/spatial
-# github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.11.1
+# github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.12.0
 ## explicit; go 1.23.3
 github.com/whosonfirst/go-whosonfirst-spatial-sqlite
 github.com/whosonfirst/go-whosonfirst-spatial-sqlite/wkttoorb
@@ -875,7 +875,7 @@ gocloud.dev/runtimevar/driver
 gocloud.dev/runtimevar/filevar
 gocloud.dev/secrets
 gocloud.dev/secrets/driver
-# golang.org/x/crypto v0.31.0
+# golang.org/x/crypto v0.27.0
 ## explicit; go 1.20
 golang.org/x/crypto/chacha20
 golang.org/x/crypto/chacha20poly1305
@@ -906,21 +906,21 @@ golang.org/x/oauth2/google/internal/stsexchange
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sync v0.10.0
+# golang.org/x/sync v0.8.0
 ## explicit; go 1.18
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.28.0
+# golang.org/x/sys v0.25.0
 ## explicit; go 1.18
 golang.org/x/sys/cpu
 golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/registry
-# golang.org/x/term v0.27.0
+# golang.org/x/term v0.24.0
 ## explicit; go 1.18
 golang.org/x/term
-# golang.org/x/text v0.21.0
+# golang.org/x/text v0.18.0
 ## explicit; go 1.18
 golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
@@ -1112,7 +1112,7 @@ modernc.org/mathutil
 # modernc.org/memory v1.8.0
 ## explicit; go 1.18
 modernc.org/memory
-# modernc.org/sqlite v1.34.2
+# modernc.org/sqlite v1.34.3
 ## explicit; go 1.21
 modernc.org/sqlite
 modernc.org/sqlite/lib

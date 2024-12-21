@@ -141,31 +141,89 @@ func (t *SPRTable) IndexFeature(ctx context.Context, db *sql.DB, f []byte) error
 
 	}
 
-	sql := fmt.Sprintf(`INSERT OR REPLACE INTO %s (
-		id, parent_id, name, placetype,
-		inception, cessation,
-		country, repo,
-		latitude, longitude,
-		min_latitude, min_longitude,
-		max_latitude, max_longitude,
-		is_current, is_deprecated, is_ceased,
-		is_superseded, is_superseding,
-		superseded_by, supersedes, belongsto,
-		is_alt, alt_label,
-		lastmodified
+	db_driver := database_sql.Driver(db)
+
+	var insert_q string
+
+	switch db_driver {
+	case database_sql.POSTGRES_DRIVER:
+
+		insert_q = fmt.Sprintf(`INSERT INTO %s (
+			id, parent_id, name, placetype,
+			inception, cessation,
+			country, repo,
+			latitude, longitude,
+			min_latitude, min_longitude,
+			max_latitude, max_longitude,
+			is_current, is_deprecated, is_ceased,
+			is_superseded, is_superseding,
+			superseded_by, supersedes, belongsto,
+			is_alt, alt_label,
+			lastmodified
 		) VALUES (
-		?, ?, ?, ?,
-		?, ?,
-		?, ?,
-		?, ?,
-		?, ?,
-		?, ?,
-		?, ?, ?,
-		?, ?, ?,
-		?, ?,
-		?, ?,
-		?
-		)`, t.Name()) // ON CONFLICT DO BLAH BLAH BLAH
+			$1, $2, $3, $4,
+			$5, $6,
+			$7, $8,
+                        $9, $10,
+			$11, $12,
+			$13, $14,
+			$15, $16, $17,
+			$18, $19, $20,
+			$21, $22,
+			$23, $24,
+			$25
+		) ON CONFLICT(id, alt_label) DO UPDATE SET
+			parent_id=EXCLUDED.parent_id,
+			name=EXCLUDED.name,
+			placetype=EXCLUDED.placetype,
+			inception=EXCLUDED.inception,
+			cessation=EXCLUDED.cessation,
+			country=EXCLUDED.country,
+			repo=EXCLUDED.repo,
+			latitude=EXCLUDED.latitude,
+			longitude=EXCLUDED.longitude,
+			min_latitude=EXCLUDED.min_latitude,
+			min_longitude=EXCLUDED.min_longitude,
+			max_latitude=EXCLUDED.max_latitude,
+			max_longitude=EXCLUDED.max_longitude,
+			is_current=EXCLUDED.is_current,
+			is_deprecated=EXCLUDED.is_deprecated,
+			is_ceased=EXCLUDED.is_ceased,
+			is_superseded=EXCLUDED.is_superseded,
+			is_superseding=EXCLUDED.is_superseding,
+			superseded_by=EXCLUDED.superseded_by,
+			supersedes=EXCLUDED.supersedes,
+			belongsto=EXCLUDED.belongsto,
+			is_alt=EXCLUDED.is_alt`, t.Name())
+
+	default:
+
+		insert_q = fmt.Sprintf(`INSERT OR REPLACE INTO %s (
+			id, parent_id, name, placetype,
+			inception, cessation,
+			country, repo,
+			latitude, longitude,
+			min_latitude, min_longitude,
+			max_latitude, max_longitude,
+			is_current, is_deprecated, is_ceased,
+			is_superseded, is_superseding,
+			superseded_by, supersedes, belongsto,
+			is_alt, alt_label,
+			lastmodified
+			) VALUES (
+			?, ?, ?, ?,
+			?, ?,
+			?, ?,
+			?, ?,
+			?, ?,
+			?, ?,
+			?, ?, ?,
+			?, ?, ?,
+			?, ?,
+			?, ?,
+			?
+			)`, t.Name())
+	}
 
 	superseded_by := int64ToString(s.SupersededBy())
 	supersedes := int64ToString(s.Supersedes())
@@ -205,7 +263,7 @@ func (t *SPRTable) IndexFeature(ctx context.Context, db *sql.DB, f []byte) error
 		return database_sql.BeginTransactionError(t, err)
 	}
 
-	stmt, err := tx.Prepare(sql)
+	stmt, err := tx.Prepare(insert_q)
 
 	if err != nil {
 		return database_sql.PrepareStatementError(t, err)

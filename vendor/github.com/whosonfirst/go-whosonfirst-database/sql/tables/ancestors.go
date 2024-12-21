@@ -81,15 +81,24 @@ func (t *AncestorsTable) IndexFeature(ctx context.Context, db *sql.DB, f []byte)
 		return MissingPropertyError(t, "id", err)
 	}
 
+	db_driver := database_sql.Driver(db)
+
 	tx, err := db.Begin()
 
 	if err != nil {
 		return database_sql.BeginTransactionError(t, err)
 	}
 
-	sql := fmt.Sprintf(`DELETE FROM %s WHERE id = ?`, t.Name())
+	var delete_q string
 
-	stmt, err := tx.Prepare(sql)
+	switch db_driver {
+	case database_sql.POSTGRES_DRIVER:
+		delete_q = fmt.Sprintf(`DELETE FROM %s WHERE id = $1`, t.Name())
+	default:
+		delete_q = fmt.Sprintf(`DELETE FROM %s WHERE id = ?`, t.Name())
+	}
+
+	stmt, err := tx.Prepare(delete_q)
 
 	if err != nil {
 		return database_sql.PrepareStatementError(t, err)
@@ -112,13 +121,29 @@ func (t *AncestorsTable) IndexFeature(ctx context.Context, db *sql.DB, f []byte)
 
 			ancestor_placetype := strings.Replace(pt_key, "_id", "", -1)
 
-			sql := fmt.Sprintf(`INSERT OR REPLACE INTO %s (
-				id, ancestor_id, ancestor_placetype, lastmodified
-			) VALUES (
-			  	 ?, ?, ?, ?
-			)`, t.Name())
+			var q string
 
-			stmt, err := tx.Prepare(sql)
+			switch db_driver {
+			case database_sql.POSTGRES_DRIVER:
+
+				q = fmt.Sprintf(`INSERT INTO %s (
+						id, ancestor_id, ancestor_placetype, lastmodified
+					) VALUES (
+			  	 		$1, $2, $3, $4
+					) ON CONFLICT(id, ancestor_id) DO UPDATE SET
+						ancestor_placetype = EXCLUDED.ancestor_placetype,
+						lastmodified = EXCLUDED.lastmodified`, t.Name())
+
+			default:
+
+				q = fmt.Sprintf(`INSERT OR REPLACE INTO %s (
+						id, ancestor_id, ancestor_placetype, lastmodified
+					) VALUES (
+			  	 		?, ?, ?, ?
+					)`, t.Name())
+			}
+
+			stmt, err := tx.Prepare(q)
 
 			if err != nil {
 				return database_sql.PrepareStatementError(t, err)
