@@ -4,6 +4,8 @@
 
 **[Binaries](https://github.com/tdewolff/minify/releases) of CLI for various platforms.** See [CLI](https://github.com/tdewolff/minify/tree/master/cmd/minify) for more installation instructions.
 
+**[Windows binary from scoop](https://scoop.sh/#/apps?q=minify)** install with `scoop install main/minify`
+
 **[Python bindings](https://pypi.org/project/tdewolff-minify/)** install with `pip install tdewolff-minify`
 
 **[JavaScript bindings](https://www.npmjs.com/package/@tdewolff/minify)** install with `npm i @tdewolff/minify`
@@ -258,7 +260,7 @@ Options:
 
 ## JS
 
-The JS minifier typically shaves off about 35% -- 65% of filesize depening on the file, which is a compression close to many other minifiers. Common speeds of PHP and JS implementations are about 100-300kB/s (see [Uglify2](http://lisperator.net/uglifyjs/), [Adventures in PHP web asset minimization](https://www.happyassassin.net/2014/12/29/adventures-in-php-web-asset-minimization/)). This implementation is orders of magnitude faster at around ~25MB/s.
+The JS minifier typically shaves off about 35% -- 65% of filesize depending on the file, which is a compression close to many other minifiers. Common speeds of PHP and JS implementations are about 100-300kB/s (see [Uglify2](http://lisperator.net/uglifyjs/), [Adventures in PHP web asset minimization](https://www.happyassassin.net/2014/12/29/adventures-in-php-web-asset-minimization/)). This implementation is orders of magnitude faster at around ~25MB/s.
 
 The following features are implemented:
 
@@ -700,7 +702,7 @@ func compileTemplates(filenames ...string) (*template.Template, error) {
 			tmpl = tmpl.New(name)
 		}
 
-		b, err := ioutil.ReadFile(filename)
+		b, err := os.ReadFile(filename)
 		if err != nil {
 			return nil, err
 		}
@@ -730,6 +732,6 @@ A typical example is HTML. Whitespace is significant in HTML, meaning that space
 Another example is JavaScript. Single or double quoted string literals may not contain newline characters but instead need to escape them as `\n`. These are two bytes instead of a single newline byte. Using template literals it is allowed to have literal newline characters and we can use that fact to shave-off one byte! The result is that the minified output contains newlines instead of escaped newline characters, which makes the final file size smaller. Of course, changing from single or double quotes to template literals depends on other factors as well, and this minifier makes a calculation whether the template literal results in a shorter file size or not before converting a string literal.
 
 ## License
-Released under the [MIT license](LICENSE.md).
+Released under the [MIT license](LICENSE).
 
 [1]: http://golang.org/ "Go Language"

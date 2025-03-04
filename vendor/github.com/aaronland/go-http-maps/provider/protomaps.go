@@ -243,7 +243,7 @@ func (p *ProtomapsProvider) AppendAssetHandlers(mux *http.ServeMux) error {
 		logger := slog.Default()
 		log_logger := slog.NewLogLogger(logger.Handler(), slog.LevelError)
 
-		loop, err := pmtiles.NewServer(p.bucket_uri, "", log_logger, p.cache_size, "", "")
+		loop, err := pmtiles.NewServer(p.bucket_uri, "", log_logger, p.cache_size, "")
 
 		if err != nil {
 			return fmt.Errorf("Failed to create pmtiles.Loop, %w", err)

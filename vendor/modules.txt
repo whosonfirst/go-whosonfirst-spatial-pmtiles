@@ -110,8 +110,8 @@ github.com/aaronland/go-http-bootstrap/static
 ## explicit; go 1.22.4
 github.com/aaronland/go-http-leaflet
 github.com/aaronland/go-http-leaflet/static
-# github.com/aaronland/go-http-maps v0.4.0
-## explicit; go 1.22.4
+# github.com/aaronland/go-http-maps v0.4.1
+## explicit; go 1.22.7
 github.com/aaronland/go-http-maps
 github.com/aaronland/go-http-maps/provider
 github.com/aaronland/go-http-maps/static
@@ -119,7 +119,7 @@ github.com/aaronland/go-http-maps/templates/javascript
 # github.com/aaronland/go-http-ping/v2 v2.0.0
 ## explicit; go 1.16
 github.com/aaronland/go-http-ping/v2
-# github.com/aaronland/go-http-rewrite v1.1.0
+# github.com/aaronland/go-http-rewrite v1.1.1
 ## explicit; go 1.18
 github.com/aaronland/go-http-rewrite
 # github.com/aaronland/go-http-sanitize v0.0.8
@@ -128,8 +128,8 @@ github.com/aaronland/go-http-sanitize
 # github.com/aaronland/go-http-server v1.5.0
 ## explicit; go 1.22
 github.com/aaronland/go-http-server
-# github.com/aaronland/go-http-static v0.0.3
-## explicit; go 1.18
+# github.com/aaronland/go-http-static v0.0.4
+## explicit; go 1.22
 github.com/aaronland/go-http-static
 # github.com/aaronland/go-json-query v0.1.5
 ## explicit; go 1.22
@@ -421,9 +421,10 @@ github.com/dustin/go-humanize
 # github.com/felixge/httpsnoop v1.0.4
 ## explicit; go 1.13
 github.com/felixge/httpsnoop
-# github.com/fsnotify/fsnotify v1.7.0
+# github.com/fsnotify/fsnotify v1.8.0
 ## explicit; go 1.17
 github.com/fsnotify/fsnotify
+github.com/fsnotify/fsnotify/internal
 # github.com/g8rswimmer/error-chain v1.0.0
 ## explicit
 github.com/g8rswimmer/error-chain
@@ -619,8 +620,8 @@ github.com/sfomuseum/go-sfomuseum-mapshaper
 # github.com/sfomuseum/go-sfomuseum-pmtiles v1.4.1
 ## explicit; go 1.22.2
 github.com/sfomuseum/go-sfomuseum-pmtiles/http
-# github.com/sfomuseum/go-template v1.10.0
-## explicit; go 1.18
+# github.com/sfomuseum/go-template v1.10.1
+## explicit; go 1.22
 github.com/sfomuseum/go-template/funcs
 github.com/sfomuseum/go-template/text
 # github.com/sfomuseum/go-timings v1.4.0
@@ -629,20 +630,20 @@ github.com/sfomuseum/go-timings
 # github.com/sfomuseum/iso8601duration v1.1.0
 ## explicit; go 1.18
 github.com/sfomuseum/iso8601duration
-# github.com/sfomuseum/runtimevar v1.2.0
-## explicit; go 1.18
+# github.com/sfomuseum/runtimevar v1.2.2
+## explicit; go 1.22.1
 github.com/sfomuseum/runtimevar
 # github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 ## explicit; go 1.13
 github.com/skip2/go-qrcode
 github.com/skip2/go-qrcode/bitset
 github.com/skip2/go-qrcode/reedsolomon
-# github.com/tdewolff/minify/v2 v2.20.32
+# github.com/tdewolff/minify/v2 v2.21.3
 ## explicit; go 1.18
 github.com/tdewolff/minify/v2
 github.com/tdewolff/minify/v2/css
 github.com/tdewolff/minify/v2/js
-# github.com/tdewolff/parse/v2 v2.7.14
+# github.com/tdewolff/parse/v2 v2.7.19
 ## explicit; go 1.13
 github.com/tdewolff/parse/v2
 github.com/tdewolff/parse/v2/buffer
@@ -746,7 +747,7 @@ github.com/whosonfirst/go-whosonfirst-spatial-grpc/spatial
 ## explicit; go 1.23.3
 github.com/whosonfirst/go-whosonfirst-spatial-sqlite
 github.com/whosonfirst/go-whosonfirst-spatial-sqlite/wkttoorb
-# github.com/whosonfirst/go-whosonfirst-spatial-www v0.4.0
+# github.com/whosonfirst/go-whosonfirst-spatial-www v0.4.1
 ## explicit; go 1.23
 github.com/whosonfirst/go-whosonfirst-spatial-www/app/server
 github.com/whosonfirst/go-whosonfirst-spatial-www/http
@@ -882,7 +883,7 @@ golang.org/x/crypto/internal/poly1305
 # golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842
 ## explicit; go 1.20
 golang.org/x/exp/constraints
-# golang.org/x/net v0.29.0
+# golang.org/x/net v0.33.0
 ## explicit; go 1.18
 golang.org/x/net/html
 golang.org/x/net/html/atom

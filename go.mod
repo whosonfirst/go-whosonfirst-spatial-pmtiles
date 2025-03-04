@@ -18,7 +18,7 @@ require (
 	github.com/whosonfirst/go-whosonfirst-spatial v0.12.0
 	github.com/whosonfirst/go-whosonfirst-spatial-grpc v0.2.1
 	github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.12.0
-	github.com/whosonfirst/go-whosonfirst-spatial-www v0.4.0
+	github.com/whosonfirst/go-whosonfirst-spatial-www v0.4.1
 	github.com/whosonfirst/go-whosonfirst-spr/v2 v2.3.7
 	github.com/whosonfirst/go-whosonfirst-uri v1.3.0
 	gocloud.dev v0.40.0
@@ -44,12 +44,12 @@ require (
 	github.com/aaronland/go-brooklynintegers-api v1.2.7 // indirect
 	github.com/aaronland/go-http-bootstrap v0.5.0 // indirect
 	github.com/aaronland/go-http-leaflet v0.5.0 // indirect
-	github.com/aaronland/go-http-maps v0.4.0 // indirect
+	github.com/aaronland/go-http-maps v0.4.1 // indirect
 	github.com/aaronland/go-http-ping/v2 v2.0.0 // indirect
-	github.com/aaronland/go-http-rewrite v1.1.0 // indirect
+	github.com/aaronland/go-http-rewrite v1.1.1 // indirect
 	github.com/aaronland/go-http-sanitize v0.0.8 // indirect
 	github.com/aaronland/go-http-server v1.5.0 // indirect
-	github.com/aaronland/go-http-static v0.0.3 // indirect
+	github.com/aaronland/go-http-static v0.0.4 // indirect
 	github.com/aaronland/go-json-query v0.1.5 // indirect
 	github.com/aaronland/go-pagination v0.3.0 // indirect
 	github.com/aaronland/go-pagination-sql v0.2.0 // indirect
@@ -95,7 +95,7 @@ require (
 	github.com/dominikbraun/graph v0.23.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
-	github.com/fsnotify/fsnotify v1.7.0 // indirect
+	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/g8rswimmer/error-chain v1.0.0 // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
@@ -139,13 +139,13 @@ require (
 	github.com/sfomuseum/go-http-rollup v0.0.3 // indirect
 	github.com/sfomuseum/go-sfomuseum-mapshaper v0.0.3 // indirect
 	github.com/sfomuseum/go-sfomuseum-pmtiles v1.4.1 // indirect
-	github.com/sfomuseum/go-template v1.10.0 // indirect
+	github.com/sfomuseum/go-template v1.10.1 // indirect
 	github.com/sfomuseum/go-timings v1.4.0 // indirect
 	github.com/sfomuseum/iso8601duration v1.1.0 // indirect
-	github.com/sfomuseum/runtimevar v1.2.0 // indirect
+	github.com/sfomuseum/runtimevar v1.2.2 // indirect
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e // indirect
-	github.com/tdewolff/minify/v2 v2.20.32 // indirect
-	github.com/tdewolff/parse/v2 v2.7.14 // indirect
+	github.com/tdewolff/minify/v2 v2.21.3 // indirect
+	github.com/tdewolff/parse/v2 v2.7.19 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/whosonfirst/go-rfc-5646 v0.1.0 // indirect
@@ -178,7 +178,7 @@ require (
 	go.uber.org/ratelimit v0.3.0 // indirect
 	golang.org/x/crypto v0.31.0 // indirect
 	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842 // indirect
-	golang.org/x/net v0.29.0 // indirect
+	golang.org/x/net v0.33.0 // indirect
 	golang.org/x/oauth2 v0.23.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
