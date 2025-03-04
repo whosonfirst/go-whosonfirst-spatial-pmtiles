@@ -119,7 +119,7 @@ func NewPMTilesSpatialDatabase(ctx context.Context, uri string) (database.Spatia
 	logger := slog.Default()
 	log_logger := slog.NewLogLogger(logger.Handler(), slog.LevelDebug)
 
-	server, err := pmtiles.NewServer(q_tile_path, "", log_logger, cache_size, "", "")
+	server, err := pmtiles.NewServer(q_tile_path, "", log_logger, cache_size, "")
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create pmtiles.Loop, %w", err)

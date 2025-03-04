@@ -1,91 +1,56 @@
 package pmtiles
 
-func rotate(n uint64, x *uint64, y *uint64, rx uint64, ry uint64) {
-	if ry == 0 {
-		if rx == 1 {
-			*x = n - 1 - *x
-			*y = n - 1 - *y
-		}
-		*x, *y = *y, *x
-	}
-}
+import (
+	"math/bits"
+)
 
-func tOnLevel(z uint8, pos uint64) (uint8, uint32, uint32) {
-	var n uint64 = 1 << z
-	rx, ry, t := pos, pos, pos
-	var tx uint64
-	var ty uint64
-	var s uint64
-	for s = 1; s < n; s *= 2 {
-		rx = 1 & (t / 2)
-		ry = 1 & (t ^ rx)
-		rotate(s, &tx, &ty, rx, ry)
-		tx += s * rx
-		ty += s * ry
-		t /= 4
+func rotate(n uint32, x uint32, y uint32, rx uint32, ry uint32) (uint32, uint32) {
+	if ry == 0 {
+		if rx != 0 {
+			x = n - 1 - x
+			y = n - 1 - y
+		}
+		return y, x
 	}
-	return uint8(z), uint32(tx), uint32(ty)
+	return x, y
 }
 
 // ZxyToID converts (Z,X,Y) tile coordinates to a Hilbert TileID.
 func ZxyToID(z uint8, x uint32, y uint32) uint64 {
-	var acc uint64
-	var tz uint8
-	for ; tz < z; tz++ {
-		acc += (0x1 << tz) * (0x1 << tz)
+	var acc uint64 = (1<<(z*2) - 1) / 3
+	n := uint32(z - 1)
+	for s := uint32(1 << n); s > 0; s >>= 1 {
+		var rx = s & x
+		var ry = s & y
+		acc += uint64((3*rx)^ry) << n
+		x, y = rotate(s, x, y, rx, ry)
+		n--
 	}
-	var n uint64 = 1 << z
-	var rx uint64
-	var ry uint64
-	var d uint64
-	tx := uint64(x)
-	ty := uint64(y)
-	for s := n / 2; s > 0; s /= 2 {
-		if tx&s > 0 {
-			rx = 1
-		} else {
-			rx = 0
-		}
-		if ty&s > 0 {
-			ry = 1
-		} else {
-			ry = 0
-		}
-		d += s * s * ((3 * rx) ^ ry)
-		rotate(s, &tx, &ty, rx, ry)
-	}
-	return acc + d
+	return acc
 }
 
 // IDToZxy converts a Hilbert TileID to (Z,X,Y) tile coordinates.
 func IDToZxy(i uint64) (uint8, uint32, uint32) {
-	var acc uint64
-	var z uint8
-	for {
-		var numTiles uint64
-		numTiles = (1 << z) * (1 << z)
-		if acc+numTiles > i {
-			return tOnLevel(z, i-acc)
-		}
-		acc += numTiles
-		z++
+	var z = uint8(bits.Len64(3*i+1)-1) / 2
+	var acc = (uint64(1)<<(z*2) - 1) / 3
+	var t = i - acc
+	var tx, ty uint32
+	for a := uint8(0); a < z; a++ {
+		var s = uint32(1) << a
+		var rx = 1 & (uint32(t) >> 1)
+		var ry = 1 & (uint32(t) ^ rx)
+		tx, ty = rotate(s, tx, ty, rx, ry)
+		tx += rx << a
+		ty += ry << a
+		t >>= 2
 	}
+	return uint8(z), tx, ty
 }
 
 // ParentID efficiently finds a parent Hilbert TileID without converting to (Z,X,Y).
 func ParentID(i uint64) uint64 {
-	var acc uint64
-	var lastAcc uint64
-	var z uint8
-	for {
-		var numTiles uint64
-		numTiles = (1 << z) * (1 << z)
-		if acc+numTiles > i {
-			return lastAcc + (i-acc)/4
-		}
-		lastAcc = acc
-		acc += numTiles
-		z++
-	}
-
+	var z = uint8(64-bits.LeadingZeros64(3*i+1)-1) / 2
+	var acc uint64 = (1<<(z*2) - 1) / 3
+	var parentAcc uint64 = (1<<((z-1)*2) - 1) / 3
+	return parentAcc + (i-acc)/4
 }
