@@ -286,7 +286,18 @@ func (db *PMTilesSpatialDatabase) PointInPolygonWithIterator(ctx context.Context
 
 func (db *PMTilesSpatialDatabase) Intersects(ctx context.Context, geom orb.Geometry, filters ...spatial.Filter) (spr.StandardPlacesResults, error) {
 
-	return nil, fmt.Errorf("Not implemented")
+	spatial_db, err := db.spatialDatabaseFromGeom(ctx, geom)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create spatial database, %w", err)
+	}
+
+	defer func() {
+		db.releaseSpatialDatabase(ctx, geom)
+		go atomic.AddInt64(&db.count_pip, 1)
+	}()
+
+	return spatial_db.Intersects(ctx, geom, filters...)
 }
 
 func (db *PMTilesSpatialDatabase) IntersectsWithIterator(ctx context.Context, geom orb.Geometry, filters ...spatial.Filter) iter.Seq2[spr.StandardPlacesResult, error] {
@@ -342,9 +353,20 @@ func (db *PMTilesSpatialDatabase) pruneSpatialDatabases(ctx context.Context) {
 	return
 }
 
-func (db *PMTilesSpatialDatabase) releaseSpatialDatabase(ctx context.Context, coord *orb.Point) {
+func (db *PMTilesSpatialDatabase) releaseSpatialDatabase(ctx context.Context, geom any) {
 
-	db_name := db.spatialDatabaseNameFromCoord(ctx, coord)
+	var db_name string
+
+	switch geom.(type) {
+	case *orb.Point:
+		db_name = db.spatialDatabaseNameFromCoord(ctx, geom.(*orb.Point))
+	case orb.Geometry:
+		db_name = db.spatialDatabaseNameFromGeom(ctx, geom.(orb.Geometry))
+	default:
+		slog.Warn("Unsupport database release type", "type", fmt.Sprintf("%T", geom))
+		return
+	}
+	
 	count := db.spatial_databases_counter.Increment(db_name, -1)
 
 	logger := slog.Default()
@@ -707,6 +729,8 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseFromTilesForGeom(ctx context.Co
 
 	wg := new(sync.WaitGroup)
 
+	// THIS NEEDS TO ACCOUNT FOR FEATURES THAT SPAN TILES...
+	
 	for t, _ := range tiles {
 
 		features, err := db.featuresForTile(ctx, t)
@@ -716,9 +740,8 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseFromTilesForGeom(ctx context.Co
 			return nil, fmt.Errorf("Failed to derive features for tile %v, %w", t, err)
 		}
 
-		logger = logger.With("spatial database uri", db.spatial_database_uri)
-		logger = logger.With("count features", len(features))
-
+		logger.Info("Features", "tile", t, "count", len(features))
+		
 		seen := make(map[string]bool)
 
 		for idx, f := range features {
@@ -790,6 +813,7 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseFromTilesForGeom(ctx context.Co
 				}(body)
 			}
 
+			logger.Debug("Index feature", "ID", id)
 			err = spatial_db.IndexFeature(ctx, body)
 
 			if err != nil {
