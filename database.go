@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"iter"
 	"log/slog"
 	"math/rand/v2"
 	"net/url"
@@ -25,6 +26,7 @@ import (
 	"github.com/paulmach/orb/encoding/mvt"
 	"github.com/paulmach/orb/geojson"
 	"github.com/paulmach/orb/maptile"
+	"github.com/paulmach/orb/maptile/tilecover"
 	"github.com/protomaps/go-pmtiles/pmtiles"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
@@ -256,6 +258,45 @@ func (db *PMTilesSpatialDatabase) PointInPolygon(ctx context.Context, coord *orb
 	return spatial_db.PointInPolygon(ctx, coord, filters...)
 }
 
+func (db *PMTilesSpatialDatabase) PointInPolygonWithIterator(ctx context.Context, coord *orb.Point, filters ...spatial.Filter) iter.Seq2[spr.StandardPlacesResult, error] {
+
+	return func(yield func(spr.StandardPlacesResult, error) bool) {
+
+		spatial_db, err := db.spatialDatabaseFromCoord(ctx, coord)
+
+		if err != nil {
+			yield(nil, fmt.Errorf("Failed to create spatial database, %w", err))
+			return
+		}
+
+		defer func() {
+			db.releaseSpatialDatabase(ctx, coord)
+			go atomic.AddInt64(&db.count_pip, 1)
+		}()
+
+		for r, err := range spatial_db.PointInPolygonWithIterator(ctx, coord, filters...) {
+			yield(r, err)
+
+			if err != nil {
+				break
+			}
+		}
+	}
+}
+
+func (db *PMTilesSpatialDatabase) Intersects(ctx context.Context, geom orb.Geometry, filters ...spatial.Filter) (spr.StandardPlacesResults, error) {
+
+	return nil, fmt.Errorf("Not implemented")
+}
+
+func (db *PMTilesSpatialDatabase) IntersectsWithIterator(ctx context.Context, geom orb.Geometry, filters ...spatial.Filter) iter.Seq2[spr.StandardPlacesResult, error] {
+
+	return func(yield func(spr.StandardPlacesResult, error) bool) {
+
+		yield(nil, fmt.Errorf("Not implemented"))
+	}
+}
+
 func (db *PMTilesSpatialDatabase) pruneSpatialDatabases(ctx context.Context) {
 
 	logger := slog.Default()
@@ -332,47 +373,6 @@ func (db *PMTilesSpatialDatabase) releaseSpatialDatabase(ctx context.Context, co
 	then := now.Add(ttl_d)
 
 	db.spatial_databases_releaser[db_name] = then
-}
-
-func (db *PMTilesSpatialDatabase) PointInPolygonCandidates(ctx context.Context, coord *orb.Point, filters ...spatial.Filter) ([]*spatial.PointInPolygonCandidate, error) {
-
-	spatial_db, err := db.spatialDatabaseFromCoord(ctx, coord)
-
-	if err != nil {
-		return nil, fmt.Errorf("Failed to create spatial database, %w", err)
-	}
-
-	defer db.releaseSpatialDatabase(ctx, coord)
-
-	return spatial_db.PointInPolygonCandidates(ctx, coord, filters...)
-}
-
-func (db *PMTilesSpatialDatabase) PointInPolygonWithChannels(ctx context.Context, spr_ch chan spr.StandardPlacesResult, err_ch chan error, done_ch chan bool, coord *orb.Point, filters ...spatial.Filter) {
-
-	spatial_db, err := db.spatialDatabaseFromCoord(ctx, coord)
-
-	if err != nil {
-		err_ch <- fmt.Errorf("Failed to create spatial database, %w", err)
-		return
-	}
-
-	defer db.releaseSpatialDatabase(ctx, coord)
-
-	spatial_db.PointInPolygonWithChannels(ctx, spr_ch, err_ch, done_ch, coord, filters...)
-}
-
-func (db *PMTilesSpatialDatabase) PointInPolygonCandidatesWithChannels(ctx context.Context, pip_ch chan *spatial.PointInPolygonCandidate, err_ch chan error, done_ch chan bool, coord *orb.Point, filters ...spatial.Filter) {
-
-	spatial_db, err := db.spatialDatabaseFromCoord(ctx, coord)
-
-	if err != nil {
-		err_ch <- fmt.Errorf("Failed to create spatial database, %w", err)
-		return
-	}
-
-	defer db.releaseSpatialDatabase(ctx, coord)
-
-	spatial_db.PointInPolygonCandidatesWithChannels(ctx, pip_ch, err_ch, done_ch, coord, filters...)
 }
 
 func (db *PMTilesSpatialDatabase) Disconnect(ctx context.Context) error {
@@ -610,17 +610,12 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseFromCoord(ctx context.Context, 
 	db.spatial_databases_cache_mutex.Lock()
 	defer db.spatial_databases_cache_mutex.Unlock()
 
-	// db.spatial_databases_cache_mutex.RLock()
 	v, exists := db.spatial_databases_cache[db_name]
-	// db.spatial_databases_cache_mutex.RUnlock()
 
 	if exists {
 		db.spatial_databases_counter.Increment(db_name, 1)
 		return v, nil
 	}
-
-	// db.spatial_databases_cache_mutex.Lock()
-	// defer db.spatial_databases_cache_mutex.Unlock()
 
 	spatial_db, err := db.spatialDatabaseFromTile(ctx, coord)
 
@@ -630,6 +625,181 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseFromCoord(ctx context.Context, 
 
 	db.spatial_databases_counter.Increment(db_name, 1)
 	db.spatial_databases_cache[db_name] = spatial_db
+
+	return spatial_db, nil
+}
+
+func (db *PMTilesSpatialDatabase) spatialDatabaseNameFromGeom(ctx context.Context, geom orb.Geometry) string {
+
+	bounds := geom.Bound()
+
+	return fmt.Sprintf("%s-%f-%f-%f-%f.db", db.database, bounds.Min.Lon(), bounds.Min.Lat(), bounds.Max.Lon(), bounds.Max.Lat())
+}
+
+func (db *PMTilesSpatialDatabase) spatialDatabaseFromGeom(ctx context.Context, geom orb.Geometry) (database.SpatialDatabase, error) {
+
+	db_name := db.spatialDatabaseNameFromGeom(ctx, geom)
+
+	db.spatial_databases_cache_mutex.Lock()
+	defer db.spatial_databases_cache_mutex.Unlock()
+
+	v, exists := db.spatial_databases_cache[db_name]
+
+	if exists {
+		db.spatial_databases_counter.Increment(db_name, 1)
+		return v, nil
+	}
+
+	spatial_db, err := db.spatialDatabaseFromTilesForGeom(ctx, geom)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create spatial database, %w", err)
+	}
+
+	db.spatial_databases_counter.Increment(db_name, 1)
+	db.spatial_databases_cache[db_name] = spatial_db
+
+	return spatial_db, nil
+}
+
+func (db *PMTilesSpatialDatabase) spatialDatabaseFromTilesForGeom(ctx context.Context, geom orb.Geometry) (database.SpatialDatabase, error) {
+
+	logger := slog.Default()
+
+	db_uri, err := url.Parse(db.spatial_database_uri)
+
+	if err != nil {
+		return nil, err
+	}
+
+	db_q := db_uri.Query()
+	dsn := db_q.Get("dsn")
+
+	if strings.Contains(dsn, "{dbname}") {
+
+		bounds := geom.Bound()
+
+		dbname := fmt.Sprintf("%f-%f-%f-%f", bounds.Min.Lon(), bounds.Min.Lat(), bounds.Max.Lon(), bounds.Max.Lat())
+		new_dsn := strings.Replace(dsn, "{dbname}", dbname, 1)
+
+		db_q.Del("dsn")
+		db_q.Set("dsn", new_dsn)
+
+		db_uri.RawQuery = db_q.Encode()
+	}
+
+	logger = logger.With("db", db_uri.String())
+
+	spatial_db, err := database.NewSpatialDatabase(ctx, db_uri.String())
+
+	if err != nil {
+		logger.Error("Failed to instantiate spatial database", "error", err)
+		return nil, fmt.Errorf("Failed to create spatial database for '%s', %w", db_uri.String(), err)
+	}
+
+	zoom := maptile.Zoom(uint32(db.zoom))
+	tiles, err := tilecover.Geometry(geom, zoom)
+
+	if err != nil {
+		logger.Error("Failed to derive tile cover", "error", err)
+		return nil, fmt.Errorf("Failed to derive tile cover, %w", err)
+	}
+
+	wg := new(sync.WaitGroup)
+
+	for t, _ := range tiles {
+
+		features, err := db.featuresForTile(ctx, t)
+
+		if err != nil {
+			logger.Error("Failed to derive features for tile", "error", err)
+			return nil, fmt.Errorf("Failed to derive features for tile %v, %w", t, err)
+		}
+
+		logger = logger.With("spatial database uri", db.spatial_database_uri)
+		logger = logger.With("count features", len(features))
+
+		seen := make(map[string]bool)
+
+		for idx, f := range features {
+
+			// START OF to remove once we've finished pruning layer data in featuresForTile
+
+			str_id := fmt.Sprintf("%v", f.ID)
+
+			if str_id != "" {
+
+				_, ok := seen[str_id]
+
+				if ok {
+					continue
+				}
+			}
+
+			seen[str_id] = true
+
+			// END OF to remove once we've finished pruning layer data in featuresForTile
+
+			body, err := f.MarshalJSON()
+
+			id_rsp := gjson.GetBytes(body, "properties.wof:id")
+			id := id_rsp.Int()
+
+			if err != nil {
+				logger.Error("Failed to marshal JSON for feature", "id", id, "index", idx, "error", err)
+				return nil, fmt.Errorf("Failed to marshal JSON for feature %d at offset %d, %w", id, idx, err)
+			}
+
+			// START OF to remove once we've finished pruning layer data in featuresForTile
+
+			str_id = id_rsp.String()
+
+			_, ok := seen[str_id]
+
+			if ok {
+				continue
+			}
+
+			seen[str_id] = true
+
+			// END OF to remove once we've finished pruning layer data in featuresForTile
+
+			body, err = db.decodeMVT(ctx, body)
+
+			if err != nil {
+				logger.Error("Failed to unfurl MVT for feature", "id", id, "index", idx, "error", err)
+				return nil, fmt.Errorf("Failed to unfurl MVT for feature %d at offset %d, %w", id, idx, err)
+			}
+
+			if db.enable_feature_cache {
+
+				wg.Add(1)
+
+				go func(body []byte) {
+
+					defer wg.Done()
+
+					// TBD: Append/pass path to cache key here?
+
+					_, err := db.cache_manager.CacheFeature(ctx, body)
+
+					if err != nil {
+						logger.Warn("Failed to create new feature cache", "tile", t, "error", err)
+					}
+
+				}(body)
+			}
+
+			err = spatial_db.IndexFeature(ctx, body)
+
+			if err != nil {
+				logger.Error("Failed to index feature", "id", id, "index", idx, "error", err)
+				return nil, fmt.Errorf("Failed to index feature %d at offset %d, %w", id, idx, err)
+			}
+		}
+	}
+
+	wg.Wait()
 
 	return spatial_db, nil
 }
