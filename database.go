@@ -361,7 +361,29 @@ func (db *PMTilesSpatialDatabase) IntersectsWithIterator(ctx context.Context, ge
 				case 1:
 					f = id_features[0]
 				default:
-					f = id_features[0]	// FIX ME MERGE GEOMETRIES HERE...
+					
+					f = id_features[0]
+
+					// Merge geometries from different tiles in to a single feature
+					
+					polys := make([]orb.Polygon, 0)
+					
+					for _, f2 := range id_features {
+
+						switch f2.Geometry.GeoJSONType(){
+						case "Polygon":
+							polys = append(polys, f2.Geometry.(orb.Polygon))
+						case "MultiPolygon":
+
+							for _, p := range f2.Geometry.(orb.MultiPolygon) {
+								polys = append(polys, p)
+							}
+						default:
+							slog.Warn("Unsupported geometry type for merging", "type", f2.Geometry.GeoJSONType())
+						}
+					}
+
+					f.Geometry = orb.MultiPolygon(polys)
 				}
 
 				enc_f, err := f.MarshalJSON()
@@ -748,19 +770,15 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseFromCoord(ctx context.Context, 
 	return spatial_db, nil
 }
 
-func (db *PMTilesSpatialDatabase) featuresFromTilesForGeom(ctx context.Context, geom orb.Geometry) (map[string][]*geojson.Feature, error) {
+func (db *PMTilesSpatialDatabase) featuresFromTilesForGeom(ctx context.Context, geom orb.Geometry) (map[int64][]*geojson.Feature, error) {
 
-	// Cache me...
-
-	features_table := make(map[string][]*geojson.Feature)
-
-	logger := slog.Default()
+	features_table := make(map[int64][]*geojson.Feature)
 
 	zoom := maptile.Zoom(uint32(db.zoom))
 	tiles, err := tilecover.Geometry(geom, zoom)
 
 	if err != nil {
-		logger.Error("Failed to derive tile cover", "error", err)
+		slog.Error("Failed to derive tile cover", "error", err)
 		return nil, fmt.Errorf("Failed to derive tile cover, %w", err)
 	}
 
@@ -775,41 +793,47 @@ func (db *PMTilesSpatialDatabase) featuresFromTilesForGeom(ctx context.Context, 
 
 			defer func() {
 				done_ch <- true
-				slog.Info("DONE")
 			}()
 
 			features, err := db.featuresForTile(ctx, t)
 
 			if err != nil {
-				logger.Error("Failed to derive features for tile", "error", err)
+				slog.Error("Failed to derive features for tile", "error", err)
 				err_ch <- err
 				return
 			}
-
-			logger.Info("Features", "tile", t, "count", len(features))
-
+			
 			seen := new(sync.Map)
 
 			for _, f := range features {
 
-				str_id := fmt.Sprintf("%v", f.ID)
+				id := int64(f.ID.(float64))
 
-				_, exists := seen.LoadOrStore(str_id, true)
+				if id < 0 {
+					slog.Warn("Unexpected WOF ID", "raw", f.ID)
+					continue
+				}
+
+				// Skip if we've seen this ID in this tile
+				
+				_, exists := seen.LoadOrStore(id, true)
 
 				if exists {
 					continue
 				}
 
+				// Combine common features seen across (spanning) tiles
+				
 				mu.Lock()
 
-				features_list, exists := features_table[str_id]
+				features_list, exists := features_table[id]
 
 				if !exists {
 					features_list = make([]*geojson.Feature, 0)
 				}
 
 				features_list = append(features_list, f)
-				features_table[str_id] = features_list
+				features_table[id] = features_list
 
 				mu.Unlock()
 			}
@@ -825,8 +849,6 @@ func (db *PMTilesSpatialDatabase) featuresFromTilesForGeom(ctx context.Context, 
 			remaining -= 1
 		case err := <-err_ch:
 			return nil, err
-		default:
-			//
 		}
 	}
 

@@ -1,0 +1,189 @@
+{
+  "id": 85847559,
+  "type": "Feature",
+  "properties": {
+    "edtf:cessation":"uuuu",
+    "edtf:inception":"uuuu",
+    "geom:area":0.000047,
+    "geom:area_square_m":460974.545264,
+    "geom:bbox":"-122.493726,37.783518,-122.483707,37.790804",
+    "geom:latitude":37.786803,
+    "geom:longitude":-122.488844,
+    "iso:country":"US",
+    "lbl:latitude":37.785669,
+    "lbl:longitude":-122.488853,
+    "lbl:max_zoom":18.0,
+    "mps:latitude":37.787187,
+    "mps:longitude":-122.489167,
+    "mz:hierarchy_label":1,
+    "mz:is_current":1,
+    "mz:is_funky":0,
+    "mz:is_hard_boundary":0,
+    "mz:is_landuse_aoi":0,
+    "mz:is_official":0,
+    "mz:max_zoom":18.0,
+    "mz:min_zoom":15.0,
+    "mz:tier_locality":7,
+    "mz:tier_metro":1,
+    "name:bul_x_preferred":[
+        "\u0421\u0438\u0439 \u041a\u043b\u0438\u0444"
+    ],
+    "name:dan_x_preferred":[
+        "Sea Cliff"
+    ],
+    "name:eng_x_preferred":[
+        "Sea Cliff"
+    ],
+    "name:eng_x_variant":[
+        "Sea Clf",
+        "Seacliff"
+    ],
+    "name:epo_x_preferred":[
+        "Mara Klifo"
+    ],
+    "name:fra_x_preferred":[
+        "Sea Cliff"
+    ],
+    "name:nld_x_preferred":[
+        "Sea Cliff"
+    ],
+    "name:spa_x_preferred":[
+        "Sea Cliff"
+    ],
+    "name:tur_x_preferred":[
+        "Sea Cliff"
+    ],
+    "qs:gn_id":0,
+    "qs:id":0,
+    "qs:local_max":60110,
+    "qs:local_sum":1593503,
+    "qs:localhoods":148,
+    "qs:name":"Sea Cliff",
+    "qs:name_adm0":"United States",
+    "qs:name_adm1":"California",
+    "qs:name_adm2":"San Francisco",
+    "qs:name_local":"San Francisco",
+    "qs:photo_max":489,
+    "qs:photo_sum":6888,
+    "qs:placetype":"Suburb",
+    "qs:quad_count":99,
+    "qs:woe_adm0":23424977,
+    "qs:woe_adm1":2347563,
+    "qs:woe_adm2":12587707,
+    "qs:woe_lau":0,
+    "qs:woe_local":2487956,
+    "qs:woe_ver":"7.10.0",
+    "reversegeo:latitude":37.786569,
+    "reversegeo:longitude":-122.489751,
+    "sfgov:link":"http://en.wikipedia.org/wiki/Sea_Cliff,_San_Francisco,_California",
+    "src:geom":"sfgov",
+    "src:geom_alt":[
+        "quattroshapes",
+        "zetashapes"
+    ],
+    "src:lbl_centroid":"mz",
+    "src:population":"zetashapes",
+    "wof:belongsto":[
+        102191575,
+        1108830805,
+        85633793,
+        85922583,
+        102087579,
+        85688637
+    ],
+    "wof:breaches":[],
+    "wof:concordances":{
+        "gp:id":2490243,
+        "wd:id":"Q427116"
+    },
+    "wof:country":"US",
+    "wof:geom_alt":[
+        "zetashapes",
+        "quattroshapes"
+    ],
+    "wof:geomhash":"708661abea0f729ee160e6465ab81c3e",
+    "wof:hierarchy":[
+        {
+            "continent_id":102191575,
+            "country_id":85633793,
+            "county_id":102087579,
+            "locality_id":85922583,
+            "macrohood_id":1108830805,
+            "neighbourhood_id":85847559,
+            "region_id":85688637
+        }
+    ],
+    "wof:id":85847559,
+    "wof:lang":[
+        "eng"
+    ],
+    "wof:lastmodified":1690887394,
+    "wof:name":"Sea Cliff",
+    "wof:parent_id":1108830805,
+    "wof:placetype":"neighbourhood",
+    "wof:population":5249,
+    "wof:population_rank":5,
+    "wof:repo":"whosonfirst-data-admin-us",
+    "wof:superseded_by":[],
+    "wof:supersedes":[],
+    "wof:tags":[],
+    "zs:blockids":[
+        60750428002012,
+        60750427003007,
+        60750427003002,
+        60750428002008,
+        60750428001010,
+        60750428003008,
+        60750427003005,
+        60750428001002,
+        60750601001024,
+        60750428001007,
+        60750428001001,
+        60750427003004,
+        60750427003008,
+        60750427003001,
+        60750428002007,
+        60750427003000,
+        60750427003006,
+        60750427003003,
+        60750428002009,
+        60750427002006,
+        60759802001000,
+        60750428001004,
+        60750428001008,
+        60750428002001,
+        60750601001183,
+        60750428002003,
+        60750428001003,
+        60750428002002,
+        60750428002010,
+        60750426012004,
+        60750427002005,
+        60750428002004,
+        60750428001009,
+        60750428002011,
+        60750427001002,
+        60750428002000,
+        60750428001006,
+        60750428001000,
+        60750428003007,
+        60750428002013,
+        60759802001002,
+        60750428002006,
+        60750428002014,
+        60750428001005,
+        60750428002005,
+        60750427001001,
+        60750427001000
+    ],
+    "zs:housing10":2428,
+    "zs:pop10":5249
+},
+  "bbox": [
+    -122.493726,
+    37.783518,
+    -122.483707,
+    37.790804
+],
+  "geometry": {"coordinates":[[[-122.48598,37.790804],[-122.485815,37.790704],[-122.485578,37.79056],[-122.48505299999999,37.790368],[-122.48426600000001,37.789412],[-122.484077,37.789399],[-122.483823,37.789283],[-122.483707,37.788777],[-122.48392699999999,37.788315],[-122.48394999999999,37.788028],[-122.484143,37.787775],[-122.484151,37.787555],[-122.48464,37.787532],[-122.48464300000001,37.787379],[-122.48430999999999,37.787352],[-122.484174,37.787311],[-122.48408000000001,37.785795],[-122.487286,37.785649],[-122.487151,37.783785],[-122.493455,37.783518],[-122.493726,37.787247],[-122.49358700000001,37.787313],[-122.493606,37.787528],[-122.49283,37.787883],[-122.492757,37.787739],[-122.489829,37.789482],[-122.488991,37.789283],[-122.487864,37.789588],[-122.487369,37.78943],[-122.48598,37.790804]]],"type":"Polygon"}
+}

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log/slog"
+	_ "log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -168,7 +168,21 @@ func TestIntersects(t *testing.T) {
 
 	geom := f.Geometry
 
-	rsp, err := db.Intersects(ctx, geom)
+	i, err := filter.NewSPRInputs()
+
+	if err != nil {
+		t.Fatalf("Failed to create SPR inputs, %v", err)
+	}
+
+	i.IsCurrent = []int64{1}
+
+	fl, err := filter.NewSPRFilterFromInputs(i)
+
+	if err != nil {
+		t.Fatalf("Failed to create SPR filter from inputs, %v", err)
+	}
+	
+	rsp, err := db.Intersects(ctx, geom, fl)
 
 	if err != nil {
 		t.Fatalf("Failed to perform intersects query, %v", err)
@@ -177,18 +191,18 @@ func TestIntersects(t *testing.T) {
 	results := rsp.Results()
 	count := len(results)
 
-	/*
-		expected := 9
+		expected := 17
 
 		if count != expected {
 			t.Fatalf("Unexpected count (%d), expected %d", count, expected)
 		}
-	*/
 
+	/*
 	slog.Info("count", "c", count)
 
 	for _, r := range results {
 		slog.Info("r", "id", r.Id(), "name", r.Name())
 	}
+	*/
 
 }
