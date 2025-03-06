@@ -325,8 +325,13 @@ func (db *PMTilesSpatialDatabase) IntersectsWithIterator(ctx context.Context, ge
 			return
 		}
 
+		wg := new(sync.WaitGroup)
+		
 		for id, id_features := range features {
 
+			logger := slog.Default()
+			logger = logger.With("id", id)
+			
 			intersects := false
 
 			for _, f := range id_features {
@@ -336,24 +341,69 @@ func (db *PMTilesSpatialDatabase) IntersectsWithIterator(ctx context.Context, ge
 				f_intersects, err := geo.Intersects(f_geom, geom)
 
 				if err != nil {
-					slog.Error("Failed to determine if feature intersects", "error", err)
+					logger.Error("Failed to determine if feature intersects", "error", err)
 					continue
 				}
 
 				intersects = f_intersects
 
 				if intersects {
+					logger.Debug("Feature does not intersect")
 					break
 				}
 			}
 
 			if intersects {
-				slog.Info("YIELD", "id", id)
 
-				// yield here...
+				var f *geojson.Feature
+
+				switch len(id_features){
+				case 1:
+					f = id_features[0]
+				default:
+					f = id_features[0]	// FIX ME MERGE GEOMETRIES HERE...
+				}
+
+				enc_f, err := f.MarshalJSON()
+
+				if err != nil {
+					logger.Error("Failed to marshal feature", "error", err)
+					yield(nil, err)
+					return
+				}
+				
+				s, err := spr.WhosOnFirstSPR(enc_f)
+
+				if err != nil {
+					logger.Error("Failed to derive SPR for feature", "error", err)
+					yield(nil, err)
+					return
+				}
+				
+				if db.enable_feature_cache {
+					
+					wg.Add(1)
+					
+					go func(body []byte) {
+						
+						defer wg.Done()
+						
+						// TBD: Append/pass path to cache key here?
+						
+						_, err := db.cache_manager.CacheFeature(ctx, body)
+						
+						if err != nil {
+							logger.Warn("Failed to create new feature cache", "id", s.Id(), "error", err)
+						}
+						
+					}(enc_f)
+				}
+
+				yield(s, nil)
 			}
 		}
 
+		wg.Wait()
 	}
 }
 
