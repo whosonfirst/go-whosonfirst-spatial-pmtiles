@@ -16,6 +16,7 @@ cli:
 	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/grpc-client cmd/grpc-client/main.go
 	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/update-hierarchies cmd/update-hierarchies/main.go
 	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/pip cmd/pip/main.go
+	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/intersects cmd/intersects/main.go
 
 http-server:
 	go run -mod $(GOMOD) cmd/http-server/main.go \
