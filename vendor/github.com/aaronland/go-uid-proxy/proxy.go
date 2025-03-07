@@ -136,7 +136,7 @@ func (pr *ProxyProvider) UID(ctx context.Context, args ...interface{}) (uid.UID,
 
 	if pr.pool.Length(ctx) == 0 {
 
-		slog.Warn("Pool length is 0 so fetching integer from source")
+		slog.Debug("Pool length is 0 so fetching integer from source")
 
 		go pr.refillPool(ctx)
 		return pr.provider.UID(ctx, args...)

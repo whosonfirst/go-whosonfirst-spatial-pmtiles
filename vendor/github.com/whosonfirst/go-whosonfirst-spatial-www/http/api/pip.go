@@ -9,7 +9,7 @@ import (
 	"github.com/sfomuseum/go-timings"
 	"github.com/whosonfirst/go-whosonfirst-spatial"
 	spatial_app "github.com/whosonfirst/go-whosonfirst-spatial/application"
-	"github.com/whosonfirst/go-whosonfirst-spatial/pip"
+	"github.com/whosonfirst/go-whosonfirst-spatial/query"
 	"github.com/whosonfirst/go-whosonfirst-spr-geojson"
 )
 
@@ -21,8 +21,6 @@ const timingsPIPFeatureCollection string = "PIP handler feature collection"
 
 const timingsPIPProperties string = "PIP handler properties"
 
-const GEOJSON string = "application/geo+json"
-
 type PointInPolygonHandlerOptions struct {
 	EnableGeoJSON bool
 	LogTimings    bool
@@ -31,6 +29,8 @@ type PointInPolygonHandlerOptions struct {
 func PointInPolygonHandler(app *spatial_app.SpatialApplication, opts *PointInPolygonHandlerOptions) (http.Handler, error) {
 
 	fn := func(rsp http.ResponseWriter, req *http.Request) {
+
+		logger := slog.Default()
 
 		ctx := req.Context()
 
@@ -53,15 +53,22 @@ func PointInPolygonHandler(app *spatial_app.SpatialApplication, opts *PointInPol
 			if opts.LogTimings {
 
 				for _, t := range app.Timings {
-					slog.Debug("Timings", "timing", t)
+					logger.Debug("Timings", "timing", t)
 				}
 			}
 		}()
 
-		var pip_req *pip.PointInPolygonRequest
+		pip_fn, err := query.NewSpatialFunction(ctx, "pip://")
+
+		if err != nil {
+			http.Error(rsp, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		var pip_query *query.SpatialQuery
 
 		dec := json.NewDecoder(req.Body)
-		err := dec.Decode(&pip_req)
+		err = dec.Decode(&pip_query)
 
 		if err != nil {
 			http.Error(rsp, err.Error(), http.StatusBadRequest)
@@ -82,7 +89,7 @@ func PointInPolygonHandler(app *spatial_app.SpatialApplication, opts *PointInPol
 
 		app.Monitor.Signal(ctx, timings.SinceStart, timingsPIPQuery)
 
-		pip_rsp, err := pip.QueryPointInPolygon(ctx, app, pip_req)
+		pip_rsp, err := query.ExecuteQuery(ctx, app.SpatialDatabase, pip_fn, pip_query)
 
 		app.Monitor.Signal(ctx, timings.SinceStop, timingsPIPQuery)
 
@@ -112,11 +119,11 @@ func PointInPolygonHandler(app *spatial_app.SpatialApplication, opts *PointInPol
 			}
 		}
 
-		if len(pip_req.Properties) > 0 {
+		if len(pip_query.Properties) > 0 {
 
 			props_opts := &spatial.PropertiesResponseOptions{
 				Reader:       app.PropertiesReader,
-				Keys:         pip_req.Properties,
+				Keys:         pip_query.Properties,
 				SourcePrefix: "properties",
 			}
 

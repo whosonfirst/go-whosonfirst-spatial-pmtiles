@@ -4,24 +4,19 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"html/template"
 	"log/slog"
 	gohttp "net/http"
 	"path/filepath"
-	"strings"
 
 	"github.com/NYTimes/gziphandler"
-	"github.com/aaronland/go-http-bootstrap"
-	"github.com/aaronland/go-http-maps"
-	"github.com/aaronland/go-http-maps/provider"
+	"github.com/aaronland/go-http-maps/v2"
 	"github.com/aaronland/go-http-ping/v2"
 	"github.com/aaronland/go-http-server"
 	"github.com/rs/cors"
 	"github.com/sfomuseum/go-http-auth"
 	"github.com/whosonfirst/go-whosonfirst-spatial-www/http"
 	"github.com/whosonfirst/go-whosonfirst-spatial-www/http/api"
-	"github.com/whosonfirst/go-whosonfirst-spatial-www/http/www"
-	"github.com/whosonfirst/go-whosonfirst-spatial-www/templates/html"
+	"github.com/whosonfirst/go-whosonfirst-spatial-www/static/www"
 	app "github.com/whosonfirst/go-whosonfirst-spatial/application"
 )
 
@@ -119,11 +114,7 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 		data_handler = gziphandler.GzipHandler(data_handler)
 	}
 
-	if !strings.HasSuffix(opts.PathData, "/") {
-		opts.PathData = fmt.Sprintf("%s/", opts.PathData)
-	}
-
-	mux.Handle(opts.PathData, data_handler)
+	mux.Handle("/data/", data_handler)
 
 	// point-in-polygon handlers
 
@@ -152,135 +143,77 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 
 	mux.Handle(path_api_pip, api_pip_handler)
 
+	// intersects
+
+	api_intersects_opts := &api.IntersectsHandlerOptions{
+		EnableGeoJSON: opts.EnableGeoJSON,
+		LogTimings:    opts.LogTimings,
+	}
+
+	api_intersects_handler, err := api.IntersectsHandler(spatial_app, api_intersects_opts)
+
+	if err != nil {
+		return fmt.Errorf("failed to create point-in-polygon handler because %s", err)
+	}
+
+	api_intersects_handler = authenticator.WrapHandler(api_intersects_handler)
+
+	if opts.EnableCORS {
+		api_intersects_handler = cors_wrapper.Handler(api_intersects_handler)
+	}
+
+	if opts.EnableGzip {
+		api_intersects_handler = gziphandler.GzipHandler(api_intersects_handler)
+	}
+
+	path_api_intersects := filepath.Join(opts.PathAPI, "intersects")
+
+	mux.Handle(path_api_intersects, api_intersects_handler)
+
 	// www handlers
 
 	if opts.EnableWWW {
 
-		map_provider, err := provider.NewProvider(ctx, opts.MapProviderURI)
+		// placetypes handler
+
+		placetypes_handler, err := api.NewPlacetypesHandler()
 
 		if err != nil {
-			return fmt.Errorf("Failed to create map provider, %w", err)
+			return fmt.Errorf("Failed to create placetypes handler, %v", err)
 		}
 
-		err = map_provider.AppendAssetHandlers(mux)
+		placetypes_handler = authenticator.WrapHandler(placetypes_handler)
+
+		if opts.EnableCORS {
+			placetypes_handler = cors_wrapper.Handler(placetypes_handler)
+		}
+
+		if opts.EnableGzip {
+			placetypes_handler = gziphandler.GzipHandler(placetypes_handler)
+		}
+
+		path_api_placetypes := filepath.Join(opts.PathAPI, "placetypes")
+		mux.Handle(path_api_placetypes, placetypes_handler)
+
+		maps_opts := &maps.AssignMapConfigHandlerOptions{
+			MapProvider:       opts.MapProvider,
+			MapTileURI:        opts.MapTileURI,
+			InitialView:       opts.InitialView,
+			LeafletStyle:      opts.LeafletStyle,
+			LeafletPointStyle: opts.LeafletPointStyle,
+			ProtomapsTheme:    opts.ProtomapsTheme,
+		}
+
+		err = maps.AssignMapConfigHandler(maps_opts, mux, "/map.json")
 
 		if err != nil {
-			return fmt.Errorf("Failed to append map provider asset handlers, %w", err)
+			return fmt.Errorf("Failed to assign map config handler, %w", err)
 		}
 
-		t := template.New("spatial")
+		www_fs := gohttp.FS(www.FS)
+		www_handler := gohttp.FileServer(www_fs)
 
-		t = t.Funcs(map[string]interface{}{
-
-			"EnsureRoot": func(path string) string {
-
-				path = strings.TrimLeft(path, "/")
-
-				if opts.PathPrefix == "" {
-					return "/" + path
-				}
-
-				path = filepath.Join(opts.PathPrefix, path)
-				return path
-			},
-
-			"DataRoot": func() string {
-
-				path := opts.PathData
-
-				if opts.PathPrefix != "" {
-					path = filepath.Join(opts.PathPrefix, path)
-				}
-
-				return path
-			},
-
-			"APIRoot": func() string {
-
-				path := opts.PathAPI
-
-				if opts.PathPrefix != "" {
-					path = filepath.Join(opts.PathPrefix, path)
-				}
-
-				return path
-			},
-		})
-
-		t, err = t.ParseFS(html.FS, "*.html")
-
-		if err != nil {
-			return fmt.Errorf("Unable to parse templates, %v", err)
-		}
-
-		bootstrap_opts := bootstrap.DefaultBootstrapOptions()
-
-		err = bootstrap.AppendAssetHandlers(mux, bootstrap_opts)
-
-		if err != nil {
-			return fmt.Errorf("Failed to append bootstrap assets, %v", err)
-		}
-
-		err = www.AppendStaticAssetHandlers(mux)
-
-		if err != nil {
-			return fmt.Errorf("Failed to append static assets, %v", err)
-		}
-
-		// point-in-polygon page
-
-		http_pip_opts := &www.PointInPolygonHandlerOptions{
-			Templates:        t,
-			InitialLatitude:  opts.LeafletInitialLatitude,
-			InitialLongitude: opts.LeafletInitialLongitude,
-			InitialZoom:      opts.LeafletInitialZoom,
-			MaxBounds:        opts.LeafletMaxBounds,
-			MapProvider:      map_provider.Scheme(),
-		}
-
-		http_pip_handler, err := www.PointInPolygonHandler(spatial_app, http_pip_opts)
-
-		if err != nil {
-			return fmt.Errorf("failed to create (bundled) www handler because %s", err)
-		}
-
-		maps_opts := maps.DefaultMapsOptions()
-
-		err = maps.AppendAssetHandlers(mux, maps_opts)
-
-		if err != nil {
-			return fmt.Errorf("Failed to append map assets, %w", err)
-		}
-
-		http_pip_handler = bootstrap.AppendResourcesHandler(http_pip_handler, bootstrap_opts)
-		http_pip_handler = maps.AppendResourcesHandlerWithProvider(http_pip_handler, map_provider, maps_opts)
-		http_pip_handler = authenticator.WrapHandler(http_pip_handler)
-
-		mux.Handle(opts.PathPIP, http_pip_handler)
-
-		if !strings.HasSuffix(opts.PathPIP, "/") {
-			path_pip_slash := fmt.Sprintf("%s/", opts.PathPIP)
-			mux.Handle(path_pip_slash, http_pip_handler)
-		}
-
-		// index / splash page
-
-		index_opts := &www.IndexHandlerOptions{
-			Templates: t,
-		}
-
-		index_handler, err := www.IndexHandler(index_opts)
-
-		if err != nil {
-			return fmt.Errorf("Failed to create index handler, %v", err)
-		}
-
-		index_handler = bootstrap.AppendResourcesHandler(index_handler, bootstrap_opts)
-		index_handler = authenticator.WrapHandler(index_handler)
-
-		path_index := "/"
-
-		mux.Handle(path_index, index_handler)
+		mux.Handle("/", www_handler)
 	}
 
 	s, err := server.NewServer(ctx, opts.ServerURI)

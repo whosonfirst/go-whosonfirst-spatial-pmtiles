@@ -19,15 +19,17 @@ _Note: For the sake of brevity all error-handling has been removed from these ex
 
 ### Basic
 
-This example demonstrates how to use the `hierarchy.PointInPolygonHierarchyResolver` package with a set of "core" Who's On First documents.
+This example demonstrates how to use the `hierarchy.PointInPolygonHierarchyResolver` package with a set of "core" Who's On First documents using a [SQLite-backed spatial database](https://github.com/whosonfirst/go-whosonfirst-spatial-sqlite).
 
 ```
 import (
        "context"
 
+       _ "github.com/mattn/go-sqlite3"
+       _ "github.com/whosonfirst/go-whosonfirst-spatial-sqlite"
+       
        "github.com/sfomuseum/go-sfomuseum-mapshaper"
        "github.com/whosonfirst/go-whosonfirst-spatial/database"
-       _ "github.com/whosonfirst/go-whosonfirst-spatial-sqlite"
        "github.com/whosonfirst/go-whosonfirst-spatial/filter"
        "github.com/whosonfirst/go-whosonfirst-spatial/hierarchy"
        hierarchy_filter "github.com/whosonfirst/go-whosonfirst-spatial/hierarchy/filter"       
@@ -51,7 +53,7 @@ func main() {
 
 	// Create a new spatial database instance. For the sake of this example it
 	// is assumed that the database has already been populated with records.
-        spatial_db, _ := database.NewSpatialDatabase(ctx, "sqlite://?dsn=modernc://cwd/example.db")
+        spatial_db, _ := database.NewSpatialDatabase(ctx, "sql://sqlite3?dsn=example.db")
 
 	// Create configuration options for hierarchy resolver
 	resolver_opts := &hierarchy.PointInPolygonHierarchyResolverOptions{
@@ -88,6 +90,68 @@ func main() {
 }	
 ```
 
+### RTree-backed spatial database
+
+This example demonstrates how to use the `hierarchy.PointInPolygonHierarchyResolver` package with a set of "core" Who's On First documents using an in-memory [RTree-backed spatial database](https://github.com/whosonfirst/go-whosonfirst-spatial/blob/main/database/rtree.go).
+
+This is basically the same code as the "basic" example. The important difference is that we create and assign a new `reader.Reader` instance to the hierarchy resolver which is used to read properties, and specifically hierarchies, for features that have been returned by a point-in-polygon query.
+
+This is necessary because the RTree-backed spatial database only caches (in memory) the data necessary to implement the [StandardPlacesResult](https://pkg.go.dev/github.com/whosonfirst/go-whosonfirst-spr#StandardPlacesResult) interface (which does not expose hierarchies). This means it is necessary to define an external [reader](https://github.com/whosonfirst/go-reader) to derive properties. This can be any valid `reader.Reader` implementation. For the purposes of this example a SQLite-backed implementation is assumed (using a database created by the [whosonfirst/go-whosonfirst-database-sqlite](https://github.com/whosonfirst/go-whosonfirst-database-sqlite) package).
+
+```
+import (
+       "context"
+
+       _ "github.com/mattn/go-sqlite3"
+       _ "github.com/whosonfirst/go-reader-database-sql"
+       
+       "github.com/sfomuseum/go-sfomuseum-mapshaper"
+       "github.com/whosonfirst/go-whosonfirst-spatial/database"
+       "github.com/whosonfirst/go-whosonfirst-spatial/filter"
+       "github.com/whosonfirst/go-whosonfirst-spatial/hierarchy"
+       "github.com/whosonfirst/go-reader"
+       hierarchy_filter "github.com/whosonfirst/go-whosonfirst-spatial/hierarchy/filter"       
+)
+
+func main() {
+
+	ctx := context.Background()
+	
+        mapshaper_cl, _ := mapshaper.NewClient(ctx, "http://localhost:8080")
+        spatial_db, _ := database.NewSpatialDatabase(ctx, "rtree://")
+
+	resolver_opts := &hierarchy.PointInPolygonHierarchyResolverOptions{
+		Database:             spatial_db,
+	        Mapshaper:            mapshaper_cl,
+        }
+
+        resolver, _ := hierarchy.NewPointInPolygonHierarchyResolver(ctx, resolver_opts)
+
+	// Create a new SQLite-backed reader.Reader instance to use to read feature properties (hierarchies).
+	// Note the silent import of the github.com/whosonfirst/go-reader-database-sql package above.
+	
+	sql_r, _ := reader.NewReader(ctx, "sql://sqlite3/geojson/id/body?dsn=example.db")
+	resolver.SetReader(sql_r)
+
+	// Carry on as usual
+	
+        pip_inputs := &filter.SPRInputs{
+                IsCurrent: []int64{1},
+        }
+
+        results_cb := hierarchy_filter.FirstButForgivingSPRResultsFunc
+
+	update_cb := hierarchy.DefaultPointInPolygonHierarchyResolverUpdateCallback()
+
+	var body []byte
+
+	updates, _ := resolver.PointInPolygonAndUpdate(ctx, pip_inputs, results_cb, update_cb, body)
+
+	// Apply updates to body here
+}	
+```
+
+
 ### Custom placetypes
 
 This example demonstrates how to the `hierarchy.PointInPolygonHierarchyResolver` package with a set of Who's On First style documents that contain custom placetypes (defined in a separate property from the default `wof:placetype` property).
@@ -96,11 +160,13 @@ This example demonstrates how to the `hierarchy.PointInPolygonHierarchyResolver`
 import (
        "context"
 
-       "github.com/sfomuseum/go-sfomuseum-mapshaper"
+       _ "github.com/mattn/go-sqlite3"
        _ "github.com/sfomuseum/go-sfomuseum-placetypes"
+       _ "github.com/whosonfirst/go-whosonfirst-spatial-sqlite"
+       
+       "github.com/sfomuseum/go-sfomuseum-mapshaper"
        "github.com/whosonfirst/go-whosonfirst-placetypes"
        "github.com/whosonfirst/go-whosonfirst-spatial/database"
-       _ "github.com/whosonfirst/go-whosonfirst-spatial-sqlite"
        "github.com/whosonfirst/go-whosonfirst-spatial/filter"
        "github.com/whosonfirst/go-whosonfirst-spatial/hierarchy"
        hierarchy_filter "github.com/whosonfirst/go-whosonfirst-spatial/hierarchy/filter"       
@@ -110,7 +176,7 @@ func main() {
 
         mapshaper_cl, _ := mapshaper.NewClient(ctx, "http://localhost:8080")
 	
-        spatial_db, _ := database.NewSpatialDatabase(ctx, "sqlite://?dsn=modernc://cwd/example.db")
+        spatial_db, _ := database.NewSpatialDatabase(ctx, "sql://sqlite3?dsn=example.db")
 
 	// Create a new custom placetypes definition. In this case the standard Who's On First places
 	// definition supplemented with custom placetypes used by SFO Museum. This is used to derive

@@ -8,7 +8,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-spatial-grpc/request"
 	"github.com/whosonfirst/go-whosonfirst-spatial-grpc/spatial"
 	app "github.com/whosonfirst/go-whosonfirst-spatial/application"
-	"github.com/whosonfirst/go-whosonfirst-spatial/pip"
+	"github.com/whosonfirst/go-whosonfirst-spatial/query"
 	"github.com/whosonfirst/go-whosonfirst-spr/v2"
 )
 
@@ -32,8 +32,15 @@ func (s *SpatialServer) PointInPolygon(ctx context.Context, req *spatial.PointIn
 		return nil, fmt.Errorf("Indexing")
 	}
 
-	pip_req := request.PIPRequestFromSpatialRequest(req)
-	pip_rsp, err := pip.QueryPointInPolygon(ctx, s.app, pip_req)
+	pip_q := request.PIPRequestFromSpatialRequest(req)
+
+	pip_fn, err := query.NewSpatialFunction(ctx, "pip://")
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create pip:// spatial function, %w", err)
+	}
+
+	pip_rsp, err := query.ExecuteQuery(ctx, s.app.SpatialDatabase, pip_fn, pip_q)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to perform point in polygon operation, %w", err)
@@ -72,42 +79,19 @@ func (s *SpatialServer) PointInPolygonStream(req *spatial.PointInPolygonRequest,
 
 	ctx := context.Background()
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	rsp_ch := make(chan spr.StandardPlacesResult)
-	err_ch := make(chan error)
-	done_ch := make(chan bool)
-
-	working := true
-
 	spatial_db := s.app.SpatialDatabase
 
-	go spatial_db.PointInPolygonWithChannels(ctx, rsp_ch, err_ch, done_ch, &coord, f)
+	for spr_rsp, err := range spatial_db.PointInPolygonWithIterator(ctx, &coord, f) {
 
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		case <-done_ch:
-			working = false
-		case spr_rsp := <-rsp_ch:
-
-			grpc_rsp := sprResponseToGRPCResponse(spr_rsp)
-			err := stream.SendMsg(grpc_rsp)
-
-			if err != nil {
-				return err
-			}
-
-		case err := <-err_ch:
+		if err != nil {
 			return err
-		default:
-			// pass
 		}
 
-		if !working {
-			break
+		grpc_rsp := sprResponseToGRPCResponse(spr_rsp)
+		err := stream.SendMsg(grpc_rsp)
+
+		if err != nil {
+			return err
 		}
 	}
 

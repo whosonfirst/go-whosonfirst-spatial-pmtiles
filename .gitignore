@@ -1,6 +1,7 @@
 *~
 bin
 *.pmtiles
+!fixtures/sf.pmtiles
 *.zip
 go.work*
 work

@@ -155,6 +155,10 @@ _Where `flags.*` refers to the [whosonfirst/go-whosonfirst-flags](https://github
 
 * https://github.com/whosonfirst/go-whosonfirst-spatial-pmtiles
 
+### DuckDB
+
+* https://github.com/whosonfirst/go-whosonfirst-spatial-duckdb
+
 ## Servers and clients
 
 ### Web (HTTP)

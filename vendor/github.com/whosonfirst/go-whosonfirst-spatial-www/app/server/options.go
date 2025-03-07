@@ -9,31 +9,36 @@ import (
 )
 
 type RunOptions struct {
-	AuthenticatorURI        string
-	ServerURI               string
-	MapProviderURI          string
-	SpatialDatabaseURI      string
-	PropertiesReaderURI     string
-	IteratorSources         map[string][]string
-	EnableCustomPlacetypes  bool
-	CustomPlacetypes        string
-	IsWhosOnFirst           bool
-	EnableWWW               bool
-	EnableGeoJSON           bool
-	EnableGzip              bool
-	LogTimings              bool
-	EnableCORS              bool
-	CORSOrigins             []string
-	CORSAllowCredentials    bool
-	PathPing                string
-	PathData                string
-	PathAPI                 string
-	PathPrefix              string
-	PathPIP                 string
-	LeafletInitialLatitude  float64
-	LeafletInitialLongitude float64
-	LeafletInitialZoom      int
-	LeafletMaxBounds        string
+	AuthenticatorURI       string
+	ServerURI              string
+	SpatialDatabaseURI     string
+	PropertiesReaderURI    string
+	IteratorSources        map[string][]string
+	EnableCustomPlacetypes bool
+	CustomPlacetypes       string
+	IsWhosOnFirst          bool
+	EnableWWW              bool
+	EnableGeoJSON          bool
+	EnableGzip             bool
+	LogTimings             bool
+	EnableCORS             bool
+	CORSOrigins            []string
+	CORSAllowCredentials   bool
+	PathPing               string
+	PathAPI                string
+
+	// A string label indicating the map provider to use. Valid options are: leaflet, protomaps.
+	MapProvider string
+	// A valid Leaflet tile layer URI.
+	MapTileURI string
+	// A comma-separated string indicating the map's initial view. Valid options are: 'LON,LAT', 'LON,LAT,ZOOM' or 'MINX,MINY,MAXX,MAXY'.
+	InitialView string
+	// A custom Leaflet style definition for geometries. This may either be a JSON-encoded string or a path on disk.
+	LeafletStyle string
+	// A custom Leaflet style definition for points. This may either be a JSON-encoded string or a path on disk.
+	LeafletPointStyle string
+	// A valid Protomaps theme label.
+	ProtomapsTheme string
 }
 
 func RunOptionsFromFlagSet(ctx context.Context, fs *flag.FlagSet) (*RunOptions, error) {
@@ -62,21 +67,19 @@ func RunOptionsFromFlagSet(ctx context.Context, fs *flag.FlagSet) (*RunOptions, 
 		EnableGeoJSON: enable_geojson,
 		EnableGzip:    enable_gzip,
 		PathPing:      path_ping,
-		PathData:      path_data,
 		PathAPI:       path_api,
-		PathPrefix:    path_prefix,
-		PathPIP:       path_pip,
 
 		LogTimings:           log_timings,
 		EnableCORS:           enable_cors,
 		CORSOrigins:          cors_origins,
 		CORSAllowCredentials: cors_allow_credentials,
 
-		MapProviderURI:          map_provider_uri,
-		LeafletInitialLatitude:  leaflet_initial_latitude,
-		LeafletInitialLongitude: leaflet_initial_longitude,
-		LeafletInitialZoom:      leaflet_initial_zoom,
-		LeafletMaxBounds:        leaflet_max_bounds,
+		MapProvider:       map_provider,
+		MapTileURI:        map_tile_uri,
+		InitialView:       initial_view,
+		LeafletStyle:      leaflet_style,
+		LeafletPointStyle: leaflet_point_style,
+		ProtomapsTheme:    protomaps_theme,
 	}
 
 	return opts, nil

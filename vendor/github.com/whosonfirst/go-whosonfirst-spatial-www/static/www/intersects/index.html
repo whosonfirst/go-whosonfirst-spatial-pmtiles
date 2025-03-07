@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+	  <title>go-whosonfirst-spatial intersects tool</title>
+	  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	  <meta name="referrer" content="origin">
+	  <meta http-equiv="X-UA-Compatible" content="IE=9" />
+	  <meta name="apple-mobile-web-app-capable" content="yes" />
+	  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+	  <meta name="HandheldFriendly" content="true" />
+	  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no" />
+	  <link rel="stylesheet" type="text/css" href="../css/bootstrap.min.css" />
+	  <link rel="stylesheet" type="text/css" href="../css/leaflet.css" />
+	  <link rel="stylesheet" type="text/css" href="../css/leaflet-geoman.css" />	  
+	  <link rel="stylesheet" type="text/css" href="../css/leaflet.spinner.control.css" />
+	  <link rel="stylesheet" type="text/css" href="../css/whosonfirst.spatial.css" />	  
+	  <link rel="stylesheet" type="text/css" href="../css/whosonfirst.spatial.intersects.css" />
+  </head>
+  <body>
+
+	<div class="grid" id="intersects">
+
+	    <div>
+		<div id="map"></div>
+	    </div>
+	    
+	    <div id="controls">
+		
+		<div id="filters">
+
+		    <details>
+			<summary>Filters</summary>
+			<div class="form-check form-check-inline">
+			    <input class="form-check-input spatial-filter spatial-filter-existential" type="checkbox" id="is_current" value="is_current">
+			    <label class="form-check-label" for="is_current">is current</label>
+			</div>
+			<div class="form-check form-check-inline">
+			    <input class="form-check-input spatial-filter spatial-filter-existential" type="checkbox" id="is_deprecated" value="is_deprecated">
+			    <label class="form-check-label" for="is_deprecated">is deprecated</label>
+			</div>
+			<div class="form-check form-check-inline">
+			    <input class="form-check-input spatial-filter spatial-filter-existential" type="checkbox" id="is_ceased" value="is_ceased">
+			    <label class="form-check-label" for="is_ceased">is ceased</label>
+			</div>
+			<div class="form-check form-check-inline">
+			    <input class="form-check-input spatial-filter spatial-filter-existential" type="checkbox" id="is_superseded" value="is_superseded">
+			    <label class="form-check-label" for="is_superseded">is superseded</label>
+			</div>
+			<div class="form-check form-check-inline">
+			    <input class="form-check-input spatial-filter spatial-filter-existential" type="checkbox" id="is_superseding" value="is_superseding">
+			    <label class="form-check-label" for="is_superseding">is superseding</label>
+			</div>
+			<div id="placetypes"></div>
+		    </details>
+
+		    <details>
+			<summary>Dates</summary>
+			<small>Date filtering is still being actively developed. Not all EDTF strings are supported yet.</small>
+			
+			<div class="form-group">
+			    <label for="inception">Inception</label>
+			    <input type="text" class="form-control spatial-filter spatial-filter-edtf" id="inception" aria-describedby="extras" placeholder="A valid EDTF srting">
+			</div>		    
+			
+			<div class="form-group">
+			    <label for="cessation">Cessation</label>
+			    <input type="text" class="form-control spatial-filter spatial-filter-edtf" id="cessation" aria-describedby="extras" placeholder="A valid EDTF srting">
+			</div>		    
+		    </details>
+		    
+		    <details>
+			<summary>Extras</summary>
+			
+			<div class="form-group">
+			    <label for="extras">A comma-separated list of additional properties to include</label>
+			    <input type="text" class="form-control spatial-extra" id="extras" aria-describedby="extras" placeholder="">
+			</div>
+		    </details>
+		    
+		</div>
+		
+		<div id="results">
+		    <div id="intersects-matches"></ul>		
+		    </div>	    
+		</div>	
+		
+	    </div>
+	</div>
+	
+  </body>
+  
+  <script type="text/javascript" src="../javascript/leaflet.js"></script>
+  <script type="text/javascript" src="../javascript/leaflet-geoman.js"></script>  
+  <script type="text/javascript" src="../javascript/protomaps-leaflet.js"></script>
+  <script type="text/javascript" src="../javascript/localforage.min.js"></script>    
+  <script type="text/javascript" src="../javascript/whosonfirst.net.js"></script>  
+  <script type="text/javascript" src="../javascript/leaflet.spinner.control.js"></script>
+  <script type="text/javascript" src="../javascript/whosonfirst.spatial.api.js"></script>
+  <script type="text/javascript" src="../javascript/whosonfirst.spatial.maps.js"></script>
+  <script type="text/javascript" src="../javascript/whosonfirst.spatial.results.js"></script>
+  <script type="text/javascript" src="../javascript/whosonfirst.spatial.placetypes.js"></script>        
+  <script type="text/javascript" src="../javascript/whosonfirst.spatial.intersects.js"></script>
+  <script type="text/javascript" src="../javascript/whosonfirst.spatial.intersects.init.js"></script>
+  
+</html>

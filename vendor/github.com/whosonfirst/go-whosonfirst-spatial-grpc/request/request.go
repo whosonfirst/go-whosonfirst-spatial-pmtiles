@@ -1,11 +1,15 @@
 package request
 
 import (
+	"fmt"
+
+	"github.com/paulmach/orb"
+	"github.com/paulmach/orb/geojson"
 	"github.com/whosonfirst/go-whosonfirst-spatial-grpc/spatial"
-	"github.com/whosonfirst/go-whosonfirst-spatial/pip"
+	"github.com/whosonfirst/go-whosonfirst-spatial/query"
 )
 
-func PIPRequestFromSpatialRequest(spatial_req *spatial.PointInPolygonRequest) *pip.PointInPolygonRequest {
+func PIPRequestFromSpatialRequest(spatial_req *spatial.PointInPolygonRequest) *query.SpatialQuery {
 
 	asInt64 := func(fl []spatial.ExistentialFlag) []int64 {
 
@@ -26,9 +30,14 @@ func PIPRequestFromSpatialRequest(spatial_req *spatial.PointInPolygonRequest) *p
 		return j
 	}
 
-	pip_req := &pip.PointInPolygonRequest{
-		Latitude:            float64(spatial_req.Latitude),
-		Longitude:           float64(spatial_req.Longitude),
+	lat := float64(spatial_req.Latitude)
+	lon := float64(spatial_req.Longitude)
+
+	pt := orb.Point([2]float64{lon, lat})
+	geom := geojson.NewGeometry(pt)
+
+	pip_q := &query.SpatialQuery{
+		Geometry:            geom,
 		Placetypes:          spatial_req.Placetypes,
 		Geometries:          spatial_req.Geometries,
 		AlternateGeometries: spatial_req.AlternateGeometries,
@@ -43,37 +52,45 @@ func PIPRequestFromSpatialRequest(spatial_req *spatial.PointInPolygonRequest) *p
 		IsSuperseding:       asInt64(spatial_req.IsSuperseding),
 	}
 
-	return pip_req
+	return pip_q
 }
 
 // https://github.com/whosonfirst/go-whosonfirst-spatial-pip/blob/main/pip.go
 
-func NewPointInPolygonRequest(pip_req *pip.PointInPolygonRequest) (*spatial.PointInPolygonRequest, error) {
+func NewPointInPolygonRequest(pip_q *query.SpatialQuery) (*spatial.PointInPolygonRequest, error) {
 
-	lat32 := float32(pip_req.Latitude)
-	lon32 := float32(pip_req.Longitude)
+	geom := pip_q.Geometry
 
-	is_current := existentialIntFlagsToProtobufExistentialFlags(pip_req.IsCurrent)
-	is_ceased := existentialIntFlagsToProtobufExistentialFlags(pip_req.IsCeased)
-	is_deprecated := existentialIntFlagsToProtobufExistentialFlags(pip_req.IsDeprecated)
-	is_superseded := existentialIntFlagsToProtobufExistentialFlags(pip_req.IsSuperseded)
-	is_superseding := existentialIntFlagsToProtobufExistentialFlags(pip_req.IsSuperseding)
+	if geom.Type != "Point" {
+		return nil, fmt.Errorf("Invalid geometry type")
+	}
+
+	pt := geom.Coordinates.(orb.Point)
+
+	lat32 := float32(pt.Lat())
+	lon32 := float32(pt.Lon())
+
+	is_current := existentialIntFlagsToProtobufExistentialFlags(pip_q.IsCurrent)
+	is_ceased := existentialIntFlagsToProtobufExistentialFlags(pip_q.IsCeased)
+	is_deprecated := existentialIntFlagsToProtobufExistentialFlags(pip_q.IsDeprecated)
+	is_superseded := existentialIntFlagsToProtobufExistentialFlags(pip_q.IsSuperseded)
+	is_superseding := existentialIntFlagsToProtobufExistentialFlags(pip_q.IsSuperseding)
 
 	req := &spatial.PointInPolygonRequest{
 		Latitude:            lat32,
 		Longitude:           lon32,
-		Placetypes:          pip_req.Placetypes,
-		Geometries:          pip_req.Geometries,
-		AlternateGeometries: pip_req.AlternateGeometries,
-		InceptionDate:       pip_req.InceptionDate,
-		CessationDate:       pip_req.CessationDate,
+		Placetypes:          pip_q.Placetypes,
+		Geometries:          pip_q.Geometries,
+		AlternateGeometries: pip_q.AlternateGeometries,
+		InceptionDate:       pip_q.InceptionDate,
+		CessationDate:       pip_q.CessationDate,
 		IsCurrent:           is_current,
 		IsCeased:            is_ceased,
 		IsDeprecated:        is_deprecated,
 		IsSuperseded:        is_superseded,
 		IsSuperseding:       is_superseding,
-		Sort:                pip_req.Sort,
-		Properties:          pip_req.Properties,
+		Sort:                pip_q.Sort,
+		Properties:          pip_q.Properties,
 	}
 
 	return req, nil
