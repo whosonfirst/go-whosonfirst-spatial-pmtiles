@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"os"
 
 	"github.com/sfomuseum/go-flags/flagset"
 	"github.com/sfomuseum/go-flags/multi"
@@ -97,8 +98,14 @@ func DefaultFlagSet(ctx context.Context) (*flag.FlagSet, error) {
 
 	// Runtime / server flags
 
-	fs.StringVar(&mode, "mode", "cli", "Valid options are: cli")
-	fs.StringVar(&server_uri, "server-uri", "http://localhost:8080", "A valid aaronland/go-http-server URI.")
+	fs.StringVar(&mode, "mode", "cli", "Valid options are: cli, lambda.")
+
+	fs.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Perform an point-in-polygon operation for an input latitude, longitude coordinate and on a set of Who's on First records stored in a spatial database.\n")
+		fmt.Fprintf(os.Stderr, "Usage:\n\t %s [options]\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Valid options are:\n\n")
+		fs.PrintDefaults()
+	}
 
 	return fs, nil
 }

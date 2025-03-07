@@ -10,8 +10,10 @@ import (
 
 	"github.com/whosonfirst/go-whosonfirst-spatial-grpc/request"
 	"github.com/whosonfirst/go-whosonfirst-spatial-grpc/spatial"
-	"github.com/whosonfirst/go-whosonfirst-spatial/pip"
+	"github.com/whosonfirst/go-whosonfirst-spatial/query"
+	"github.com/whosonfirst/go-whosonfirst-spatial/geo"	
 	"google.golang.org/grpc"
+	"github.com/paulmach/orb/geojson"
 )
 
 func Run(ctx context.Context) error {
@@ -38,9 +40,16 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 
 func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 
-	pip_req := &pip.PointInPolygonRequest{
-		Latitude:            opts.Latitude,
-		Longitude:           opts.Longitude,
+	pt, err := geo.NewCoordinate(opts.Longitude, opts.Latitude)
+
+	if err != nil {
+		return err
+	}
+	
+	geom := geojson.NewGeometry(pt)
+
+	pip_q := &query.SpatialQuery{
+		Geometry:            geom,
 		Placetypes:          opts.Placetypes,
 		Geometries:          opts.Geometries,
 		AlternateGeometries: opts.AlternateGeometries,
@@ -55,7 +64,7 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 		Sort:                opts.Sort,
 	}
 
-	spatial_req, err := request.NewPointInPolygonRequest(pip_req)
+	spatial_req, err := request.NewPointInPolygonRequest(pip_q)
 
 	if err != nil {
 		return fmt.Errorf("Failed to create spatial PIP request, %w", err)

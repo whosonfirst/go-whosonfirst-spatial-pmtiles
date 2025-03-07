@@ -1,0 +1,10 @@
+#slippymap-coords {
+	text-align: center;
+	font-size:small;
+	padding:.5rem;
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	z-index:1000;
+	background-color:#fff;
+}

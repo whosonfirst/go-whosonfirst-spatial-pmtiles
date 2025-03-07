@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"iter"
 	"log"
 	"log/slog"
 	"net/url"
@@ -25,6 +26,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-feature/properties"
 	"github.com/whosonfirst/go-whosonfirst-spatial"
 	"github.com/whosonfirst/go-whosonfirst-spatial/filter"
+	"github.com/whosonfirst/go-whosonfirst-spatial/geo"
 	"github.com/whosonfirst/go-whosonfirst-spr/v2"
 	"github.com/whosonfirst/go-whosonfirst-uri"
 )
@@ -309,35 +311,17 @@ func (r *RTreeSpatialDatabase) RemoveFeature(ctx context.Context, id string) err
 	return nil
 }
 
-func (r *RTreeSpatialDatabase) PointInPolygon(ctx context.Context, coord *orb.Point, filters ...spatial.Filter) (spr.StandardPlacesResults, error) {
-
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	rsp_ch := make(chan spr.StandardPlacesResult)
-	err_ch := make(chan error)
-	done_ch := make(chan bool)
+func (db *RTreeSpatialDatabase) PointInPolygon(ctx context.Context, coord *orb.Point, filters ...spatial.Filter) (spr.StandardPlacesResults, error) {
 
 	results := make([]spr.StandardPlacesResult, 0)
-	working := true
 
-	go r.PointInPolygonWithChannels(ctx, rsp_ch, err_ch, done_ch, coord, filters...)
+	for r, err := range db.PointInPolygonWithIterator(ctx, coord, filters...) {
 
-	for {
-		select {
-		case <-ctx.Done():
-			return nil, nil
-		case <-done_ch:
-			working = false
-		case rsp := <-rsp_ch:
-			results = append(results, rsp)
-		case err := <-err_ch:
+		if err != nil {
 			return nil, err
 		}
 
-		if !working {
-			break
-		}
+		results = append(results, r)
 	}
 
 	spr_results := &RTreeResults{
@@ -347,88 +331,77 @@ func (r *RTreeSpatialDatabase) PointInPolygon(ctx context.Context, coord *orb.Po
 	return spr_results, nil
 }
 
-func (r *RTreeSpatialDatabase) PointInPolygonWithChannels(ctx context.Context, rsp_ch chan spr.StandardPlacesResult, err_ch chan error, done_ch chan bool, coord *orb.Point, filters ...spatial.Filter) {
+func (db *RTreeSpatialDatabase) PointInPolygonWithIterator(ctx context.Context, coord *orb.Point, filters ...spatial.Filter) iter.Seq2[spr.StandardPlacesResult, error] {
 
-	defer func() {
-		done_ch <- true
-	}()
+	return func(yield func(spr.StandardPlacesResult, error) bool) {
 
-	rows, err := r.getIntersectsByCoord(coord)
+		rows, err := db.getIntersectsByCoord(coord)
 
-	if err != nil {
-		err_ch <- err
+		if err != nil {
+			yield(nil, err)
+			return
+		}
+
+		for r, err := range db.inflateResults(ctx, rows, coord, filters...) {
+
+			if !yield(r, err) {
+				return
+			}
+		}
+
 		return
 	}
-
-	r.inflateResultsWithChannels(ctx, rsp_ch, err_ch, rows, coord, filters...)
-	return
 }
 
-func (r *RTreeSpatialDatabase) PointInPolygonCandidates(ctx context.Context, coord *orb.Point, filters ...spatial.Filter) ([]*spatial.PointInPolygonCandidate, error) {
+func (db *RTreeSpatialDatabase) Intersects(ctx context.Context, geom orb.Geometry, filters ...spatial.Filter) (spr.StandardPlacesResults, error) {
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	results := make([]spr.StandardPlacesResult, 0)
 
-	rsp_ch := make(chan *spatial.PointInPolygonCandidate)
-	err_ch := make(chan error)
-	done_ch := make(chan bool)
+	for r, err := range db.IntersectsWithIterator(ctx, geom, filters...) {
 
-	candidates := make([]*spatial.PointInPolygonCandidate, 0)
-	working := true
-
-	go r.PointInPolygonCandidatesWithChannels(ctx, rsp_ch, err_ch, done_ch, coord, filters...)
-
-	for {
-		select {
-		case <-ctx.Done():
-			return nil, nil
-		case <-done_ch:
-			working = false
-		case rsp := <-rsp_ch:
-			candidates = append(candidates, rsp)
-		case err := <-err_ch:
+		if err != nil {
 			return nil, err
 		}
 
-		if !working {
-			break
-		}
+		results = append(results, r)
 	}
 
-	return candidates, nil
+	spr_results := &RTreeResults{
+		Places: results,
+	}
+
+	return spr_results, nil
 }
 
-func (r *RTreeSpatialDatabase) PointInPolygonCandidatesWithChannels(ctx context.Context, rsp_ch chan *spatial.PointInPolygonCandidate, err_ch chan error, done_ch chan bool, coord *orb.Point, filters ...spatial.Filter) {
+func (db *RTreeSpatialDatabase) IntersectsWithIterator(ctx context.Context, geom orb.Geometry, filters ...spatial.Filter) iter.Seq2[spr.StandardPlacesResult, error] {
 
-	defer func() {
-		done_ch <- true
-	}()
+	return func(yield func(spr.StandardPlacesResult, error) bool) {
 
-	intersects, err := r.getIntersectsByCoord(coord)
+		bound := geom.Bound()
+		min := bound.Min
+		max := bound.Max
 
-	if err != nil {
-		err_ch <- err
-		return
-	}
+		sw := rtreego.Point{min[0], min[1]}
+		ne := rtreego.Point{max[0], max[1]}
 
-	for _, raw := range intersects {
+		rect, err := rtreego.NewRectFromPoints(sw, ne)
 
-		sp := raw.(*RTreeSpatialIndex)
+		rows, err := db.getIntersectsByRect(&rect)
 
-		// bounds := sp.Bounds()
-
-		c := &spatial.PointInPolygonCandidate{
-			Id:        sp.Id,
-			FeatureId: sp.FeatureId,
-			AltLabel:  sp.AltLabel,
-			// FIX ME
-			// Bounds:   bounds,
+		if err != nil {
+			yield(nil, err)
+			return
 		}
 
-		rsp_ch <- c
-	}
+		for r, err := range db.inflateIntersectsResults(ctx, rows, geom, filters...) {
 
-	return
+			if !yield(r, err) {
+				break
+			}
+		}
+
+		return
+	}
 }
 
 func (r *RTreeSpatialDatabase) getIntersectsByCoord(coord *orb.Point) ([]rtreego.Spatial, error) {
@@ -452,87 +425,210 @@ func (r *RTreeSpatialDatabase) getIntersectsByRect(rect *rtreego.Rect) ([]rtreeg
 	return results, nil
 }
 
-func (r *RTreeSpatialDatabase) inflateResultsWithChannels(ctx context.Context, rsp_ch chan spr.StandardPlacesResult, err_ch chan error, possible []rtreego.Spatial, c *orb.Point, filters ...spatial.Filter) {
+func (r *RTreeSpatialDatabase) inflateResults(ctx context.Context, possible []rtreego.Spatial, c *orb.Point, filters ...spatial.Filter) iter.Seq2[spr.StandardPlacesResult, error] {
 
-	seen := make(map[string]bool)
+	return func(yield func(spr.StandardPlacesResult, error) bool) {
 
-	mu := new(sync.RWMutex)
-	wg := new(sync.WaitGroup)
+		seen := make(map[string]bool)
+		mu := new(sync.RWMutex)
 
-	for _, row := range possible {
+		done_ch := make(chan bool)
+		spr_ch := make(chan spr.StandardPlacesResult)
 
-		sp := row.(*RTreeSpatialIndex)
-		wg.Add(1)
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
 
-		go func(sp *RTreeSpatialIndex) {
+		for _, row := range possible {
 
-			sp_id := sp.Id
-			feature_id := sp.FeatureId
+			sp := row.(*RTreeSpatialIndex)
 
-			defer wg.Done()
+			go func(sp *RTreeSpatialIndex) {
 
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				// pass
-			}
+				sp_id := sp.Id
+				feature_id := sp.FeatureId
 
-			mu.RLock()
-			_, ok := seen[feature_id]
-			mu.RUnlock()
+				defer func() {
+					done_ch <- true
+				}()
 
-			if ok {
-				return
-			}
+				select {
+				case <-ctx.Done():
+					return
+				default:
+					// pass
+				}
 
-			mu.Lock()
-			seen[feature_id] = true
-			mu.Unlock()
+				mu.RLock()
+				_, ok := seen[feature_id]
+				mu.RUnlock()
 
-			cache_item, err := r.retrieveCache(ctx, sp)
-
-			if err != nil {
-				slog.Error("Failed to retrieve cache item", "id", sp_id, "error", err)
-				return
-			}
-
-			s := cache_item.SPR
-
-			for _, f := range filters {
-
-				err = filter.FilterSPR(f, s)
-
-				if err != nil {
+				if ok {
 					return
 				}
+
+				mu.Lock()
+				seen[feature_id] = true
+				mu.Unlock()
+
+				cache_item, err := r.retrieveCache(ctx, sp)
+
+				if err != nil {
+					slog.Error("Failed to retrieve cache item", "id", sp_id, "error", err)
+					return
+				}
+
+				s := cache_item.SPR
+
+				for _, f := range filters {
+
+					err = filter.FilterSPR(f, s)
+
+					if err != nil {
+						return
+					}
+				}
+
+				geom := cache_item.Geometry
+
+				orb_geom := geom.Geometry()
+				geom_type := orb_geom.GeoJSONType()
+
+				contains := false
+
+				switch geom_type {
+				case "Polygon":
+					contains = planar.PolygonContains(orb_geom.(orb.Polygon), *c)
+				case "MultiPolygon":
+					contains = planar.MultiPolygonContains(orb_geom.(orb.MultiPolygon), *c)
+				default:
+					slog.Debug("Geometry has unsupported geometry", "type", geom.Type)
+				}
+
+				if !contains {
+					return
+				}
+
+				spr_ch <- s
+			}(sp)
+		}
+
+		remaining := len(possible)
+
+		for remaining > 0 {
+			select {
+			case <-done_ch:
+				remaining -= 1
+			case s := <-spr_ch:
+				yield(s, nil)
 			}
-
-			geom := cache_item.Geometry
-
-			orb_geom := geom.Geometry()
-			geom_type := orb_geom.GeoJSONType()
-
-			contains := false
-
-			switch geom_type {
-			case "Polygon":
-				contains = planar.PolygonContains(orb_geom.(orb.Polygon), *c)
-			case "MultiPolygon":
-				contains = planar.MultiPolygonContains(orb_geom.(orb.MultiPolygon), *c)
-			default:
-				slog.Debug("Geometry has unsupported geometry", "type", geom.Type)
-			}
-
-			if !contains {
-				return
-			}
-
-			rsp_ch <- s
-		}(sp)
+		}
 	}
+}
 
-	wg.Wait()
+func (db *RTreeSpatialDatabase) inflateIntersectsResults(ctx context.Context, possible []rtreego.Spatial, geom orb.Geometry, filters ...spatial.Filter) iter.Seq2[spr.StandardPlacesResult, error] {
+
+	return func(yield func(spr.StandardPlacesResult, error) bool) {
+
+		seen := make(map[string]bool)
+		mu := new(sync.RWMutex)
+
+		done_ch := make(chan bool)
+		spr_ch := make(chan spr.StandardPlacesResult)
+
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+
+		for _, row := range possible {
+
+			sp := row.(*RTreeSpatialIndex)
+
+			go func(sp *RTreeSpatialIndex) {
+
+				defer func() {
+					done_ch <- true
+				}()
+
+				sp_id := sp.Id
+				feature_id := sp.FeatureId
+
+				select {
+				case <-ctx.Done():
+					return
+				default:
+					// pass
+				}
+
+				mu.RLock()
+				_, ok := seen[feature_id]
+				mu.RUnlock()
+
+				if ok {
+					return
+				}
+
+				mu.Lock()
+				seen[feature_id] = true
+				mu.Unlock()
+
+				cache_item, err := db.retrieveCache(ctx, sp)
+
+				if err != nil {
+					slog.Error("Failed to retrieve cache item", "id", sp_id, "error", err)
+					return
+				}
+
+				s := cache_item.SPR
+
+				for _, f := range filters {
+
+					err = filter.FilterSPR(f, s)
+
+					if err != nil {
+						return
+					}
+				}
+
+				item_geom := cache_item.Geometry
+
+				item_orb_geom := item_geom.Geometry()
+				item_geom_type := item_orb_geom.GeoJSONType()
+
+				intersects := false
+
+				switch item_geom_type {
+				case "Polygon", "MultiPolygon":
+
+					ok, err := geo.Intersects(item_orb_geom, geom)
+
+					if err != nil {
+						slog.Error("Failed to determine intersection", "error", err)
+					}
+
+					intersects = ok
+
+				default:
+					slog.Debug("Geometry has unsupported geometry", "type", item_geom_type)
+				}
+
+				if !intersects {
+					return
+				}
+
+				spr_ch <- s
+			}(sp)
+		}
+
+		remaining := len(possible)
+
+		for remaining > 0 {
+			select {
+			case <-done_ch:
+				remaining -= 1
+			case s := <-spr_ch:
+				yield(s, nil)
+			}
+		}
+	}
 }
 
 func (r *RTreeSpatialDatabase) setCache(ctx context.Context, body []byte) error {
