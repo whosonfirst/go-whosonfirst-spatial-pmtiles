@@ -54,3 +54,27 @@ Valid options are:
   -verbose
     	Enable verbose (debug) logging.
 ```
+
+## Example
+
+```
+$> ./bin/intersects \
+	-geometry-source flag \
+	-geometry-type bbox \
+	-geometry-value '-122.408061,37.601617,-122.354907,37.640167' \
+	-spatial-database-uri 'pmtiles://?tiles=file:///usr/local/whosonfirst/go-whosonfirst-spatial-pmtiles/fixtures&database=sf&zoom=13&enable_cache=true&layer=whosonfirst' \
+	| jq -r '.places[]["wof:name"]'
+	
+San Francisco-Oakland-San Jose
+United States
+Earth
+North America
+Millbrae
+United States of America
+San Francisco International Airport
+San Mateo
+California
+San Bruno
+America/Los_Angeles
+South San Francisco
+```
