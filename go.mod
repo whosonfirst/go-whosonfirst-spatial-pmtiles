@@ -15,10 +15,10 @@ require (
 	github.com/whosonfirst/go-ioutil v1.0.2
 	github.com/whosonfirst/go-reader v1.1.0
 	github.com/whosonfirst/go-whosonfirst-feature v0.0.28
-	github.com/whosonfirst/go-whosonfirst-spatial v0.16.1
+	github.com/whosonfirst/go-whosonfirst-spatial v0.16.2
 	github.com/whosonfirst/go-whosonfirst-spatial-grpc v0.2.2
-	github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.13.0
-	github.com/whosonfirst/go-whosonfirst-spatial-www v0.5.0
+	github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.14.0
+	github.com/whosonfirst/go-whosonfirst-spatial-www v0.6.0
 	github.com/whosonfirst/go-whosonfirst-spr/v2 v2.3.7
 	github.com/whosonfirst/go-whosonfirst-uri v1.3.0
 	gocloud.dev v0.41.0
@@ -116,7 +116,7 @@ require (
 	github.com/jtacoma/uritemplates v1.0.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.14 // indirect
-	github.com/mattn/go-sqlite3 v1.14.24 // indirect
+	github.com/mattn/go-sqlite3 v1.14.27 // indirect
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
@@ -139,7 +139,7 @@ require (
 	github.com/schollz/progressbar/v3 v3.13.1 // indirect
 	github.com/sfomuseum/go-edtf v1.2.1 // indirect
 	github.com/sfomuseum/go-flags v0.10.0 // indirect
-	github.com/sfomuseum/go-http-auth v0.12.0 // indirect
+	github.com/sfomuseum/go-http-auth v1.0.0 // indirect
 	github.com/sfomuseum/go-sfomuseum-mapshaper v0.0.3 // indirect
 	github.com/sfomuseum/go-timings v1.4.0 // indirect
 	github.com/sfomuseum/iso8601duration v1.1.0 // indirect

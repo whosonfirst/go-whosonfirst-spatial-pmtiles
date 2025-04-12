@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"log"
 	"net/http"
 )
 
@@ -48,9 +47,4 @@ func (a *NoneAuthenticator) SignoutHandler() http.Handler {
 // SignoutHandler returns an `http.Handler` instance that returns an HTTP "501 Not implemented" error.
 func (a *NoneAuthenticator) SignupHandler() http.Handler {
 	return notImplementedHandler()
-}
-
-// SetLogger is a no-op and does nothing.
-func (a *NoneAuthenticator) SetLogger(logger *log.Logger) {
-	// no-op
 }

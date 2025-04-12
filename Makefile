@@ -3,7 +3,7 @@ LDFLAGS=-s -w
 
 CWD=$(shell pwd)
 
-DATABASE=pmtiles://?tiles=file://$(CWD)/fixtures&database=sf&zoom=13&enable_cache=true&layer=whosonfirst
+DATABASE=pmtiles://?tiles=file://$(CWD)/fixtures&database=sf&zoom=13&enable-cache=true&layer=whosonfirst
 INITIAL_VIEW=-122.384292,37.621131,13
 
 vuln:

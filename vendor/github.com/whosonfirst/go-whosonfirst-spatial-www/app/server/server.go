@@ -143,6 +143,30 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 
 	mux.Handle(path_api_pip, api_pip_handler)
 
+	// point-in-polygon (maptile) handlers
+
+	api_piptile_opts := &api.PointInPolygonTileHandlerOptions{}
+
+	api_piptile_handler, err := api.PointInPolygonTileHandler(spatial_app, api_piptile_opts)
+
+	if err != nil {
+		return fmt.Errorf("failed to create point-in-polygon maptile handler because %s", err)
+	}
+
+	api_pip_handler = authenticator.WrapHandler(api_pip_handler)
+
+	if opts.EnableCORS {
+		api_piptile_handler = cors_wrapper.Handler(api_piptile_handler)
+	}
+
+	if opts.EnableGzip {
+		api_piptile_handler = gziphandler.GzipHandler(api_piptile_handler)
+	}
+
+	path_api_piptile := filepath.Join(opts.PathAPI, "point-in-polygon-with-tile")
+
+	mux.Handle(path_api_piptile, api_piptile_handler)
+
 	// intersects
 
 	api_intersects_opts := &api.IntersectsHandlerOptions{
