@@ -17,6 +17,17 @@ import (
 // console for cost allocation tracking. You can call TagResource up to five times
 // per second, per account.
 //
+//   - TagResource is an asynchronous operation. If you issue a ListTagsOfResourcerequest
+//     immediately after a TagResource request, DynamoDB might return your previous
+//     tag set, if there was one, or an empty tag set. This is because
+//     ListTagsOfResource uses an eventually consistent query, and the metadata for
+//     your tags or table might not be available at that moment. Wait for a few
+//     seconds, and then try the ListTagsOfResource request again.
+//
+//   - The application or removal of tags using TagResource and UntagResource APIs
+//     is eventually consistent. ListTagsOfResource API will only reflect the changes
+//     after a few seconds.
+//
 // For an overview on tagging DynamoDB resources, see [Tagging for DynamoDB] in the Amazon DynamoDB
 // Developer Guide.
 //
@@ -50,6 +61,12 @@ type TagResourceInput struct {
 	Tags []types.Tag
 
 	noSmithyDocumentSerde
+}
+
+func (in *TagResourceInput) bindEndpointParams(p *EndpointParameters) {
+
+	p.ResourceArn = in.ResourceArn
+
 }
 
 type TagResourceOutput struct {
@@ -102,6 +119,9 @@ func (c *Client) addOperationTagResourceMiddlewares(stack *middleware.Stack, opt
 	if err = addRecordResponseTiming(stack); err != nil {
 		return err
 	}
+	if err = addSpanRetryLoop(stack, options); err != nil {
+		return err
+	}
 	if err = addClientUserAgent(stack, options); err != nil {
 		return err
 	}
@@ -121,6 +141,12 @@ func (c *Client) addOperationTagResourceMiddlewares(stack *middleware.Stack, opt
 		return err
 	}
 	if err = addUserAgentRetryMode(stack, options); err != nil {
+		return err
+	}
+	if err = addUserAgentAccountIDEndpointMode(stack, options); err != nil {
+		return err
+	}
+	if err = addCredentialSource(stack, options); err != nil {
 		return err
 	}
 	if err = addOpTagResourceValidationMiddleware(stack); err != nil {
@@ -148,6 +174,18 @@ func (c *Client) addOperationTagResourceMiddlewares(stack *middleware.Stack, opt
 		return err
 	}
 	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
+		return err
+	}
+	if err = addSpanInitializeStart(stack); err != nil {
+		return err
+	}
+	if err = addSpanInitializeEnd(stack); err != nil {
+		return err
+	}
+	if err = addSpanBuildRequestStart(stack); err != nil {
+		return err
+	}
+	if err = addSpanBuildRequestEnd(stack); err != nil {
 		return err
 	}
 	return nil

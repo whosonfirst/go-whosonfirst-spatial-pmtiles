@@ -67,6 +67,19 @@ type ImportTableInput struct {
 	noSmithyDocumentSerde
 }
 
+func (in *ImportTableInput) bindEndpointParams(p *EndpointParameters) {
+	func() {
+		v1 := in.TableCreationParameters
+		var v2 *string
+		if v1 != nil {
+			v3 := v1.TableName
+			v2 = v3
+		}
+		p.ResourceArn = v2
+	}()
+
+}
+
 type ImportTableOutput struct {
 
 	//  Represents the properties of the table created for the import, and parameters
@@ -125,6 +138,9 @@ func (c *Client) addOperationImportTableMiddlewares(stack *middleware.Stack, opt
 	if err = addRecordResponseTiming(stack); err != nil {
 		return err
 	}
+	if err = addSpanRetryLoop(stack, options); err != nil {
+		return err
+	}
 	if err = addClientUserAgent(stack, options); err != nil {
 		return err
 	}
@@ -141,6 +157,12 @@ func (c *Client) addOperationImportTableMiddlewares(stack *middleware.Stack, opt
 		return err
 	}
 	if err = addUserAgentRetryMode(stack, options); err != nil {
+		return err
+	}
+	if err = addUserAgentAccountIDEndpointMode(stack, options); err != nil {
+		return err
+	}
+	if err = addCredentialSource(stack, options); err != nil {
 		return err
 	}
 	if err = addIdempotencyToken_opImportTableMiddleware(stack, options); err != nil {
@@ -171,6 +193,18 @@ func (c *Client) addOperationImportTableMiddlewares(stack *middleware.Stack, opt
 		return err
 	}
 	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
+		return err
+	}
+	if err = addSpanInitializeStart(stack); err != nil {
+		return err
+	}
+	if err = addSpanInitializeEnd(stack); err != nil {
+		return err
+	}
+	if err = addSpanBuildRequestStart(stack); err != nil {
+		return err
+	}
+	if err = addSpanBuildRequestEnd(stack); err != nil {
 		return err
 	}
 	return nil

@@ -4,12 +4,13 @@ import (
 	"compress/bzip2"
 	"context"
 	"fmt"
-	"github.com/whosonfirst/go-ioutil"
 	"io"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
+
+	"github.com/whosonfirst/go-ioutil"
 )
 
 // FileReader is a struct that implements the `Reader` interface for reading documents from files on a local disk.

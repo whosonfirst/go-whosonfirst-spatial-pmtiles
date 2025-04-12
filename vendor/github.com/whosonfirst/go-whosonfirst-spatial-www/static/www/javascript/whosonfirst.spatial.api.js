@@ -11,6 +11,12 @@ whosonfirst.spatial.api = (function(){
 	    return self.post(rel_url, args)
 	},
 
+	'point_in_polygon_with_tile': function(args) {
+
+	    var rel_url = "/api/point-in-polygon-with-tile";
+	    return self.post(rel_url, args)
+	},
+	
 	'intersects': function(args) {
 
 	    var rel_url = "/api/intersects";

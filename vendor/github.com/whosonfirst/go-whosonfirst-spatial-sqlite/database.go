@@ -28,8 +28,8 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-spatial"
 	"github.com/whosonfirst/go-whosonfirst-spatial-sqlite/wkttoorb"
 	"github.com/whosonfirst/go-whosonfirst-spatial/database"
-	"github.com/whosonfirst/go-whosonfirst-spatial/geo"	
 	"github.com/whosonfirst/go-whosonfirst-spatial/filter"
+	"github.com/whosonfirst/go-whosonfirst-spatial/geo"
 	"github.com/whosonfirst/go-whosonfirst-spr/v2"
 	sqlite_spr "github.com/whosonfirst/go-whosonfirst-sqlite-spr/v2"
 	"github.com/whosonfirst/go-whosonfirst-uri"
@@ -358,7 +358,7 @@ func (db *SQLiteSpatialDatabase) PointInPolygonWithIterator(ctx context.Context,
 		}
 
 		for r, err := range db.inflateResults(ctx, rows, coord, filters...) {
-			
+
 			if !yield(r, err) {
 				return
 			}
@@ -385,7 +385,7 @@ func (db *SQLiteSpatialDatabase) Intersects(ctx context.Context, geom orb.Geomet
 		Places: results,
 	}
 
-	return spr_results, nil	
+	return spr_results, nil
 }
 
 func (db *SQLiteSpatialDatabase) IntersectsWithIterator(ctx context.Context, geom orb.Geometry, filters ...spatial.Filter) iter.Seq2[spr.StandardPlacesResult, error] {
@@ -401,15 +401,31 @@ func (db *SQLiteSpatialDatabase) IntersectsWithIterator(ctx context.Context, geo
 			return
 		}
 
+		// Do not return (yield) the same ID multiple times
+		seen := new(sync.Map)
+
 		for r, err := range db.inflateIntersectsResults(ctx, rows, geom, filters...) {
 
-			if !yield(r, err) {
-				return
+			if err != nil {
+				yield(nil, err)
+				break
+			}
+
+			_, exists := seen.Load(r.Id())
+
+			if exists {
+				continue
+			}
+
+			seen.Store(r.Id(), true)
+
+			if !yield(r, nil) {
+				break
 			}
 		}
 
 		return
-	}	
+	}
 }
 
 // getIntersectsByCoord will return the list of `RTreeSpatialIndex` instances for records that contain 'coord' and are inclusive of any filters
@@ -434,7 +450,7 @@ func (db *SQLiteSpatialDatabase) getIntersectsByRect(ctx context.Context, rect *
 	logger = logger.With("query", "intersects by rect")
 	logger = logger.With("center", rect.Center())
 
-	q := fmt.Sprintf("SELECT id, wof_id, is_alt, alt_label, geometry, min_x, min_y, max_x, max_y FROM %s  WHERE min_x <= ? AND max_x >= ?  AND min_y <= ? AND max_y >= ?", db.rtree_table.Name())
+	q := fmt.Sprintf("SELECT id, wof_id, is_alt, alt_label, geometry, min_x, min_y, max_x, max_y FROM %s  WHERE min_x <= ? OR max_x >= ?  OR min_y <= ? OR max_y >= ?", db.rtree_table.Name())
 
 	// Left returns the left of the bound.
 	// Right returns the right of the bound.
@@ -559,7 +575,7 @@ func (db *SQLiteSpatialDatabase) inflateResults(ctx context.Context, possible []
 			for _, f := range filters {
 
 				err = filter.FilterSPR(f, s)
-				
+
 				if err != nil {
 					slog.Debug("Feature failed SPR filter", "feature_id", feature_id, "error", err)
 					matches = false
@@ -643,18 +659,18 @@ func (db *SQLiteSpatialDatabase) inflateIntersectsResults(ctx context.Context, p
 			intersects := false
 
 			ok, err = geo.Intersects(poly, geom)
-			
+
 			if err != nil {
 				logger.Error("Failed to determine intersection", "error", err)
 				continue
 			}
-			
+
 			intersects = ok
 
 			if !intersects {
 				continue
 			}
-			
+
 			// there is at least one ring that contains the coord
 			// now we check the filters - whether or not they pass
 			// we can skip every subsequent polygon with the same
@@ -678,7 +694,7 @@ func (db *SQLiteSpatialDatabase) inflateIntersectsResults(ctx context.Context, p
 			for _, f := range filters {
 
 				err = filter.FilterSPR(f, s)
-				
+
 				if err != nil {
 					slog.Debug("Feature failed SPR filter", "feature_id", feature_id, "error", err)
 					matches = false
@@ -737,9 +753,9 @@ func (r *SQLiteSpatialDatabase) retrieveSPR(ctx context.Context, uri_str string)
 func (db *SQLiteSpatialDatabase) rowsToSpatialIndices(ctx context.Context, rows *sql.Rows, filters ...spatial.Filter) iter.Seq2[*RTreeSpatialIndex, error] {
 
 	return func(yield func(*RTreeSpatialIndex, error) bool) {
-		
+
 		for rows.Next() {
-			
+
 			var id string
 			var feature_id string
 			var is_alt int32
@@ -749,29 +765,29 @@ func (db *SQLiteSpatialDatabase) rowsToSpatialIndices(ctx context.Context, rows 
 			var miny float64
 			var maxx float64
 			var maxy float64
-			
+
 			err := rows.Scan(&id, &feature_id, &is_alt, &alt_label, &geometry, &minx, &miny, &maxx, &maxy)
-			
+
 			if err != nil {
 				yield(nil, fmt.Errorf("Result row scan failed, %w", err))
 				break
 			}
-			
+
 			min := orb.Point{minx, miny}
 			max := orb.Point{maxx, maxy}
-			
+
 			rect := orb.Bound{
 				Min: min,
 				Max: max,
 			}
-			
+
 			i := &RTreeSpatialIndex{
 				Id:        fmt.Sprintf("%s#%s", feature_id, id),
 				FeatureId: feature_id,
 				bounds:    rect,
 				geometry:  geometry,
 			}
-			
+
 			if is_alt == 1 {
 				i.IsAlt = true
 				i.AltLabel = alt_label
@@ -779,7 +795,7 @@ func (db *SQLiteSpatialDatabase) rowsToSpatialIndices(ctx context.Context, rows 
 
 			yield(i, nil)
 		}
-		
+
 	}
 }
 
@@ -796,7 +812,7 @@ func (r *SQLiteSpatialDatabase) Read(ctx context.Context, str_uri string) (io.Re
 	// TO DO : ALT STUFF HERE
 
 	q := fmt.Sprintf("SELECT body FROM %s WHERE id = ?", r.geojson_table.Name())
-	
+
 	row := r.db.QueryRowContext(ctx, q, id)
 
 	var body string

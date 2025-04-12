@@ -3,8 +3,6 @@ package auth
 import (
 	"context"
 	"fmt"
-	"io"
-	"log"
 	"net/http"
 	"net/url"
 )
@@ -30,7 +28,6 @@ func init() {
 type SharedSecretAuthenticator struct {
 	Authenticator
 	secret string
-	logger *log.Logger
 }
 
 // NewSharedSecretAuthenticator implements the Authenticator interface to ensure that requests contain a `X-Shared-Secret` HTTP
@@ -53,11 +50,8 @@ func NewSharedSecretAuthenticator(ctx context.Context, uri string) (Authenticato
 		return nil, fmt.Errorf("Missing or invalid secret")
 	}
 
-	logger := log.New(io.Discard, "", 0)
-
 	a := &SharedSecretAuthenticator{
 		secret: secret,
-		logger: logger,
 	}
 
 	return a, nil
@@ -108,9 +102,4 @@ func (a *SharedSecretAuthenticator) SignoutHandler() http.Handler {
 // SignoutHandler returns an `http.Handler` instance that returns an HTTP "501 Not implemented" error.
 func (a *SharedSecretAuthenticator) SignupHandler() http.Handler {
 	return notImplementedHandler()
-}
-
-// SetLogger assign 'logger' to `a`.
-func (a *SharedSecretAuthenticator) SetLogger(logger *log.Logger) {
-	a.logger = logger
 }

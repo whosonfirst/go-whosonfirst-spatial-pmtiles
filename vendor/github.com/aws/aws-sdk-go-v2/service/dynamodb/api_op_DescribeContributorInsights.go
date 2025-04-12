@@ -43,6 +43,12 @@ type DescribeContributorInsightsInput struct {
 	noSmithyDocumentSerde
 }
 
+func (in *DescribeContributorInsightsInput) bindEndpointParams(p *EndpointParameters) {
+
+	p.ResourceArn = in.TableName
+
+}
+
 type DescribeContributorInsightsOutput struct {
 
 	// List of names of the associated contributor insights rules.
@@ -127,6 +133,9 @@ func (c *Client) addOperationDescribeContributorInsightsMiddlewares(stack *middl
 	if err = addRecordResponseTiming(stack); err != nil {
 		return err
 	}
+	if err = addSpanRetryLoop(stack, options); err != nil {
+		return err
+	}
 	if err = addClientUserAgent(stack, options); err != nil {
 		return err
 	}
@@ -143,6 +152,12 @@ func (c *Client) addOperationDescribeContributorInsightsMiddlewares(stack *middl
 		return err
 	}
 	if err = addUserAgentRetryMode(stack, options); err != nil {
+		return err
+	}
+	if err = addUserAgentAccountIDEndpointMode(stack, options); err != nil {
+		return err
+	}
+	if err = addCredentialSource(stack, options); err != nil {
 		return err
 	}
 	if err = addOpDescribeContributorInsightsValidationMiddleware(stack); err != nil {
@@ -170,6 +185,18 @@ func (c *Client) addOperationDescribeContributorInsightsMiddlewares(stack *middl
 		return err
 	}
 	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
+		return err
+	}
+	if err = addSpanInitializeStart(stack); err != nil {
+		return err
+	}
+	if err = addSpanInitializeEnd(stack); err != nil {
+		return err
+	}
+	if err = addSpanBuildRequestStart(stack); err != nil {
+		return err
+	}
+	if err = addSpanBuildRequestEnd(stack); err != nil {
 		return err
 	}
 	return nil

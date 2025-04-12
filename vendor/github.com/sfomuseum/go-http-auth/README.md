@@ -6,10 +6,6 @@ Go package to provide a simple interface for enforcing authentication in HTTP ha
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/sfomuseum/go-http-auth.svg)](https://pkg.go.dev/github.com/sfomuseum/go-http-auth)
 
-## Important
-
-This work is nearly settled (at least for a "v1" release) but may still change. For example the `SetLogger` method will probably be removed and individual handlers will simply call `log/slog` methods assuming that the "default" logger and log level have been assigned separately in application code.
-
 ## Motivation
 
 The `go-http-auth` package aims to provide a simple interface for enforcing authentication in Go-based web applications in a way that those applications don't need to know anyt
@@ -28,8 +24,6 @@ type Authenticator interface {
 	SignoutHandler() http.Handler
 	// SignupHandler returns a `http.Handler` for implementing account signups.
 	SignupHandler() http.Handler
-	// SetLogger assigns a `log.Logger` instance.
-	SetLogger(*log.Logger)
 }
 ```
 
