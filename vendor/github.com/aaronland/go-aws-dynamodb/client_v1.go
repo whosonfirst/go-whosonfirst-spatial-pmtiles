@@ -54,14 +54,13 @@ func newSessionWithURI(ctx context.Context, uri string) (*aws_session.Session, e
 	}
 
 	if is_local {
-		os.Setenv("AWS_ACCESS_KEY_ID", "DUMMYIDEXAMPLE")
-		os.Setenv("AWS_SECRET_ACCESS_KEY", "DUMMYEXAMPLEKEY")
+		os.Setenv("AWS_ACCESS_KEY_ID", "local")
+		os.Setenv("AWS_SECRET_ACCESS_KEY", "host")
 		credentials = "env:"
-		region = "us-east-1"
+		region = "localhost"
 	}
 
 	dsn := fmt.Sprintf("credentials=%s region=%s", credentials, region)
-
 	sess, err := aa_session.NewSessionWithDSN(dsn)
 
 	if err != nil {

@@ -7,14 +7,12 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"runtime/debug"
 	"strings"
 	"sync"
 	"sync/atomic"
 
 	"github.com/sfomuseum/go-timings"
 	"github.com/whosonfirst/go-reader"
-	"github.com/whosonfirst/go-whosonfirst-iterate/v2/iterator"
 	"github.com/whosonfirst/go-whosonfirst-placetypes"
 	"github.com/whosonfirst/go-whosonfirst-spatial/database"
 )
@@ -186,45 +184,8 @@ func (p *SpatialApplication) Close(ctx context.Context) error {
 	return nil
 }
 
-// IndexPaths() will index 'paths' using p's `Iterator` instance storing each document in p's `SpatialDatabase` instance.
 func (p *SpatialApplication) IndexDatabaseWithIterators(ctx context.Context, sources map[string][]string) error {
-
-	iter_cb := func(ctx context.Context, path string, r io.ReadSeeker, args ...interface{}) error {
-
-		err := database.IndexDatabaseWithReader(ctx, p.SpatialDatabase, r)
-
-		if err != nil {
-			return fmt.Errorf("Failed to index %s, %w", path, err)
-		}
-
-		go p.Monitor.Signal(ctx)
-		atomic.AddInt64(&p.indexed, 1)
-		return nil
-	}
-
-	defer debug.FreeOSMemory()
-
-	for iter_uri, iter_sources := range sources {
-
-		atomic.AddInt64(&p.indexing, 1)
-		defer atomic.AddInt64(&p.indexing, -1)
-
-		iter, err := iterator.NewIterator(ctx, iter_uri, iter_cb)
-
-		if err != nil {
-			return fmt.Errorf("Failed to create iterator for %s, %w", iter_uri, err)
-		}
-
-		err = iter.IterateURIs(ctx, iter_sources...)
-
-		if err != nil {
-			return fmt.Errorf("Failed to iterate sources for %s (%v), %w", iter_uri, iter_sources, err)
-		}
-
-		debug.FreeOSMemory()
-	}
-
-	return nil
+	return database.IndexDatabaseWithIterators(ctx, p.SpatialDatabase, sources)
 }
 
 func (p *SpatialApplication) IsIndexing() bool {

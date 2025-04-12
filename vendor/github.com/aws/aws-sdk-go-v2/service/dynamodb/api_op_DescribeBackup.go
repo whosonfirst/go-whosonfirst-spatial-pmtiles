@@ -40,6 +40,12 @@ type DescribeBackupInput struct {
 	noSmithyDocumentSerde
 }
 
+func (in *DescribeBackupInput) bindEndpointParams(p *EndpointParameters) {
+
+	p.ResourceArn = in.BackupArn
+
+}
+
 type DescribeBackupOutput struct {
 
 	// Contains the description of the backup created for the table.
@@ -94,6 +100,9 @@ func (c *Client) addOperationDescribeBackupMiddlewares(stack *middleware.Stack, 
 	if err = addRecordResponseTiming(stack); err != nil {
 		return err
 	}
+	if err = addSpanRetryLoop(stack, options); err != nil {
+		return err
+	}
 	if err = addClientUserAgent(stack, options); err != nil {
 		return err
 	}
@@ -113,6 +122,12 @@ func (c *Client) addOperationDescribeBackupMiddlewares(stack *middleware.Stack, 
 		return err
 	}
 	if err = addUserAgentRetryMode(stack, options); err != nil {
+		return err
+	}
+	if err = addUserAgentAccountIDEndpointMode(stack, options); err != nil {
+		return err
+	}
+	if err = addCredentialSource(stack, options); err != nil {
 		return err
 	}
 	if err = addOpDescribeBackupValidationMiddleware(stack); err != nil {
@@ -140,6 +155,18 @@ func (c *Client) addOperationDescribeBackupMiddlewares(stack *middleware.Stack, 
 		return err
 	}
 	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
+		return err
+	}
+	if err = addSpanInitializeStart(stack); err != nil {
+		return err
+	}
+	if err = addSpanInitializeEnd(stack); err != nil {
+		return err
+	}
+	if err = addSpanBuildRequestStart(stack); err != nil {
+		return err
+	}
+	if err = addSpanBuildRequestEnd(stack); err != nil {
 		return err
 	}
 	return nil

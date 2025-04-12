@@ -4,9 +4,12 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 
 	"github.com/whosonfirst/go-whosonfirst-iterate/v2/iterator"
 )
+
+// TBD - Should this be remove in favour of IndexDatabaseWithIterators or does it just supplement it?
 
 // IndexDatabaseWithIterator is a general-purpose method for indexing a `database.Spatial.Database` instance with a
 // whosonfirst/go-whosonfirst-iterate/v2 iterator. Only records whose geometry type are 'Polygon' or 'MultiPolygon'
@@ -22,6 +25,7 @@ func IndexDatabaseWithIterator(ctx context.Context, db SpatialDatabase, iterator
 			// pass
 		}
 
+		slog.Debug("Index", "path", path)
 		return IndexDatabaseWithReader(ctx, db, r)
 	}
 

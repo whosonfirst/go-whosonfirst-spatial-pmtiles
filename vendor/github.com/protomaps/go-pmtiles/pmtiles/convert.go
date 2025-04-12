@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"hash"
 	"hash/fnv"
@@ -12,7 +11,6 @@ import (
 	"log"
 	"math"
 	"os"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -47,7 +45,7 @@ func (r *resolver) NumContents() uint64 {
 }
 
 // must be called in increasing tile_id order, uniquely
-func (r *resolver) AddTileIsNew(tileID uint64, data []byte) (bool, []byte) {
+func (r *resolver) AddTileIsNew(tileID uint64, data []byte, runLength uint32) (bool, []byte) {
 	r.AddressedTiles++
 	var found offsetLen
 	var ok bool
@@ -64,12 +62,12 @@ func (r *resolver) AddTileIsNew(tileID uint64, data []byte) (bool, []byte) {
 		lastEntry := r.Entries[len(r.Entries)-1]
 		if tileID == lastEntry.TileID+uint64(lastEntry.RunLength) && lastEntry.Offset == found.Offset {
 			// RLE
-			if lastEntry.RunLength+1 > math.MaxUint32 {
+			if lastEntry.RunLength+runLength > math.MaxUint32 {
 				panic("Maximum 32-bit run length exceeded")
 			}
-			r.Entries[len(r.Entries)-1].RunLength++
+			r.Entries[len(r.Entries)-1].RunLength += runLength
 		} else {
-			r.Entries = append(r.Entries, EntryV3{tileID, found.Offset, found.Length, 1})
+			r.Entries = append(r.Entries, EntryV3{tileID, found.Offset, found.Length, runLength})
 		}
 
 		return false, nil
@@ -89,7 +87,7 @@ func (r *resolver) AddTileIsNew(tileID uint64, data []byte) (bool, []byte) {
 	if r.deduplicate {
 		r.OffsetMap[sumString] = offsetLen{r.Offset, uint32(len(newData))}
 	}
-	r.Entries = append(r.Entries, EntryV3{tileID, r.Offset, uint32(len(newData)), 1})
+	r.Entries = append(r.Entries, EntryV3{tileID, r.Offset, uint32(len(newData)), runLength})
 	r.Offset += uint64(len(newData))
 	return true, newData
 }
@@ -103,32 +101,7 @@ func newResolver(deduplicate bool, compress bool) *resolver {
 
 // Convert an existing archive on disk to a new PMTiles specification version 3 archive.
 func Convert(logger *log.Logger, input string, output string, deduplicate bool, tmpfile *os.File) error {
-	if strings.HasSuffix(input, ".pmtiles") {
-		return convertPmtilesV2(logger, input, output, deduplicate, tmpfile)
-	}
 	return convertMbtiles(logger, input, output, deduplicate, tmpfile)
-}
-
-func addDirectoryV2Entries(dir directoryV2, entries *[]EntryV3, f *os.File) {
-	for zxy, rng := range dir.Entries {
-		tileID := ZxyToID(zxy.Z, zxy.X, zxy.Y)
-		*entries = append(*entries, EntryV3{tileID, rng.Offset, uint32(rng.Length), 1})
-	}
-
-	var unique = map[uint64]uint32{}
-
-	// uniqify the offset/length pairs
-	for _, rng := range dir.Leaves {
-		unique[rng.Offset] = uint32(rng.Length)
-	}
-
-	for offset, length := range unique {
-		f.Seek(int64(offset), 0)
-		leafBytes := make([]byte, length)
-		f.Read(leafBytes)
-		leafDir := parseDirectoryV2(leafBytes)
-		addDirectoryV2Entries(leafDir, entries, f)
-	}
 }
 
 func setZoomCenterDefaults(header *HeaderV3, entries []EntryV3) {
@@ -142,85 +115,6 @@ func setZoomCenterDefaults(header *HeaderV3, entries []EntryV3) {
 		header.CenterLonE7 = (header.MinLonE7 + header.MaxLonE7) / 2
 		header.CenterLatE7 = (header.MinLatE7 + header.MaxLatE7) / 2
 	}
-}
-
-func convertPmtilesV2(logger *log.Logger, input string, output string, deduplicate bool, tmpfile *os.File) error {
-	start := time.Now()
-	f, err := os.Open(input)
-	if err != nil {
-		return fmt.Errorf("Failed to open file: %w", err)
-	}
-	defer f.Close()
-	buffer := make([]byte, 512000)
-	io.ReadFull(f, buffer)
-	if string(buffer[0:7]) == "PMTiles" && buffer[7] == 3 {
-		return fmt.Errorf("archive is already the latest PMTiles version (3)")
-	}
-
-	v2JsonBytes, dir := parseHeaderV2(bytes.NewReader(buffer))
-
-	var v2metadata map[string]interface{}
-	json.Unmarshal(v2JsonBytes, &v2metadata)
-
-	// get the first 4 bytes at offset 512000 to attempt tile type detection
-
-	first4 := make([]byte, 4)
-	f.Seek(512000, 0)
-	n, err := f.Read(first4)
-	if n != 4 || err != nil {
-		return fmt.Errorf("Failed to read first 4, %w", err)
-	}
-
-	header, jsonMetadata, err := v2ToHeaderJSON(v2metadata, first4)
-
-	if err != nil {
-		return fmt.Errorf("Failed to convert v2 to header JSON, %w", err)
-	}
-
-	entries := make([]EntryV3, 0)
-	addDirectoryV2Entries(dir, &entries, f)
-
-	// sort
-	sort.Slice(entries, func(i, j int) bool {
-		return entries[i].TileID < entries[j].TileID
-	})
-
-	// re-use resolve, because even if archives are de-duplicated we may need to recompress.
-	resolve := newResolver(deduplicate, header.TileType == Mvt)
-
-	bar := progressbar.Default(int64(len(entries)))
-	for _, entry := range entries {
-		if entry.Length == 0 {
-			continue
-		}
-		_, err := f.Seek(int64(entry.Offset), 0)
-		if err != nil {
-			return fmt.Errorf("Failed to seek at offset %d, %w", entry.Offset, err)
-		}
-		buf := make([]byte, entry.Length)
-		_, err = f.Read(buf)
-		if err != nil {
-			if err != io.EOF {
-				return fmt.Errorf("Failed to read buffer, %w", err)
-			}
-		}
-		// TODO: enforce sorted order
-		if isNew, newData := resolve.AddTileIsNew(entry.TileID, buf); isNew {
-			_, err = tmpfile.Write(newData)
-			if err != nil {
-				return fmt.Errorf("Failed to write to tempfile, %w", err)
-			}
-		}
-		bar.Add(1)
-	}
-
-	err = finalize(logger, resolve, header, tmpfile, output, jsonMetadata)
-	if err != nil {
-		return err
-	}
-
-	logger.Println("Finished in ", time.Since(start))
-	return nil
 }
 
 func convertMbtiles(logger *log.Logger, input string, output string, deduplicate bool, tmpfile *os.File) error {
@@ -325,7 +219,7 @@ func convertMbtiles(logger *log.Logger, input string, output string, deduplicate
 			data := rawTileTmp.Bytes()
 
 			if len(data) > 0 {
-				if isNew, newData := resolve.AddTileIsNew(id, data); isNew {
+				if isNew, newData := resolve.AddTileIsNew(id, data, 1); isNew {
 					_, err := tmpfile.Write(newData)
 					if err != nil {
 						return fmt.Errorf("Failed to write to tempfile: %s", err)
@@ -338,7 +232,7 @@ func convertMbtiles(logger *log.Logger, input string, output string, deduplicate
 			bar.Add(1)
 		}
 	}
-	err = finalize(logger, resolve, header, tmpfile, output, jsonMetadata)
+	_, err = finalize(logger, resolve, header, tmpfile, output, jsonMetadata)
 	if err != nil {
 		return err
 	}
@@ -346,7 +240,7 @@ func convertMbtiles(logger *log.Logger, input string, output string, deduplicate
 	return nil
 }
 
-func finalize(logger *log.Logger, resolve *resolver, header HeaderV3, tmpfile *os.File, output string, jsonMetadata map[string]interface{}) error {
+func finalize(logger *log.Logger, resolve *resolver, header HeaderV3, tmpfile *os.File, output string, jsonMetadata map[string]interface{}) (HeaderV3, error) {
 	logger.Println("# of addressed tiles: ", resolve.AddressedTiles)
 	logger.Println("# of tile entries (after RLE): ", len(resolve.Entries))
 	logger.Println("# of tile contents: ", resolve.NumContents())
@@ -358,10 +252,11 @@ func finalize(logger *log.Logger, resolve *resolver, header HeaderV3, tmpfile *o
 	// assemble the final file
 	outfile, err := os.Create(output)
 	if err != nil {
-		return fmt.Errorf("Failed to create %s, %w", output, err)
+		return header, fmt.Errorf("Failed to create %s, %w", output, err)
 	}
+	defer outfile.Close()
 
-	rootBytes, leavesBytes, numLeaves := optimizeDirectories(resolve.Entries, 16384-HeaderV3LenBytes)
+	rootBytes, leavesBytes, numLeaves := optimizeDirectories(resolve.Entries, 16384-HeaderV3LenBytes, Gzip)
 
 	if numLeaves > 0 {
 		logger.Println("Root dir bytes: ", len(rootBytes))
@@ -375,17 +270,10 @@ func finalize(logger *log.Logger, resolve *resolver, header HeaderV3, tmpfile *o
 		logger.Printf("Average bytes per addressed tile: %.2f\n", float64(len(rootBytes))/float64(resolve.AddressedTiles))
 	}
 
-	var metadataBytes []byte
-	{
-		metadataBytesUncompressed, err := json.Marshal(jsonMetadata)
-		if err != nil {
-			return fmt.Errorf("Failed to marshal metadata, %w", err)
-		}
-		var b bytes.Buffer
-		w, _ := gzip.NewWriterLevel(&b, gzip.BestCompression)
-		w.Write(metadataBytesUncompressed)
-		w.Close()
-		metadataBytes = b.Bytes()
+	metadataBytes, err := SerializeMetadata(jsonMetadata, Gzip)
+
+	if err != nil {
+		return header, fmt.Errorf("Failed to marshal metadata, %w", err)
 	}
 
 	setZoomCenterDefaults(&header, resolve.Entries)
@@ -405,122 +293,34 @@ func finalize(logger *log.Logger, resolve *resolver, header HeaderV3, tmpfile *o
 	header.TileDataOffset = header.LeafDirectoryOffset + header.LeafDirectoryLength
 	header.TileDataLength = resolve.Offset
 
-	headerBytes := serializeHeader(header)
+	headerBytes := SerializeHeader(header)
 
 	_, err = outfile.Write(headerBytes)
 	if err != nil {
-		return fmt.Errorf("Failed to write header to outfile, %w", err)
+		return header, fmt.Errorf("Failed to write header to outfile, %w", err)
 	}
 	_, err = outfile.Write(rootBytes)
 	if err != nil {
-		return fmt.Errorf("Failed to write header to outfile, %w", err)
+		return header, fmt.Errorf("Failed to write header to outfile, %w", err)
 	}
 	_, err = outfile.Write(metadataBytes)
 	if err != nil {
-		return fmt.Errorf("Failed to write header to outfile, %w", err)
+		return header, fmt.Errorf("Failed to write header to outfile, %w", err)
 	}
 	_, err = outfile.Write(leavesBytes)
 	if err != nil {
-		return fmt.Errorf("Failed to write header to outfile, %w", err)
+		return header, fmt.Errorf("Failed to write header to outfile, %w", err)
 	}
 	_, err = tmpfile.Seek(0, 0)
 	if err != nil {
-		return fmt.Errorf("Failed to seek to start of tempfile, %w", err)
+		return header, fmt.Errorf("Failed to seek to start of tempfile, %w", err)
 	}
 	_, err = io.Copy(outfile, tmpfile)
 	if err != nil {
-		return fmt.Errorf("Failed to copy data to outfile, %w", err)
+		return header, fmt.Errorf("Failed to copy data to outfile, %w", err)
 	}
 
-	return nil
-}
-
-func v2ToHeaderJSON(v2JsonMetadata map[string]interface{}, first4 []byte) (HeaderV3, map[string]interface{}, error) {
-	header := HeaderV3{}
-
-	if val, ok := v2JsonMetadata["bounds"]; ok {
-		minLon, minLat, maxLon, maxLat, err := parseBounds(val.(string))
-		if err != nil {
-			return header, v2JsonMetadata, err
-		}
-		header.MinLonE7 = minLon
-		header.MinLatE7 = minLat
-		header.MaxLonE7 = maxLon
-		header.MaxLatE7 = maxLat
-		delete(v2JsonMetadata, "bounds")
-	} else {
-		return header, v2JsonMetadata, errors.New("archive is missing bounds")
-	}
-
-	if val, ok := v2JsonMetadata["center"]; ok {
-		centerLon, centerLat, centerZoom, err := parseCenter(val.(string))
-		if err != nil {
-			return header, v2JsonMetadata, err
-		}
-		header.CenterLonE7 = centerLon
-		header.CenterLatE7 = centerLat
-		header.CenterZoom = centerZoom
-		delete(v2JsonMetadata, "center")
-	}
-
-	if val, ok := v2JsonMetadata["compression"]; ok {
-		switch val.(string) {
-		case "gzip":
-			header.TileCompression = Gzip
-		default:
-			return header, v2JsonMetadata, errors.New("Unknown compression type")
-		}
-	} else {
-		if first4[0] == 0x1f && first4[1] == 0x8b {
-			header.TileCompression = Gzip
-		}
-	}
-
-	if val, ok := v2JsonMetadata["format"]; ok {
-		switch val.(string) {
-		case "pbf":
-			header.TileType = Mvt
-		case "png":
-			header.TileType = Png
-			header.TileCompression = NoCompression
-		case "jpg":
-			header.TileType = Jpeg
-			header.TileCompression = NoCompression
-		case "webp":
-			header.TileType = Webp
-			header.TileCompression = NoCompression
-		case "avif":
-			header.TileType = Avif
-			header.TileCompression = NoCompression
-		default:
-			return header, v2JsonMetadata, errors.New("Unknown tile type")
-		}
-	} else {
-		if first4[0] == 0x89 && first4[1] == 0x50 && first4[2] == 0x4e && first4[3] == 0x47 {
-			header.TileType = Png
-			header.TileCompression = NoCompression
-		} else if first4[0] == 0xff && first4[1] == 0xd8 && first4[2] == 0xff && first4[3] == 0xe0 {
-			header.TileType = Jpeg
-			header.TileCompression = NoCompression
-		} else {
-			// assume it is a vector tile
-			header.TileType = Mvt
-		}
-	}
-
-	// deserialize embedded JSON and lift keys to top-level
-	// to avoid "json-in-json"
-	if val, ok := v2JsonMetadata["json"]; ok {
-		stringVal := val.(string)
-		var inside map[string]interface{}
-		json.Unmarshal([]byte(stringVal), &inside)
-		for k, v := range inside {
-			v2JsonMetadata[k] = v
-		}
-		delete(v2JsonMetadata, "json")
-	}
-
-	return header, v2JsonMetadata, nil
+	return header, nil
 }
 
 func parseBounds(bounds string) (int32, int32, int32, int32, error) {
