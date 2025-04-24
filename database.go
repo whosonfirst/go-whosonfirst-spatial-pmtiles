@@ -543,7 +543,7 @@ func (db *PMTilesSpatialDatabase) Disconnect(ctx context.Context) error {
 func (db *PMTilesSpatialDatabase) Read(ctx context.Context, path string) (io.ReadSeekCloser, error) {
 
 	if !db.enable_feature_cache {
-		return nil, fmt.Errorf("Not found")
+		return nil, spatial.ErrNotFound
 	}
 
 	id, uri_args, err := uri.ParseURI(path)

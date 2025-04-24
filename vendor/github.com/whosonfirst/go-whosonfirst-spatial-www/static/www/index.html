@@ -10,11 +10,33 @@
 	  <meta name="HandheldFriendly" content="true" />
 	  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no" />
 	  <link rel="stylesheet" type="text/css" href="/css/bootstrap.min.css" />
+	  <style type="text/css">
+	   img {
+		   max-width: 75vw !important;
+	   }
+	   
+	  </style>
   </head>
   <body>
-      <ul>
-	  <li><a href="/point-in-polygon/">point-in-polygon</a></li>
-	  <li><a href="/intersects/">intersects</a></li>	  
-      </ul>
+      <div class="container">
+	  <div class="row">
+	      <h3><a href="/point-in-polygon/">point-in-polygon</a></h3>
+	      <img src="images/go-whosonfirst-spatial-www-pip.png" />
+	      <p>Find and display all the records which contain a given coordinate.</p>
+	  </div>
+
+	  <div class="row">	  
+	      <h3><a href="/point-in-polygon-with-tile/">point-in-polygon (with tile)</a></h3>
+	      <img src="images/go-whosonfirst-spatial-www-piptile.png" />	      
+	      <p>Find and display all the records which intersect a given Z/X/Y map tile in order to allow for local point-in-polygon operations.</p>	      
+	  </div>
+
+	  <div class="row">	  	  <div class="row">
+	      <h3><a href="/intersects/">intersects</a></h3>
+	      <img src="images/go-whosonfirst-spatial-www-intersects.png" />	      
+	      <p>Find and display all the records which intersect a given geometry.</p>	      
+	  </div>
+       </div>
+	  
   </body>
 </html>

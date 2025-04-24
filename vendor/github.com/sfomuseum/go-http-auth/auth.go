@@ -3,7 +3,6 @@ package auth
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"sort"
@@ -24,8 +23,6 @@ type Authenticator interface {
 	SignoutHandler() http.Handler
 	// SignupHandler returns a `http.Handler` for implementing account signups.
 	SignupHandler() http.Handler
-	// SetLogger assigns a `log.Logger` instance.
-	SetLogger(*log.Logger)
 }
 
 var authenticator_roster roster.Roster

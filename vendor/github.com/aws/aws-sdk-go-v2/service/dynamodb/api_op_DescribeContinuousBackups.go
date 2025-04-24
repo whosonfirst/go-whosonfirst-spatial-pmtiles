@@ -22,7 +22,8 @@ import (
 // LatestRestorableDateTime .
 //
 // LatestRestorableDateTime is typically 5 minutes before the current time. You
-// can restore your table to any point in time during the last 35 days.
+// can restore your table to any point in time in the last 35 days. You can set the
+// recovery period to any value between 1 and 35 days.
 //
 // You can call DescribeContinuousBackups at a maximum rate of 10 times per second.
 func (c *Client) DescribeContinuousBackups(ctx context.Context, params *DescribeContinuousBackupsInput, optFns ...func(*Options)) (*DescribeContinuousBackupsOutput, error) {
@@ -52,6 +53,12 @@ type DescribeContinuousBackupsInput struct {
 	TableName *string
 
 	noSmithyDocumentSerde
+}
+
+func (in *DescribeContinuousBackupsInput) bindEndpointParams(p *EndpointParameters) {
+
+	p.ResourceArn = in.TableName
+
 }
 
 type DescribeContinuousBackupsOutput struct {
@@ -109,6 +116,9 @@ func (c *Client) addOperationDescribeContinuousBackupsMiddlewares(stack *middlew
 	if err = addRecordResponseTiming(stack); err != nil {
 		return err
 	}
+	if err = addSpanRetryLoop(stack, options); err != nil {
+		return err
+	}
 	if err = addClientUserAgent(stack, options); err != nil {
 		return err
 	}
@@ -128,6 +138,12 @@ func (c *Client) addOperationDescribeContinuousBackupsMiddlewares(stack *middlew
 		return err
 	}
 	if err = addUserAgentRetryMode(stack, options); err != nil {
+		return err
+	}
+	if err = addUserAgentAccountIDEndpointMode(stack, options); err != nil {
+		return err
+	}
+	if err = addCredentialSource(stack, options); err != nil {
 		return err
 	}
 	if err = addOpDescribeContinuousBackupsValidationMiddleware(stack); err != nil {
@@ -155,6 +171,18 @@ func (c *Client) addOperationDescribeContinuousBackupsMiddlewares(stack *middlew
 		return err
 	}
 	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
+		return err
+	}
+	if err = addSpanInitializeStart(stack); err != nil {
+		return err
+	}
+	if err = addSpanInitializeEnd(stack); err != nil {
+		return err
+	}
+	if err = addSpanBuildRequestStart(stack); err != nil {
+		return err
+	}
+	if err = addSpanBuildRequestEnd(stack); err != nil {
 		return err
 	}
 	return nil

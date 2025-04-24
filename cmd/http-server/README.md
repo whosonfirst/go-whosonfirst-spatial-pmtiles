@@ -71,61 +71,252 @@ $> bin/http-server \
 2022/12/16 14:19:51 Listening on http://localhost:8080
 ```
 
-When you visit `http://localhost:8080` in your web browser you should see something like this:
+When you visit `http://localhost:8080` in your web browser you'll see a simple landing page listing the available demos (described below).
 
-![](docs/images/pmtiles-www-tangram.png)
+If you don't need, or want, to expose a user-facing interface simply remove the `-enable-www` flag.
 
-If you don't need, or want, to expose a user-facing interface simply remove the `-enable-www`, `-map-provider` and `-nextzen-apikey` flags. For example:
+### A note a geometries
 
-```
-$> ./bin/http-server \
-	-spatial-database-uri 'pmtiles://?tiles=file:///usr/local/data&database=wof'
-
-2022/11/26 09:57:03 Register /data/ handler
-2022/11/26 09:57:03 Register /api/point-in-polygon handler
-2022/11/26 09:57:03 Listening on http://localhost:8080
-2022/11/26 09:57:03 time to index paths (0) 83.545µs
-2022/11/26 09:57:03 finished indexing in 618.003µs
-```
-
-And then:
-
-```
-$> curl -s http://localhost:8080/api/point-in-polygon \
-	-d '{"latitude": 37.621131, "longitude": -122.384292}' \
-
-| jq '.places[]["wof:name"]'
-
-"Earth"
-"United States"
-"San Francisco International Airport"
-"California"
-"North America"
-"San Mateo"
-"94128"
-```
-
-If you have created your Protomaps database with custom properties and want to be able to access them via the API you will need to ensure that your `spatial-database-uri` flag has a "enable-cache=true" query parameter and that you assign the value of "{spatial-database-uri}" to the `properties-reader-uri` flag. For example:
-
-```
-$> ./bin/http-server \
-	-spatial-database-uri 'pmtiles://?tiles=file:///usr/local/data&database=wof&enable-cache=true' \
-	-properties-reader-uri '{spatial-database-uri}'
-```
-
-By default, results are returned as a list of ["standard places response"](https://github.com/whosonfirst/go-whosonfirst-spr/) (SPR) elements. You can also return results as a GeoJSON `FeatureCollection` by passing the `-enable-geojson` flag to the server and including a `format=geojson` query parameter with requests. For example:
-
-```
-$> bin/http-server \
-	-spatial-database-uri 'pmtiles://?tiles=file:///usr/local/data&database=wof'
-	-enable-geojson
-```
-
-However, and this important to note: Geometries are cropped to the boundaries of the _first tile_ that the feature they are associated with. That is to say not only are geometries cropped to the boundaries of a tile but they are cached locally so, for example, the "geometry" for the United States would be the first tile that contained it untile the local cache expires. For example:
+Geometries, in both the API and web demos, are cropped to the boundaries of the _first tile_ that the feature they are associated with. That is to say not only are geometries cropped to the boundaries of a tile but they are cached locally so, for example, the "geometry" for the United States would be the first tile that contained it untile the local cache expires. For example:
 
 ![](../../docs/images/pmtiles-pip-london.png)
 
 If you really need to geometry for a given feature you should fetch it directly from `https://data.whosonfirst.org/geojson/{ID}` or some other equivalent data source.
+
+### Point-in-polygon
+
+![](../../docs/images/go-whosonfirst-spatial-pmtiles-pip.png)
+
+The `point-in-polygon` endpoint will display records that contain whatever the center point of the map happens to be.
+
+### Point-in-polygon (with tile)
+
+![](../../docs/images/go-whosonfirst-spatial-pmtiles-piptile.png)
+
+![](../../docs/images/go-whosonfirst-spatial-pmtiles-piptile-2.png)
+
+The `point-in-polygon-with-tile` endpoint will display all the records which intersect a given Z/X/Y map tile. The idea is that a client would fetch these records in order to allow for local point-in-polygon operations. This allows a client to not send exact coordinate information to a remote server which may be desirable for privacy or security reasons.
+
+_Note: The demo, as written, does not perform client-side point-in-polygon operations yet._
+
+### Intersects
+
+![](../../docs/images/go-whosonfirst-spatial-pmtiles-intersects.png)
+
+The `intersects` endpoint will display records that intersect a bounding box or a shape drawn on the map.
+
+### API
+
+If you don't need, or want, to expose a user-facing interface simply remove the `-enable-www` and `-initial-view` flags. For example:
+
+```
+$> bin/server \
+	-enable-geojson \
+	-spatial-database-uri 'rtree:///?strict=false' \
+	-iterator-uri 'repo://#/usr/local/data/sfomuseum-data-architecture'
+```
+
+Most API endpoints for spatial queries exect to be passed a JSON-encoded [query.SpatialQuery](https://github.com/whosonfirst/go-whosonfirst-spatial/blob/intersects/query/query.go) struct which looks like this:
+
+```
+type SpatialQuery struct {
+	Geometry            *geojson.Geometry `json:"geometry"`
+	Placetypes          []string          `json:"placetypes,omitempty"`
+	Geometries          string            `json:"geometries,omitempty"`
+	AlternateGeometries []string          `json:"alternate_geometries,omitempty"`
+	IsCurrent           []int64           `json:"is_current,omitempty"`
+	IsCeased            []int64           `json:"is_ceased,omitempty"`
+	IsDeprecated        []int64           `json:"is_deprecated,omitempty"`
+	IsSuperseded        []int64           `json:"is_superseded,omitempty"`
+	IsSuperseding       []int64           `json:"is_superseding,omitempty"`
+	InceptionDate       string            `json:"inception_date,omitempty"`
+	CessationDate       string            `json:"cessation_date,omitempty"`
+	Properties          []string          `json:"properties,omitempty"`
+	Sort                []string          `json:"sort,omitempty"`
+}
+```
+
+The only mandatory field is `geometry` which is expected to be a GeoJSON-encoded geometry. The type of the geometry will vary depending on the API endpoint being called.
+
+Exceptions to this rule (about passing a `SpatialQuery`) are noted on a case-by-case basis below.
+
+#### Point in polygon
+
+And then to query the `point-in-polygon` API you would do something like this:
+
+```
+$> curl -XPOST http://localhost:8080/api/point-in-polygon -d '{"geometry": {"type": "Point", "coordinates": [-122.3866653442383,  37.61701894316063 ] } }'
+
+{
+  "places": [
+    {
+      "wof:id": 1360665043,
+      "wof:parent_id": -1,
+      "wof:name": "Central Parking Garage",
+      "wof:placetype": "wing",
+      "wof:country": "US",
+      "wof:repo": "sfomuseum-data-architecture",
+      "wof:path": "136/066/504/3/1360665043.geojson",
+      "wof:superseded_by": [],
+      "wof:supersedes": [
+        1360665035
+      ],
+      "mz:uri": "https://data.whosonfirst.org/136/066/504/3/1360665043.geojson",
+      "mz:latitude": 37.616332,
+      "mz:longitude": -122.386047,
+      "mz:min_latitude": 37.61498599208708,
+      "mz:min_longitude": -122.38779093748578,
+      "mz:max_latitude": 37.61767331604971,
+      "mz:max_longitude": -122.38429192207244,
+      "mz:is_current": 0,
+      "mz:is_ceased": 1,
+      "mz:is_deprecated": 0,
+      "mz:is_superseded": 0,
+      "mz:is_superseding": 1,
+      "wof:lastmodified": 1547232156
+    }
+    ... and so on
+}    
+```
+
+By default, results are returned as a list of ["standard places response"](https://github.com/whosonfirst/go-whosonfirst-spr/) (SPR) elements. You can also return results as a GeoJSON `FeatureCollection` by including a `format=geojson` query parameter. For example:
+
+
+```
+$> curl -H 'Accept: application/geo+json' -XPOST http://localhost:8080/api/point-in-polygon -d '{"geometry": {"type": "Point", "coordinates": [-122.3866653442383,  37.61701894316063 ] } }'
+
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [ ...omitted for the sake of brevity ]
+      },
+      "properties": {
+        "mz:is_ceased": 1,
+        "mz:is_current": 0,
+        "mz:is_deprecated": 0,
+        "mz:is_superseded": 0,
+        "mz:is_superseding": 1,
+        "mz:latitude": 37.616332,
+        "mz:longitude": -122.386047,
+        "mz:max_latitude": 37.61767331604971,
+        "mz:max_longitude": -122.38429192207244,
+        "mz:min_latitude": 37.61498599208708,
+        "mz:min_longitude": -122.38779093748578,
+        "mz:uri": "https://data.whosonfirst.org/136/066/504/3/1360665043.geojson",
+        "wof:country": "US",
+        "wof:id": 1360665043,
+        "wof:lastmodified": 1547232156,
+        "wof:name": "Central Parking Garage",
+        "wof:parent_id": -1,
+        "wof:path": "136/066/504/3/1360665043.geojson",
+        "wof:placetype": "wing",
+        "wof:repo": "sfomuseum-data-architecture",
+        "wof:superseded_by": [],
+        "wof:supersedes": [
+          1360665035
+        ]
+      }
+    }
+    ... and so on
+  ]
+}  
+```
+
+#### Point in polygon (with tile)
+
+To query the `point-in-polygon-with-tile` API you would do something like this:
+
+```
+$> curl 'http://localhost:8080/api/point-in-polygon-with-tile' -X POST -d '{"tile":{"x":2622,"y":6341,"zoom":14},"is_current":[1],"sort":["placetype://","name://","inception://"]}'
+
+// Imagine GeoJSON features here
+```
+
+The `point-in-polygon-with-tile` API will return all the records which intersect a given Z/X/Y map tile. The idea is that a client would fetch these records in order to allow for local point-in-polygon operations.
+
+##### Notes
+
+The `point-in-polygon-with-tile` API does _NOT_ expect a JSON-encoded `SpatialQuery` instance as its input but rather a JSON-encoded `MaptileSpatialQuery` instance as its input. The two data structures are identical except that the latter replaces the required `Geometry` property with a required `Tile` property:
+
+```
+type Tile struct {
+        Zoom uint32 `json:"zoom"`
+        X    uint32 `json:"x"`
+        Y    uint32 `json:"y"`
+}
+
+type MapTileSpatialQuery struct {
+        Tile                *Tile    `json:"tile,omitempty"`
+        Placetypes          []string `json:"placetypes,omitempty"`
+        Geometries          string   `json:"geometries,omitempty"`
+        AlternateGeometries []string `json:"alternate_geometries,omitempty"`
+        IsCurrent           []int64  `json:"is_current,omitempty"`
+        IsCeased            []int64  `json:"is_ceased,omitempty"`
+        IsDeprecated        []int64  `json:"is_deprecated,omitempty"`
+        IsSuperseded        []int64  `json:"is_superseded,omitempty"`
+        IsSuperseding       []int64  `json:"is_superseding,omitempty"`
+        InceptionDate       string   `json:"inception_date,omitempty"`
+        CessationDate       string   `json:"cessation_date,omitempty"`
+        Properties          []string `json:"properties,omitempty"`
+        Sort                []string `json:"sort,omitempty"`
+}
+```
+
+#### Intersects
+
+To query the `intersects` API you would do something like this:
+
+```
+$> curl -X POST 'http://localhost:8080/api/intersects' -d '{"geometry":{"type":"Polygon","coordinates":[[[-122.381988,37.617508],[-122.381451,37.618478],[-122.380764,37.616878],[-122.381988,37.617508]]]},"is_current":[1],"placetypes":["wing"],"sort":["placetype://","name://","inception://"]}'
+
+{
+  "places": [
+    {
+      "edtf:inception": "2024-11-05",
+      "edtf:cessation": "..",
+      "wof:id": 1947304591,
+      "wof:parent_id": 1947304067,
+      "wof:name": "Terminal 2",
+      "wof:placetype": "wing",
+      "wof:country": "US",
+      "wof:repo": "sfomuseum-data-architecture",
+      "wof:path": "194/730/459/1/1947304591.geojson",
+      "wof:superseded_by": [],
+      "wof:supersedes": [
+        1914601345
+      ],
+      "wof:belongsto": [
+        102527513,
+        85688637,
+        102191575,
+        85633793,
+        85922583,
+        102087579,
+        554784711,
+        102085387,
+        1947304067
+      ],
+      "mz:uri": "https://data.whosonfirst.org/194/730/459/1/1947304591.geojson",
+      "mz:latitude": 37.617143738306645,
+      "mz:longitude": -122.38300203281219,
+      "mz:min_latitude": 37.615537951009905,
+      "mz:min_longitude": -122.38518014300895,
+      "mz:max_latitude": 37.61830446528581,
+      "mz:max_longitude": -122.38080834240405,
+      "mz:is_current": 1,
+      "mz:is_ceased": 0,
+      "mz:is_deprecated": -1,
+      "mz:is_superseded": 0,
+      "mz:is_superseding": 1,
+      "wof:lastmodified": 1737577131
+    }
+  ]
+}
+```
 
 ## AWS
 

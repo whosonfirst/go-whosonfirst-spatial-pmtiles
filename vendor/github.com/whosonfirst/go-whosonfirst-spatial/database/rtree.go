@@ -393,9 +393,26 @@ func (db *RTreeSpatialDatabase) IntersectsWithIterator(ctx context.Context, geom
 			return
 		}
 
+		// Do not return (yield) the same ID multiple times
+		seen := new(sync.Map)
+
 		for r, err := range db.inflateIntersectsResults(ctx, rows, geom, filters...) {
 
-			if !yield(r, err) {
+			if err != nil {
+				if !yield(nil, err) {
+					break
+				}
+			}
+
+			_, exists := seen.Load(r.Id())
+
+			if exists {
+				continue
+			}
+
+			seen.Store(r.Id(), true)
+
+			if !yield(r, nil) {
 				break
 			}
 		}
