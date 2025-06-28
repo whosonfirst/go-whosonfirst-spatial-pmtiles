@@ -66,8 +66,8 @@ github.com/aaronland/go-http-ping/v2 v2.0.0 h1:PO/CfpNwxPSMqEuDAA+2/IzSoArAa/0de
 github.com/aaronland/go-http-ping/v2 v2.0.0/go.mod h1:fXKuw0WvfXMyt09ibXILN4LzEIhCnxoAhmZqoC5iBm8=
 github.com/aaronland/go-http-sanitize v0.0.8 h1:RRcwJwZtIb0J6xFPgW8a2OkQhMFG/uXkFFOFkCzMeKY=
 github.com/aaronland/go-http-sanitize v0.0.8/go.mod h1:qUi4rzUPcpMntpUFnHK00yQI5vd/Q7x9MFYwX91/ygI=
-github.com/aaronland/go-http-server v1.5.0 h1:5yEan85iJrECOHDVmDn/noU7vbDEN50aQR7gXbZpSf8=
-github.com/aaronland/go-http-server v1.5.0/go.mod h1:BJqspPR3LgC3CReChGY9p783zzk5dDegDVNWwgHW2TM=
+github.com/aaronland/go-http-server/v2 v2.0.1 h1:NyC0Xyli+PTzai8YGcfUvK2SQarObjGfgj0A7OWQCaY=
+github.com/aaronland/go-http-server/v2 v2.0.1/go.mod h1:xIqgVmPUBUQv8yFMDaYJ8x+fYmxNGKzBmRsuppdR5D0=
 github.com/aaronland/go-json-query v0.1.6 h1:i4HHIFeZr6jguE/TFWYSJmDZDH2PyrI5MH1YSqJ2F80=
 github.com/aaronland/go-json-query v0.1.6/go.mod h1:acIgF0MbnW5fp/oGaVJAFs692X8ZQTsRoDlklXV3w9Q=
 github.com/aaronland/go-pagination v0.2.0/go.mod h1:zrYVkUTBoe6yJ23l6OyTyfSpTyg6s/cNxZxNztXNQpQ=
@@ -407,8 +407,8 @@ github.com/whosonfirst/go-whosonfirst-spatial-grpc v0.2.3 h1:OrTrmhzEXiXaOx/xnxJ
 github.com/whosonfirst/go-whosonfirst-spatial-grpc v0.2.3/go.mod h1:JuFic/5IZUHNdZifFrPP33WATE1SzI0v7EdNZHDqyWY=
 github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.14.2 h1:UYFh8+Ddi54s0Xx9ytc3fYEwfqg6iEfJ9Z8HMxTGF4w=
 github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.14.2/go.mod h1:nDUzn49gXi+Q02HdWp0gyE2OaUPSetQWh6iZvicQCCE=
-github.com/whosonfirst/go-whosonfirst-spatial-www v0.6.2 h1:Vsm7rIQ6Zuq4YYJ4J2oPyCL/+L0VHPBRwBhUcJIsu88=
-github.com/whosonfirst/go-whosonfirst-spatial-www v0.6.2/go.mod h1:Wa8SF7mYMOakHxHxP/UyHNJbuLeAeDlIP8F9/gyxpW4=
+github.com/whosonfirst/go-whosonfirst-spatial-www v0.6.3 h1:g1LyNTB/1VH0Idiz1KMWaMpBXE1OpMBVq+x2qcYehWo=
+github.com/whosonfirst/go-whosonfirst-spatial-www v0.6.3/go.mod h1:UsvNwbFrvgL5dPBLuE4Po3nkYyhHmpVthyNwmb135u8=
 github.com/whosonfirst/go-whosonfirst-spelunker v0.0.6 h1:m8gGEX1caPRjQpbAVMFR8rADBiziD5Yv0nD1TE4l17I=
 github.com/whosonfirst/go-whosonfirst-spelunker v0.0.6/go.mod h1:U1O+6W8uwD7jj/AeV4avVkYAfl3Jj7Thx742Kp/JvyY=
 github.com/whosonfirst/go-whosonfirst-spr-geojson/v2 v2.0.0 h1:L7dgO9/BL4TSPgplVbvKgwx4XBxnKWuA1jZ218lMppg=

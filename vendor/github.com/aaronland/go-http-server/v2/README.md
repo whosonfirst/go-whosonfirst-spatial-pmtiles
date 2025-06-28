@@ -21,8 +21,9 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/aaronland/go-http-server"
 	"net/http"
+
+	"github.com/aaronland/go-http-server/v2"
 )
 
 func NewHandler() http.Handler {
