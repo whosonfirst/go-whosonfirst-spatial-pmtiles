@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log/slog"
+	_ "log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -78,8 +78,6 @@ func TestPointInPolygon(t *testing.T) {
 
 	pt := orb.Point([2]float64{lon, lat})
 
-	slog.Info("WTF", "pt", pt)
-
 	i, err := filter.NewSPRInputs()
 
 	if err != nil {
@@ -94,15 +92,11 @@ func TestPointInPolygon(t *testing.T) {
 		t.Fatalf("Failed to create SPR filter from inputs, %v", err)
 	}
 
-	slog.Info("WTF", "f", f)
-
 	rsp, err := db.PointInPolygon(ctx, &pt, f)
 
 	if err != nil {
 		t.Fatalf("Failed to perform point in polygon query, %v", err)
 	}
-
-	slog.Info("WTF", "rsp", rsp)
 
 	results := rsp.Results()
 	count := len(results)
