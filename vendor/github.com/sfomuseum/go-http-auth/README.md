@@ -108,4 +108,75 @@ func main (){
 
 Note the use the of the `authenticator.WrapHandler()` method. This is a `net/http` "middleware" handler where implementation-specific logic for checking whether a user is authenticated is expected to happen. That information is expected to be retrievable using the `GetAccountForRequest` method in the subsequent handlers that `WrapHandler` serves. The details of how authentication information is stored and retrieved between handlers is left to individual implmentations.
 
-For concrete examples, have a look at the code for the [NullHandler](null.go) and [NoneHandler](none.go) which always return a "null" user and a "not authorized" error, respectively.
+For concrete examples, have a look at the code for [cmd/example/main.go](cmd/example/main.go).
+
+## Authenticators
+
+The following `Authenticator` implementations are included by default:
+
+### jwt://
+
+`JWTAuthenticator` implements the `Authenticator` interface to ensure that requests contain a "Authorization: Bearer {JWT_TOKEN}"` HTTP header configured by 'uri' which is expected to take the form of:
+
+```
+jwt://{SECRET}
+```
+
+Where `{SECRET}` is expected to be the shared JWT signing secret passed by HTTP requests. Or:
+
+```
+jwt://runtimevar?runtimevar-uri={GOCLOUD_DEV_RUNTIMEVAR_URI}
+```
+
+Where `{GOCLOUD_DEV_RUNTIMEVAR_URI}` is a valid [gocloud.dev/runtimevar](https://godoc.org/gocloud.dev/runtimevar/) URI used to dereference the JWT signing secret. Under the hood this method using the [sfomuseum/runtimevar.StringVar](https://github.com/sfomuseum/runtimevar) method to dereference runtimevar URIs.
+
+By default a `JWTAuthenticator` instance looks for JWT Bearer tokens in the HTTP "Authorization" header. This behaviour can be customized by passing an "authorization-header" query parameter in 'uri'. For example:
+
+```
+jwt://?authorization-header=X-Custom-AuthHeader
+```
+
+JWT payloads are expected to conform to the `JWTAuthenticatorClaims` struct:
+
+```
+type JWTAuthenticatorClaims struct {
+	// The unique ID associated with this account.
+	AccountId   int64  `json:"account_id"`
+	// The name associated with this account.	
+	AccountName string `json:"account_name"`
+	jwt.RegisteredClaims
+}
+```
+
+### none://
+
+`NoneAuthenticator` implements the `Authenticator` interface and always returns a "Not authorized" error. It is instantiated with the following URI construct:
+
+```
+none://
+```
+
+### null://
+
+`NullAuthenticator` implements the `Authenticator` interface such that no authentication is performed. It is instantiated with the following URI construct:
+
+```
+null://
+```
+
+### sharedsecret://
+
+`SharedSecretAuthenticator` implements the `Authenticator` interface to require a simple shared secret be passed with all requests. This is not a sophisticated handler. There are no nonces or hashing of requests or anything like that. It is a bare-bones supplementary authentication handler for environments that already implement their own measures of access control. It is instantiated with the following URI construct:
+
+```
+sharedsecret://{SECRET}
+```
+
+Where `{SECRET}` is expected to be the shared secret passed by HTTP requests in the `X-Shared-Secret` header.
+
+## See also
+
+* https://datatracker.ietf.org/doc/html/rfc7519
+* https://jwt.io/introduction
+
+

@@ -327,7 +327,8 @@ func (m MultiLineString) Coordinates() []Sequence {
 	return seqs
 }
 
-// TransformXY transforms this MultiLineString into another MultiLineString according to fn.
+// TransformXY transforms this MultiLineString into another MultiLineString
+// according to fn. See [Geometry.TransformXY] for more details.
 func (m MultiLineString) TransformXY(fn func(XY) XY) MultiLineString {
 	n := m.NumLineStrings()
 	if n == 0 {
@@ -335,10 +336,27 @@ func (m MultiLineString) TransformXY(fn func(XY) XY) MultiLineString {
 	}
 	transformed := make([]LineString, n)
 	for i := 0; i < n; i++ {
-		seq := transformSequence(m.LineStringN(i).Coordinates(), fn)
-		transformed[i] = NewLineString(seq)
+		transformed[i] = m.LineStringN(i).TransformXY(fn)
 	}
 	return NewMultiLineString(transformed)
+}
+
+// Transform transforms this MultiLineString into another MultiLineString
+// according to fn. See [Geometry.Transform] for more details.
+func (m MultiLineString) Transform(fn func(CoordinatesType, []float64) error) (MultiLineString, error) {
+	n := m.NumLineStrings()
+	if n == 0 {
+		return MultiLineString{}.ForceCoordinatesType(m.CoordinatesType()), nil
+	}
+	transformed := make([]LineString, n)
+	for i := 0; i < n; i++ {
+		tls, err := m.LineStringN(i).Transform(fn)
+		if err != nil {
+			return MultiLineString{}, err
+		}
+		transformed[i] = tls
+	}
+	return NewMultiLineString(transformed), nil
 }
 
 // Length gives the sum of the lengths of the constituent members of the multi
@@ -537,4 +555,11 @@ func (m MultiLineString) Densify(maxDistance float64) MultiLineString {
 // geometry was valid.
 func (m MultiLineString) SnapToGrid(decimalPlaces int) MultiLineString {
 	return m.TransformXY(snapToGridXY(decimalPlaces))
+}
+
+// FlipCoordinates returns a new MultiLineString with X and Y swapped for each point.
+func (m MultiLineString) FlipCoordinates() MultiLineString {
+	return m.TransformXY(func(xy XY) XY {
+		return XY{xy.Y, xy.X}
+	})
 }

@@ -326,12 +326,12 @@ func (db *PMTilesSpatialDatabase) IntersectsWithIterator(ctx context.Context, ge
 		}
 
 		wg := new(sync.WaitGroup)
-		
+
 		for id, id_features := range features {
 
 			logger := slog.Default()
 			logger = logger.With("id", id)
-			
+
 			intersects := false
 
 			for _, f := range id_features {
@@ -357,20 +357,20 @@ func (db *PMTilesSpatialDatabase) IntersectsWithIterator(ctx context.Context, ge
 
 				var f *geojson.Feature
 
-				switch len(id_features){
+				switch len(id_features) {
 				case 1:
 					f = id_features[0]
 				default:
-					
+
 					f = id_features[0]
 
 					// Merge geometries from different tiles in to a single feature
-					
+
 					polys := make([]orb.Polygon, 0)
-					
+
 					for _, f2 := range id_features {
 
-						switch f2.Geometry.GeoJSONType(){
+						switch f2.Geometry.GeoJSONType() {
 						case "Polygon":
 							polys = append(polys, f2.Geometry.(orb.Polygon))
 						case "MultiPolygon":
@@ -393,7 +393,7 @@ func (db *PMTilesSpatialDatabase) IntersectsWithIterator(ctx context.Context, ge
 					yield(nil, err)
 					return
 				}
-				
+
 				s, err := spr.WhosOnFirstSPR(enc_f)
 
 				if err != nil {
@@ -401,23 +401,23 @@ func (db *PMTilesSpatialDatabase) IntersectsWithIterator(ctx context.Context, ge
 					yield(nil, err)
 					return
 				}
-				
+
 				if db.enable_feature_cache {
-					
+
 					wg.Add(1)
-					
+
 					go func(body []byte) {
-						
+
 						defer wg.Done()
-						
+
 						// TBD: Append/pass path to cache key here?
-						
+
 						_, err := db.cache_manager.CacheFeature(ctx, body)
-						
+
 						if err != nil {
 							logger.Warn("Failed to create new feature cache", "id", s.Id(), "error", err)
 						}
-						
+
 					}(enc_f)
 				}
 
@@ -594,8 +594,6 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseFromTile(ctx context.Context, c
 		logger.Debug("Time to create database", "time", time.Since(t1))
 	}()
 
-	logger.Debug("Get spatial database for tile")
-
 	t := db.mapTileFromCoord(ctx, coord)
 
 	features, err := db.featuresForTile(ctx, t)
@@ -740,7 +738,6 @@ func (db *PMTilesSpatialDatabase) tilePathFromCoord(ctx context.Context, coord *
 func (db *PMTilesSpatialDatabase) spatialDatabaseNameFromCoord(ctx context.Context, coord *orb.Point) string {
 
 	t := db.mapTileFromCoord(ctx, coord)
-
 	return fmt.Sprintf("%s-%d-%d-%d.db", db.database, t.Z, t.X, t.Y)
 }
 
@@ -802,7 +799,7 @@ func (db *PMTilesSpatialDatabase) featuresFromTilesForGeom(ctx context.Context, 
 				err_ch <- err
 				return
 			}
-			
+
 			seen := new(sync.Map)
 
 			for _, f := range features {
@@ -815,7 +812,7 @@ func (db *PMTilesSpatialDatabase) featuresFromTilesForGeom(ctx context.Context, 
 				}
 
 				// Skip if we've seen this ID in this tile
-				
+
 				_, exists := seen.LoadOrStore(id, true)
 
 				if exists {
@@ -823,7 +820,7 @@ func (db *PMTilesSpatialDatabase) featuresFromTilesForGeom(ctx context.Context, 
 				}
 
 				// Combine common features seen across (spanning) tiles
-				
+
 				mu.Lock()
 
 				features_list, exists := features_table[id]
@@ -864,7 +861,10 @@ func (db *PMTilesSpatialDatabase) featuresForTile(ctx context.Context, t maptile
 	// So, in an AWS context, we could write tile caches to a gocloud.dev/blob instance but
 	// will that read really be faster than reading from the PMTiles database also in S3? Maybe?
 
-	status_code, _, body := db.server.Get(ctx, path)
+	server_ctx, server_cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer server_cancel()
+
+	status_code, _, body := db.server.Get(server_ctx, path)
 
 	var features []*geojson.Feature
 

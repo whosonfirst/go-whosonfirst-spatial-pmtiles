@@ -6,8 +6,8 @@ import (
 
 	"github.com/sfomuseum/go-flags/flagset"
 	"github.com/whosonfirst/go-reader"
+	iter_flags "github.com/whosonfirst/go-whosonfirst-iterate/v3/flags"
 	"github.com/whosonfirst/go-whosonfirst-spatial/database"
-	spatial_flags "github.com/whosonfirst/go-whosonfirst-spatial/flags"
 )
 
 var host string
@@ -21,7 +21,7 @@ var is_wof bool
 var enable_custom_placetypes bool
 var custom_placetypes string
 
-var iterator_uris spatial_flags.MultiCSVIteratorURIFlag
+var iterator_uris iter_flags.MultiCSVIteratorURIFlag
 
 func DefaultFlagSet() (*flag.FlagSet, error) {
 
@@ -48,7 +48,7 @@ func DefaultFlagSet() (*flag.FlagSet, error) {
 
 	// Indexing flags
 
-	desc_iter := spatial_flags.IteratorURIFlagDescription()
+	desc_iter := iter_flags.IteratorURIFlagDescription()
 	desc_iter = fmt.Sprintf("Zero or more URIs denoting data sources to use for indexing the spatial database at startup. %s", desc_iter)
 	fs.Var(&iterator_uris, "iterator-uri", desc_iter)
 

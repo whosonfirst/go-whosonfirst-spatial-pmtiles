@@ -8,12 +8,12 @@ import (
 	"io"
 	"os"
 
+	"github.com/paulmach/orb/geojson"
 	"github.com/whosonfirst/go-whosonfirst-spatial-grpc/request"
 	"github.com/whosonfirst/go-whosonfirst-spatial-grpc/spatial"
+	"github.com/whosonfirst/go-whosonfirst-spatial/geo"
 	"github.com/whosonfirst/go-whosonfirst-spatial/query"
-	"github.com/whosonfirst/go-whosonfirst-spatial/geo"	
 	"google.golang.org/grpc"
-	"github.com/paulmach/orb/geojson"
 )
 
 func Run(ctx context.Context) error {
@@ -45,7 +45,7 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 	if err != nil {
 		return err
 	}
-	
+
 	geom := geojson.NewGeometry(pt)
 
 	pip_q := &query.SpatialQuery{

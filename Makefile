@@ -9,6 +9,11 @@ INITIAL_VIEW=-122.384292,37.621131,13
 vuln:
 	govulncheck ./...
 
+test:
+	git lfs fetch fixtures/sf.pmtiles
+	git lfs checkout fixtures/sf.pmtiles
+	go test -v ./...
+
 cli:
 	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/pmtile cmd/pmtile/main.go
 	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/http-server cmd/http-server/main.go
