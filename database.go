@@ -254,17 +254,21 @@ func (db *PMTilesSpatialDatabase) RemoveFeature(context.Context, string) error {
 
 func (db *PMTilesSpatialDatabase) PointInPolygon(ctx context.Context, coord *orb.Point, filters ...spatial.Filter) (spr.StandardPlacesResults, error) {
 
+	slog.Info("PIP")
 	spatial_db, err := db.spatialDatabaseFromCoord(ctx, coord)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create spatial database, %w", err)
 	}
 
+	slog.Info("DB", "db", spatial_db)
+
 	defer func() {
 		db.releaseSpatialDatabase(ctx, coord)
 		go atomic.AddInt64(&db.count_pip, 1)
 	}()
 
+	slog.Info("GO")
 	return spatial_db.PointInPolygon(ctx, coord, filters...)
 }
 
@@ -326,12 +330,12 @@ func (db *PMTilesSpatialDatabase) IntersectsWithIterator(ctx context.Context, ge
 		}
 
 		wg := new(sync.WaitGroup)
-		
+
 		for id, id_features := range features {
 
 			logger := slog.Default()
 			logger = logger.With("id", id)
-			
+
 			intersects := false
 
 			for _, f := range id_features {
@@ -357,20 +361,20 @@ func (db *PMTilesSpatialDatabase) IntersectsWithIterator(ctx context.Context, ge
 
 				var f *geojson.Feature
 
-				switch len(id_features){
+				switch len(id_features) {
 				case 1:
 					f = id_features[0]
 				default:
-					
+
 					f = id_features[0]
 
 					// Merge geometries from different tiles in to a single feature
-					
+
 					polys := make([]orb.Polygon, 0)
-					
+
 					for _, f2 := range id_features {
 
-						switch f2.Geometry.GeoJSONType(){
+						switch f2.Geometry.GeoJSONType() {
 						case "Polygon":
 							polys = append(polys, f2.Geometry.(orb.Polygon))
 						case "MultiPolygon":
@@ -393,7 +397,7 @@ func (db *PMTilesSpatialDatabase) IntersectsWithIterator(ctx context.Context, ge
 					yield(nil, err)
 					return
 				}
-				
+
 				s, err := spr.WhosOnFirstSPR(enc_f)
 
 				if err != nil {
@@ -401,23 +405,23 @@ func (db *PMTilesSpatialDatabase) IntersectsWithIterator(ctx context.Context, ge
 					yield(nil, err)
 					return
 				}
-				
+
 				if db.enable_feature_cache {
-					
+
 					wg.Add(1)
-					
+
 					go func(body []byte) {
-						
+
 						defer wg.Done()
-						
+
 						// TBD: Append/pass path to cache key here?
-						
+
 						_, err := db.cache_manager.CacheFeature(ctx, body)
-						
+
 						if err != nil {
 							logger.Warn("Failed to create new feature cache", "id", s.Id(), "error", err)
 						}
-						
+
 					}(enc_f)
 				}
 
@@ -588,18 +592,21 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseFromTile(ctx context.Context, c
 	logger := slog.Default()
 	logger = logger.With("path", path)
 
+	logger.Info("OMG")
 	t1 := time.Now()
 
 	defer func() {
 		logger.Debug("Time to create database", "time", time.Since(t1))
 	}()
 
-	logger.Debug("Get spatial database for tile")
+	logger.Info("Get spatial database for tile")
 
 	t := db.mapTileFromCoord(ctx, coord)
 
+	logger.Info("PEW PEW PEW")
 	features, err := db.featuresForTile(ctx, t)
 
+	logger.Info("Features", "features", len(features))
 	if err != nil {
 		logger.Error("Failed to derive features for tile", "error", err)
 		return nil, fmt.Errorf("Failed to derive features for tile %s, %w", path, err)
@@ -739,8 +746,10 @@ func (db *PMTilesSpatialDatabase) tilePathFromCoord(ctx context.Context, coord *
 
 func (db *PMTilesSpatialDatabase) spatialDatabaseNameFromCoord(ctx context.Context, coord *orb.Point) string {
 
+	slog.Info("DB", "coord", coord)
 	t := db.mapTileFromCoord(ctx, coord)
 
+	slog.Info("T", "t", t)
 	return fmt.Sprintf("%s-%d-%d-%d.db", db.database, t.Z, t.X, t.Y)
 }
 
@@ -751,22 +760,28 @@ func (db *PMTilesSpatialDatabase) spatialDatabaseFromCoord(ctx context.Context, 
 	db.spatial_databases_cache_mutex.Lock()
 	defer db.spatial_databases_cache_mutex.Unlock()
 
+	slog.Info("1")
 	v, exists := db.spatial_databases_cache[db_name]
 
 	if exists {
+
+		slog.Info("1a")
 		db.spatial_databases_counter.Increment(db_name, 1)
 		return v, nil
 	}
 
+	slog.Info("2")
 	spatial_db, err := db.spatialDatabaseFromTile(ctx, coord)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create spatial database, %w", err)
 	}
 
+	slog.Info("3")
 	db.spatial_databases_counter.Increment(db_name, 1)
 	db.spatial_databases_cache[db_name] = spatial_db
 
+	slog.Info("4")
 	return spatial_db, nil
 }
 
@@ -802,7 +817,7 @@ func (db *PMTilesSpatialDatabase) featuresFromTilesForGeom(ctx context.Context, 
 				err_ch <- err
 				return
 			}
-			
+
 			seen := new(sync.Map)
 
 			for _, f := range features {
@@ -815,7 +830,7 @@ func (db *PMTilesSpatialDatabase) featuresFromTilesForGeom(ctx context.Context, 
 				}
 
 				// Skip if we've seen this ID in this tile
-				
+
 				_, exists := seen.LoadOrStore(id, true)
 
 				if exists {
@@ -823,7 +838,7 @@ func (db *PMTilesSpatialDatabase) featuresFromTilesForGeom(ctx context.Context, 
 				}
 
 				// Combine common features seen across (spanning) tiles
-				
+
 				mu.Lock()
 
 				features_list, exists := features_table[id]
@@ -859,12 +874,21 @@ func (db *PMTilesSpatialDatabase) featuresForTile(ctx context.Context, t maptile
 
 	path := fmt.Sprintf("/%s/%d/%d/%d.mvt", db.database, t.Z, t.X, t.Y)
 
+	slog.Info("F", "path", path)
+
 	// It's tempting to cache body (or the resultant FeatureCollection) here. Ancedotally
 	// at zoom level 12 it's very easy to blow past the 400kb size limit for items in DynamoDB.
 	// So, in an AWS context, we could write tile caches to a gocloud.dev/blob instance but
 	// will that read really be faster than reading from the PMTiles database also in S3? Maybe?
 
-	status_code, _, body := db.server.Get(ctx, path)
+	server_ctx, server_cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer server_cancel()
+
+	slog.Info("GET", "server", db.server)
+
+	status_code, _, body := db.server.Get(server_ctx, path)
+
+	slog.Info("GOT", "code", status_code)
 
 	var features []*geojson.Feature
 
