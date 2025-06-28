@@ -10,7 +10,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-spatial"
 	spatial_app "github.com/whosonfirst/go-whosonfirst-spatial/application"
 	"github.com/whosonfirst/go-whosonfirst-spatial/query"
-	"github.com/whosonfirst/go-whosonfirst-spr-geojson"
+	"github.com/whosonfirst/go-whosonfirst-spr-geojson/v2"
 )
 
 const timingsIntersectsHandler string = "PIP handler"
@@ -65,16 +65,13 @@ func IntersectsHandler(app *spatial_app.SpatialApplication, opts *IntersectsHand
 			return
 		}
 
-		var intersects_query *query.SpatialQuery
-
-		dec := json.NewDecoder(req.Body)
-		err = dec.Decode(&intersects_query)
+		intersects_query, err := SpatialQueryFromRequest(req)
 
 		if err != nil {
 			http.Error(rsp, err.Error(), http.StatusBadRequest)
 			return
 		}
-
+		
 		accept, err := sanitize.HeaderString(req, "Accept")
 
 		if err != nil {
@@ -117,6 +114,8 @@ func IntersectsHandler(app *spatial_app.SpatialApplication, opts *IntersectsHand
 				http.Error(rsp, err.Error(), http.StatusInternalServerError)
 				return
 			}
+
+			return
 		}
 
 		if len(intersects_query.Properties) > 0 {

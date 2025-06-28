@@ -12,6 +12,18 @@ import (
 	"github.com/aaronland/go-uid"
 )
 
+func NewID() (int64, error) {
+
+	ctx := context.Background()
+	pr, err := NewProvider(ctx)
+
+	if err != nil {
+		return -1, err
+	}
+
+	return pr.NewID(ctx)
+}
+
 // type Provider is an interface for providing uniquer identifiers.
 type Provider interface {
 	// NewID returns a new unique 64-bit integers.

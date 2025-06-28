@@ -291,10 +291,18 @@ func (s LineString) Coordinates() Sequence {
 	return s.seq
 }
 
-// TransformXY transforms this LineString into another LineString according to fn.
+// TransformXY transforms this LineString into another LineString according to
+// fn. See [Geometry.TransformXY] for more details.
 func (s LineString) TransformXY(fn func(XY) XY) LineString {
 	transformed := transformSequence(s.seq, fn)
 	return NewLineString(transformed)
+}
+
+// Transform transforms this LineString into another LineString according to
+// fn. See [Geometry.Transform] for more details.
+func (s LineString) Transform(fn func(CoordinatesType, []float64) error) (LineString, error) {
+	transformed, err := transformSequenceAllAtOnce(s.seq, fn)
+	return NewLineString(transformed), err
 }
 
 // IsRing returns true iff this LineString is both simple and closed (i.e. is a
@@ -496,4 +504,11 @@ func (s LineString) Densify(minDistance float64) LineString {
 // geometry was valid.
 func (s LineString) SnapToGrid(decimalPlaces int) LineString {
 	return s.TransformXY(snapToGridXY(decimalPlaces))
+}
+
+// FlipCoordinates returns a new LineString with X and Y swapped for each point.
+func (s LineString) FlipCoordinates() LineString {
+	return s.TransformXY(func(xy XY) XY {
+		return XY{xy.Y, xy.X}
+	})
 }

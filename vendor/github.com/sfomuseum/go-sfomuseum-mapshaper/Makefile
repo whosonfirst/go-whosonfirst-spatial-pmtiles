@@ -1,5 +1,8 @@
+GOMOD=$(shell test -f "go.work" && echo "readonly" || echo "vendor")
+LDFLAGS=-s -w
+
 cli:
-	go build -mod vendor -o bin/server cmd/server/main.go
+	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/server cmd/server/main.go
 
 docker:
 	docker build --no-cache=true -t mapshaper-server .

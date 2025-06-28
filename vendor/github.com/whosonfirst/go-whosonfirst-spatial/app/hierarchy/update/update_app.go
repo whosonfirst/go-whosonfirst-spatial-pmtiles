@@ -7,8 +7,7 @@ import (
 	"log/slog"
 
 	"github.com/whosonfirst/go-whosonfirst-export/v2"
-	"github.com/whosonfirst/go-whosonfirst-iterate/v2/emitter"
-	"github.com/whosonfirst/go-whosonfirst-iterate/v2/iterator"
+	"github.com/whosonfirst/go-whosonfirst-iterate/v3"
 	"github.com/whosonfirst/go-whosonfirst-spatial/database"
 	"github.com/whosonfirst/go-whosonfirst-spatial/filter"
 	"github.com/whosonfirst/go-whosonfirst-spatial/hierarchy"
@@ -36,49 +35,56 @@ func (app *updateApplication) Run(ctx context.Context, sources map[string][]stri
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// These are the data we are indexing hierarchies FROM
+	sources_cb := func(ctx context.Context, rec *iterate.Record) error {
 
-	sources_cb := func(ctx context.Context, path string, r io.ReadSeeker, args ...interface{}) error {
-
-		slog.Debug("Process source", "path", path)
-		return database.IndexDatabaseWithReader(ctx, app.spatial_db, r)
+		slog.Debug("Process source", "path", rec.Path)
+		return database.IndexDatabaseWithReader(ctx, app.spatial_db, rec.Body)
 	}
 
 	// These are the data we are hierarchy-ing TO
 
-	targets_cb := func(ctx context.Context, path string, fh io.ReadSeeker, args ...interface{}) error {
+	targets_cb := func(ctx context.Context, rec *iterate.Record) error {
 
-		slog.Debug("Process target", "path", path)
+		slog.Debug("Process target", "path", rec.Path)
 
-		body, err := io.ReadAll(fh)
+		body, err := io.ReadAll(rec.Body)
 
 		if err != nil {
-			return fmt.Errorf("Failed to read '%s', %v", path, err)
+			return fmt.Errorf("Failed to read '%s', %v", rec.Path, err)
 		}
 
 		_, err = app.updateAndPublishFeature(ctx, body)
 
 		if err != nil {
-			return fmt.Errorf("Failed to update feature for '%s', %v", path, err)
+			return fmt.Errorf("Failed to update feature for '%s', %v", rec.Path, err)
 		}
 
 		return nil
 	}
 
-	iterate := func(ctx context.Context, iter_map map[string][]string, iter_cb emitter.EmitterCallbackFunc) error {
+	iterate := func(ctx context.Context, iter_map map[string][]string, cb func(ctx context.Context, rec *iterate.Record) error) error {
 
 		for iter_uri, iter_sources := range iter_map {
 
-			iter, err := iterator.NewIterator(ctx, iter_uri, iter_cb)
+			iter, err := iterate.NewIterator(ctx, iter_uri)
 
 			if err != nil {
 				return fmt.Errorf("Failed to create iterator for %s, %w", iter_uri, err)
 			}
 
-			err = iter.IterateURIs(ctx, iter_sources...)
+			for rec, err := range iter.Iterate(ctx, iter_sources...) {
 
-			if err != nil {
-				return fmt.Errorf("Failed to iterate sources for %s, %w", iter_uri, err)
+				if err != nil {
+					return fmt.Errorf("Failed to iterate sources for %s, %w", iter_uri, err)
+				}
+
+				defer rec.Body.Close()
+				err = cb(ctx, rec)
+
+				if err != nil {
+					return fmt.Errorf("Failed to index %s, %w", rec.Path, err)
+				}
+
 			}
 		}
 
