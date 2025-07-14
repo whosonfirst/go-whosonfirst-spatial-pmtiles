@@ -7,7 +7,7 @@ import (
 	"log/slog"
 
 	"github.com/sfomuseum/go-sfomuseum-mapshaper"
-	"github.com/whosonfirst/go-whosonfirst-export/v2"
+	"github.com/whosonfirst/go-whosonfirst-export/v3"
 	"github.com/whosonfirst/go-whosonfirst-spatial/database"
 	"github.com/whosonfirst/go-whosonfirst-spatial/hierarchy"
 	"github.com/whosonfirst/go-writer/v3"
@@ -61,17 +61,6 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 		}
 
 		ex = _ex
-	}
-
-	// In addition to the "exporter" we also create a default options instance
-	// that is used by the updateApplication instance to do a final check whether
-	// or not records have actually been updated (beyond just incrementing the
-	// lastmodified date).
-
-	export_opts, err := export.NewDefaultOptions(ctx)
-
-	if err != nil {
-		return fmt.Errorf("Failed to create export options, %w", err)
 	}
 
 	if opts.Writer != nil {
@@ -149,7 +138,6 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 		spatial_db:          spatial_db,
 		resolver:            resolver,
 		exporter:            ex,
-		export_opts:         export_opts,
 		writer:              wr,
 		sprFilterInputs:     opts.SPRFilterInputs,
 		sprResultsFunc:      opts.SPRResultsFunc,

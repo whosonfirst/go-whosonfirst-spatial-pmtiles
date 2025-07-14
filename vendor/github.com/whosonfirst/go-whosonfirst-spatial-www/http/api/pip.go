@@ -10,7 +10,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-spatial"
 	spatial_app "github.com/whosonfirst/go-whosonfirst-spatial/application"
 	"github.com/whosonfirst/go-whosonfirst-spatial/query"
-	"github.com/whosonfirst/go-whosonfirst-spr-geojson"
+	"github.com/whosonfirst/go-whosonfirst-spr-geojson/v2"
 )
 
 const timingsPIPHandler string = "PIP handler"
@@ -65,10 +65,7 @@ func PointInPolygonHandler(app *spatial_app.SpatialApplication, opts *PointInPol
 			return
 		}
 
-		var pip_query *query.SpatialQuery
-
-		dec := json.NewDecoder(req.Body)
-		err = dec.Decode(&pip_query)
+		pip_query, err := SpatialQueryFromRequest(req)
 
 		if err != nil {
 			http.Error(rsp, err.Error(), http.StatusBadRequest)
@@ -117,6 +114,8 @@ func PointInPolygonHandler(app *spatial_app.SpatialApplication, opts *PointInPol
 				http.Error(rsp, err.Error(), http.StatusInternalServerError)
 				return
 			}
+
+			return
 		}
 
 		if len(pip_query.Properties) > 0 {

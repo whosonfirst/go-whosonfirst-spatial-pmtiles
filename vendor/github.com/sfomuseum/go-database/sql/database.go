@@ -4,8 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"net/url"
 	_ "log/slog"
+	"net/url"
 )
 
 type ConfigureDatabaseOptions struct {
@@ -26,6 +26,8 @@ func ConfigureDatabase(ctx context.Context, db *sql.DB, opts *ConfigureDatabaseO
 		return ConfigureSQLiteDatabase(ctx, db, opts)
 	case POSTGRES_DRIVER:
 		return ConfigurePostgresDatabase(ctx, db, opts)
+	case DUCKDB_DRIVER:
+		return ConfigureDuckDBDatabase(ctx, db, opts)
 	default:
 		return fmt.Errorf("Unhandled or unsupported database driver %s", DriverTypeOf(db))
 	}
@@ -44,10 +46,18 @@ func OpenWithURI(ctx context.Context, db_uri string) (*sql.DB, error) {
 	engine := u.Host
 	dsn := q.Get("dsn")
 
+	if engine == "" {
+		return nil, fmt.Errorf("Missing database engine")
+	}
+
+	if dsn == "" {
+		return nil, fmt.Errorf("Missing DSN string")
+	}
+
 	db, err := sql.Open(engine, dsn)
 
 	if err != nil {
-		return nil, fmt.Errorf("Unable to create database (%s) because %v", db_uri, err)
+		return nil, fmt.Errorf("Unable to create database (%s) because %v", engine, err)
 	}
 
 	switch Driver(db) {

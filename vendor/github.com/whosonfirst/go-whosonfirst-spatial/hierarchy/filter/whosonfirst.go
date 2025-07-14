@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/whosonfirst/go-reader"
+	"github.com/whosonfirst/go-reader/v2"
 	"github.com/whosonfirst/go-whosonfirst-spr/v2"
 )
 

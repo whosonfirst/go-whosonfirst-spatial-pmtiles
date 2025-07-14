@@ -7,7 +7,7 @@ import (
 
 func Inception(body []byte) string {
 
-	rsp := gjson.GetBytes(body, "properties.edtf:inception")
+	rsp := gjson.GetBytes(body, PATH_EDTF_INCEPTION)
 
 	if !rsp.Exists() {
 		return edtf.UNKNOWN
@@ -18,7 +18,7 @@ func Inception(body []byte) string {
 
 func Cessation(body []byte) string {
 
-	rsp := gjson.GetBytes(body, "properties.edtf:cessation")
+	rsp := gjson.GetBytes(body, PATH_EDTF_CESSATION)
 
 	if !rsp.Exists() {
 		return edtf.UNKNOWN
@@ -29,6 +29,6 @@ func Cessation(body []byte) string {
 
 func Deprecated(body []byte) string {
 
-	rsp := gjson.GetBytes(body, "properties.edtf:deprecated")
+	rsp := gjson.GetBytes(body, PATH_EDTF_DEPRECATED)
 	return rsp.String()
 }

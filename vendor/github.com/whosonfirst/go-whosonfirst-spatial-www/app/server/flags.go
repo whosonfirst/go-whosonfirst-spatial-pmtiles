@@ -8,10 +8,10 @@ import (
 	"github.com/aaronland/go-http-maps/v2"
 	"github.com/sfomuseum/go-flags/flagset"
 	"github.com/sfomuseum/go-flags/multi"
-	"github.com/whosonfirst/go-reader"
-	"github.com/whosonfirst/go-whosonfirst-iterate/v2/emitter"
+	"github.com/whosonfirst/go-reader/v2"
+	"github.com/whosonfirst/go-whosonfirst-iterate/v3"	
+	iter_flags "github.com/whosonfirst/go-whosonfirst-iterate/v3/flags"
 	"github.com/whosonfirst/go-whosonfirst-spatial/database"
-	spatial_flags "github.com/whosonfirst/go-whosonfirst-spatial/flags"
 )
 
 // The root URL for all API handlers
@@ -52,7 +52,7 @@ var properties_reader_uri string
 var enable_custom_placetypes bool
 var custom_placetypes string
 
-var iterator_uris spatial_flags.MultiCSVIteratorURIFlag
+var iterator_uris iter_flags.MultiCSVIteratorURIFlag
 
 var initial_view string
 var map_provider string
@@ -70,7 +70,7 @@ func DefaultFlagSet() (*flag.FlagSet, error) {
 
 	fs.StringVar(&spatial_database_uri, "spatial-database-uri", "rtree://", desc_databases)
 
-	available_readers := reader.Schemes()
+	available_readers := reader.ReaderSchemes()
 	desc_readers := fmt.Sprintf("A valid whosonfirst/go-reader.Reader URI. Available options are: %s", available_readers)
 
 	fs.StringVar(&properties_reader_uri, "properties-reader-uri", "", fmt.Sprintf("%s. If the value is {spatial-database-uri} then the value of the '-spatial-database-uri' implements the reader.Reader interface and will be used.", desc_readers))
@@ -79,10 +79,10 @@ func DefaultFlagSet() (*flag.FlagSet, error) {
 
 	fs.StringVar(&custom_placetypes, "custom-placetypes", "", "A JSON-encoded string containing custom placetypes defined using the syntax described in the whosonfirst/go-whosonfirst-placetypes repository.")
 
-	modes := emitter.Schemes()
+	modes := iterate.IteratorSchemes()
 	sort.Strings(modes)
 
-	desc_iter := spatial_flags.IteratorURIFlagDescription()
+	desc_iter := iter_flags.IteratorURIFlagDescription()
 	desc_iter = fmt.Sprintf("Zero or more URIs denoting data sources to use for indexing the spatial database at startup. %s", desc_iter)
 
 	fs.Var(&iterator_uris, "iterator-uri", desc_iter)

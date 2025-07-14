@@ -7,7 +7,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/whosonfirst/go-reader"
+	"github.com/whosonfirst/go-reader/v2"
 	"github.com/whosonfirst/go-whosonfirst-uri"
 )
 

@@ -8,9 +8,9 @@ import (
 
 	"github.com/sfomuseum/go-flags/flagset"
 	"github.com/sfomuseum/go-flags/multi"
-	"github.com/whosonfirst/go-reader"
+	"github.com/whosonfirst/go-reader/v2"
+	iter_flags "github.com/whosonfirst/go-whosonfirst-iterate/v3/flags"
 	"github.com/whosonfirst/go-whosonfirst-spatial/database"
-	spatial_flags "github.com/whosonfirst/go-whosonfirst-spatial/flags"
 )
 
 var spatial_database_uri string
@@ -44,7 +44,7 @@ var verbose bool
 
 var sort_uris multi.MultiString
 
-var iterator_uris spatial_flags.MultiIteratorURIFlag
+var iterator_uris iter_flags.MultiIteratorURIFlag
 
 func DefaultFlagSet(ctx context.Context) (*flag.FlagSet, error) {
 
@@ -55,7 +55,7 @@ func DefaultFlagSet(ctx context.Context) (*flag.FlagSet, error) {
 
 	fs.StringVar(&spatial_database_uri, "spatial-database-uri", "rtree://", desc_databases)
 
-	available_readers := reader.Schemes()
+	available_readers := reader.ReaderSchemes()
 	desc_readers := fmt.Sprintf("A valid whosonfirst/go-reader.Reader URI. Available options are: %s", available_readers)
 
 	fs.StringVar(&properties_reader_uri, "properties-reader-uri", "", fmt.Sprintf("%s. If the value is {spatial-database-uri} then the value of the '-spatial-database-uri' implements the reader.Reader interface and will be used.", desc_readers))
@@ -92,7 +92,7 @@ func DefaultFlagSet(ctx context.Context) (*flag.FlagSet, error) {
 
 	// Indexing flags
 
-	desc_iter := spatial_flags.IteratorURIFlagDescription()
+	desc_iter := iter_flags.IteratorURIFlagDescription()
 	desc_iter = fmt.Sprintf("Zero or more URIs denoting data sources to use for indexing the spatial database at startup. %s", desc_iter)
 
 	fs.Var(&iterator_uris, "iterator-uri", desc_iter)

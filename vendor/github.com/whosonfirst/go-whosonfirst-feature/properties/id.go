@@ -13,7 +13,7 @@ var re_wofid = regexp.MustCompile(`^\-?\d+$`)
 
 func Id(body []byte) (int64, error) {
 
-	rsp := gjson.GetBytes(body, "properties.wof:id")
+	rsp := gjson.GetBytes(body, PATH_WOF_ID)
 
 	if !rsp.Exists() {
 		return 0, feature.PropertyNotFoundError("wof:id")

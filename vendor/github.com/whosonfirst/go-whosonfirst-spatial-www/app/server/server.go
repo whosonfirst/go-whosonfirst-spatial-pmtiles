@@ -11,7 +11,7 @@ import (
 	"github.com/NYTimes/gziphandler"
 	"github.com/aaronland/go-http-maps/v2"
 	"github.com/aaronland/go-http-ping/v2"
-	"github.com/aaronland/go-http-server"
+	"github.com/aaronland/go-http-server/v2"
 	"github.com/rs/cors"
 	"github.com/sfomuseum/go-http-auth"
 	"github.com/whosonfirst/go-whosonfirst-spatial-www/http"

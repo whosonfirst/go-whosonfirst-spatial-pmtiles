@@ -32,8 +32,9 @@ type BSI struct {
 	runOptimized bool
 }
 
-// NewBSI constructs a new BSI.  Min/Max values are optional.  If set to 0
-// then the underlying BSI will be automatically sized.
+// NewBSI constructs a new BSI. Note that it is your responsibility to ensure that
+// the min/max values are set correctly. Queries CompareValue, MinMax, etc. will not
+// work correctly if the min/max values are not set correctly.
 func NewBSI(maxValue int64, minValue int64) *BSI {
 
 	bitsz := bits.Len64(uint64(minValue))
@@ -242,6 +243,8 @@ type task struct {
 }
 
 // CompareValue compares value.
+// Values should be in the range of the BSI (max, min).  If the value is outside the range, the result
+// might erroneous.  The operation parameter indicates the type of comparison to be made.
 // For all operations with the exception of RANGE, the value to be compared is specified by valueOrStart.
 // For the RANGE parameter the comparison criteria is >= valueOrStart and <= end.
 // The parallelism parameter indicates the number of CPU threads to be applied for processing.  A value
@@ -880,6 +883,7 @@ func (b *BSI) IncrementAll() {
 	b.Increment(b.GetExistenceBitmap())
 }
 
+// Equals - Check for semantic equality of two BSIs.
 func (b *BSI) Equals(other *BSI) bool {
 	if !b.eBM.Equals(&other.eBM) {
 		return false
@@ -902,6 +906,7 @@ func (b *BSI) Equals(other *BSI) bool {
 	return true
 }
 
+// GetSizeInBytes - the size in bytes of the data structure
 func (b *BSI) GetSizeInBytes() int {
 	size := b.eBM.GetSizeInBytes()
 	for _, bm := range b.bA {

@@ -11,7 +11,7 @@ import (
 	"github.com/paulmach/orb/clip"
 	"github.com/paulmach/orb/geojson"
 	orb_maptile "github.com/paulmach/orb/maptile"
-	wof_reader "github.com/whosonfirst/go-whosonfirst-reader"
+	wof_reader "github.com/whosonfirst/go-whosonfirst-reader/v2"
 	"github.com/whosonfirst/go-whosonfirst-spatial"
 	"github.com/whosonfirst/go-whosonfirst-spatial/database"
 	"github.com/whosonfirst/go-whosonfirst-spatial/query"

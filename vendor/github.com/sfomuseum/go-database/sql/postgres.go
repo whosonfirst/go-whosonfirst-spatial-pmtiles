@@ -15,7 +15,7 @@ func ConfigurePostgresDatabase(ctx context.Context, db *sql.DB, opts *ConfigureD
 
 			logger := slog.Default()
 			logger = logger.With("table", t.Name())
-			
+
 			exists, err := HasPostgresTable(ctx, db, t.Name())
 
 			if err != nil {
@@ -52,9 +52,9 @@ func HasPostgresTable(ctx context.Context, db *sql.DB, table_name string) (bool,
 
 	logger := slog.Default()
 	logger = logger.With("table", table_name)
-	
+
 	q := "SELECT EXISTS(SELECT * FROM pg_tables WHERE schemaname='public' AND tablename=$1)"
-	
+
 	row := db.QueryRowContext(ctx, q, table_name)
 
 	var exists bool

@@ -5,6 +5,6 @@ import (
 )
 
 func AltLabel(body []byte) (string, error) {
-	rsp := gjson.GetBytes(body, "properties.src:alt_label")
+	rsp := gjson.GetBytes(body, PATH_SRC_ALT_LABEL)
 	return rsp.String(), nil
 }

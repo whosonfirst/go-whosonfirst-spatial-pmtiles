@@ -1,4 +1,4 @@
-// Copyright 2021 Ross Light
+// Copyright 2021 Roxy Light
 // SPDX-License-Identifier: ISC
 
 package sqlite
@@ -11,11 +11,12 @@ import (
 )
 
 // OpenFlags are [flags] used when opening a [Conn] via [OpenConn].
+// Either [OpenReadOnly] or [OpenReadWrite] must always be present.
 //
 // [flags]: https://www.sqlite.org/c3ref/c_open_autoproxy.html
 type OpenFlags uint
 
-// One of the following flags must be passed to [OpenConn].
+// Required flags, one of which must be passed to [OpenConn].
 const (
 	// OpenReadOnly opens the database in read-only mode.
 	// If the database does not already exist, an error is returned.

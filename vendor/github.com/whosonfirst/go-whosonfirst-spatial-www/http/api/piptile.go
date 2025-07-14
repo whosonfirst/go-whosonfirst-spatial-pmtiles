@@ -40,7 +40,7 @@ func PointInPolygonTileHandler(app *spatial_app.SpatialApplication, opts *PointI
 			http.Error(rsp, "Indexing records", http.StatusServiceUnavailable)
 			return
 		}
-		
+
 		var tile_query *query.MapTileSpatialQuery
 
 		dec := json.NewDecoder(req.Body)
@@ -52,6 +52,12 @@ func PointInPolygonTileHandler(app *spatial_app.SpatialApplication, opts *PointI
 			return
 		}
 
+		if tile_query.Tile == nil {
+			logger.Debug("Tile query is missing tile.")
+			http.Error(rsp, "Bad request", http.StatusBadRequest)
+			return
+		}
+		
 		map_t, err := tile_query.MapTile()
 
 		if err != nil {

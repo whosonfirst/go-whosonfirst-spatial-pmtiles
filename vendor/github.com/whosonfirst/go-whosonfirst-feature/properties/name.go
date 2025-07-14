@@ -1,16 +1,15 @@
 package properties
 
 import (
-	"fmt"
 	"github.com/tidwall/gjson"
 )
 
 func Name(body []byte) (string, error) {
 
-	rsp := gjson.GetBytes(body, "properties.wof:name")
+	rsp := gjson.GetBytes(body, PATH_WOF_NAME)
 
 	if !rsp.Exists() {
-		return "", fmt.Errorf("Missing wof:name property")
+		return "", MissingProperty(PATH_WOF_NAME)
 	}
 
 	name := rsp.String()

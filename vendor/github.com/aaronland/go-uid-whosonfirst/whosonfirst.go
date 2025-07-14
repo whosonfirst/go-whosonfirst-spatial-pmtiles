@@ -1,7 +1,5 @@
 package whosonfirst
 
-import ()
-
 import (
 	"context"
 

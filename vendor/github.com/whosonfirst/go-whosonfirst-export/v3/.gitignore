@@ -1,0 +1,7 @@
+*~
+pkg
+src
+*.bak
+!vendor/src
+bin/wof-*
+go.work*
