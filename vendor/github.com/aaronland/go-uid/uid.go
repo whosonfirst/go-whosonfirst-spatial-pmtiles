@@ -3,16 +3,15 @@ package uid
 import (
 	"context"
 	"fmt"
-	"github.com/aaronland/go-roster"
-	"log"
 	"net/url"
 	"sort"
 	"strings"
+
+	"github.com/aaronland/go-roster"
 )
 
 type Provider interface {
 	UID(context.Context, ...interface{}) (UID, error)
-	SetLogger(context.Context, *log.Logger) error
 }
 
 type UID interface {

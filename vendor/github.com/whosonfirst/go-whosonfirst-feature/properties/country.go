@@ -36,10 +36,10 @@ const COUNTRY_COMPLICATED string = "XZ"
 
 func Country(body []byte) string {
 
-	rsp := gjson.GetBytes(body, "properties.wof:country")
+	rsp := gjson.GetBytes(body, PATH_WOF_COUNTRY)
 
 	if !rsp.Exists() {
-		return COUNTRY_UNKNOWN
+		return COUNTRY_UNKNOWN // MissingProperty(PATH_WOF_COUNTRY)
 	}
 
 	return rsp.String()

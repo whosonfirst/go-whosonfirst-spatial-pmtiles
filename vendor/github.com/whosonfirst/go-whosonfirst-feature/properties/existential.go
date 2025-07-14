@@ -9,7 +9,7 @@ import (
 
 func IsCurrent(body []byte) (flags.ExistentialFlag, error) {
 
-	rsp := gjson.GetBytes(body, "properties.mz:is_current")
+	rsp := gjson.GetBytes(body, PATH_MZ_ISCURRENT)
 
 	if rsp.Exists() {
 
@@ -55,7 +55,7 @@ func IsCurrent(body []byte) (flags.ExistentialFlag, error) {
 
 func IsDeprecated(body []byte) (flags.ExistentialFlag, error) {
 
-	rsp := gjson.GetBytes(body, "properties.edtf:deprecated")
+	rsp := gjson.GetBytes(body, PATH_EDTF_DEPRECATED)
 
 	// "-" is not part of the EDTF spec it's just a default
 	// string that we define for use in the switch statements
@@ -94,7 +94,7 @@ func IsDeprecated(body []byte) (flags.ExistentialFlag, error) {
 
 func IsCeased(body []byte) (flags.ExistentialFlag, error) {
 
-	rsp := gjson.GetBytes(body, "properties.edtf:cessation")
+	rsp := gjson.GetBytes(body, PATH_EDTF_CESSATION)
 
 	v := rsp.String()
 
@@ -129,7 +129,7 @@ func IsCeased(body []byte) (flags.ExistentialFlag, error) {
 
 func IsSuperseded(body []byte) (flags.ExistentialFlag, error) {
 
-	rsp := gjson.GetBytes(body, "properties.wof:superseded_by")
+	rsp := gjson.GetBytes(body, PATH_WOF_SUPERSEDED_BY)
 
 	if rsp.Exists() && len(rsp.Array()) > 0 {
 		return existential.NewKnownUnknownFlag(1)
@@ -140,7 +140,7 @@ func IsSuperseded(body []byte) (flags.ExistentialFlag, error) {
 
 func IsSuperseding(body []byte) (flags.ExistentialFlag, error) {
 
-	rsp := gjson.GetBytes(body, "properties.wof:supersedes")
+	rsp := gjson.GetBytes(body, PATH_WOF_SUPERSEDES)
 
 	if rsp.Exists() && len(rsp.Array()) > 0 {
 		return existential.NewKnownUnknownFlag(1)

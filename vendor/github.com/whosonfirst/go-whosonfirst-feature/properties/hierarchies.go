@@ -4,12 +4,13 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+
 	"github.com/tidwall/gjson"
 )
 
 func Hierarchies(body []byte) []map[string]int64 {
 
-	rsp := gjson.GetBytes(body, "properties.wof:hierarchy")
+	rsp := gjson.GetBytes(body, PATH_WOF_HIERARCHY)
 
 	if !rsp.Exists() {
 		return nil

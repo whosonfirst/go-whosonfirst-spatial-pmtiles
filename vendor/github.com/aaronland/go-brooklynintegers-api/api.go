@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"sync"
@@ -174,7 +174,7 @@ func (client *APIClient) NextInt(ctx context.Context) (int64, error) {
 		i, err := rsp.Int()
 
 		if err != nil {
-			log.Println(err)
+			slog.Error("Failed to derive integer", "error", err)
 			return err
 		}
 
@@ -199,11 +199,16 @@ func (client *APIClient) executeMethod(ctx context.Context, method string, param
 
 	url := client.Scheme + "://" + client.Host + "/" + client.Endpoint
 
+	logger := slog.Default()
+
 	params.Set("method", method)
+
+	logger.Debug("Execute", "url", url)
 
 	req, err := http.NewRequestWithContext(ctx, "POST", url, nil)
 
 	if err != nil {
+		logger.Error("Failed to create request", "error", err)
 		return nil, fmt.Errorf("Failed to create request (%s), %w", url, err)
 	}
 
@@ -214,14 +219,21 @@ func (client *APIClient) executeMethod(ctx context.Context, method string, param
 	rsp, err := client.http_client.Do(req)
 
 	if err != nil {
+		logger.Error("Failed to execute request", "error", err)
 		return nil, fmt.Errorf("Failed to create request (%s), %w", url, err)
 	}
 
 	defer rsp.Body.Close()
 
+	if rsp.StatusCode != http.StatusOK {
+		logger.Error("API did not return OK", "code", rsp.StatusCode, "message", rsp.Status)
+		return nil, fmt.Errorf("API did not return OK")
+	}
+
 	body, err := io.ReadAll(rsp.Body)
 
 	if err != nil {
+		logger.Error("Failed to read response", "error", err)
 		return nil, fmt.Errorf("Failed to read response, %w", err)
 	}
 

@@ -10,7 +10,7 @@
 This is a go version of the Roaring bitmap data structure. 
 
 Roaring bitmaps are used by several major systems such as [Apache Lucene][lucene] and derivative systems such as [Solr][solr] and
-[Elasticsearch][elasticsearch], [Apache Druid (Incubating)][druid], [LinkedIn Pinot][pinot], [Netflix Atlas][atlas],  [Apache Spark][spark], [OpenSearchServer][opensearchserver], [anacrolix/torrent][anacrolix/torrent], [Whoosh][whoosh],  [Pilosa][pilosa],  [Microsoft Visual Studio Team Services (VSTS)][vsts], and eBay's [Apache Kylin][kylin]. The YouTube SQL Engine, [Google Procella](https://research.google/pubs/pub48388/), uses Roaring bitmaps for indexing.
+[Elasticsearch][elasticsearch], [Apache Druid (Incubating)][druid], [LinkedIn Pinot][pinot], [Netflix Atlas][atlas],  [Apache Spark][spark], [OpenSearchServer][opensearchserver], [anacrolix/torrent][anacrolix/torrent], [Whoosh][whoosh], [Redpanda](https://github.com/redpanda-data/redpanda), [Pilosa][pilosa],  [Microsoft Visual Studio Team Services (VSTS)][vsts], and eBay's [Apache Kylin][kylin]. The YouTube SQL Engine, [Google Procella](https://research.google/pubs/pub48388/), uses Roaring bitmaps for indexing.
 
 [lucene]: https://lucene.apache.org/
 [solr]: https://lucene.apache.org/solr/
@@ -33,7 +33,6 @@ Roaring bitmaps are found to work well in many important applications:
 
 The ``roaring`` Go library is used by
 * [anacrolix/torrent]
-* [runv](https://github.com/hyperhq/runv)
 * [InfluxDB](https://www.influxdata.com)
 * [Pilosa](https://www.pilosa.com/)
 * [Bleve](http://www.blevesearch.com)
@@ -44,7 +43,7 @@ The ``roaring`` Go library is used by
 * [M3](https://github.com/m3db/m3)
 * [trident](https://github.com/NetApp/trident)
 * [Husky](https://www.datadoghq.com/blog/engineering/introducing-husky/)
-
+* [FrostDB](https://github.com/polarsignals/frostdb)
 
 This library is used in production in several systems, it is part of the [Awesome Go collection](https://awesome-go.com).
 
@@ -102,7 +101,7 @@ whether you like it or not. That can become very wasteful.
 
 This being said, there are definitively cases where attempting to use compressed bitmaps is wasteful.
 For example, if you have a small universe size. E.g., your bitmaps represent sets of integers
-from [0,n) where n is small (e.g., n=64 or n=128). If you are able to uncompressed BitSet and
+from [0,n) where n is small (e.g., n=64 or n=128). If you can use uncompressed BitSet and
 it does not blow up your memory usage,  then compressed bitmaps are probably not useful
 to you. In fact, if you do not need compression, then a BitSet offers remarkable speed.
 
@@ -137,7 +136,7 @@ There is a big problem with these formats however that can hurt you badly in som
 
 Roaring solves this problem. It works in the following manner. It divides the data into chunks of 2<sup>16</sup> integers
 (e.g., [0, 2<sup>16</sup>), [2<sup>16</sup>, 2 x 2<sup>16</sup>), ...). Within a chunk, it can use an uncompressed bitmap, a simple list of integers,
-or a list of runs. Whatever format it uses, they all allow you to check for the present of any one value quickly
+or a list of runs. Whatever format it uses, they all allow you to check for the presence of any one value quickly
 (e.g., with a binary search). The net result is that Roaring can compute many operations much faster than run-length-encoded
 formats like WAH, EWAH, Concise... Maybe surprisingly, Roaring also generally offers better compression ratios.
 

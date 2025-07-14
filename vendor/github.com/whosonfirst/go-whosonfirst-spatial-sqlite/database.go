@@ -23,7 +23,7 @@ import (
 	"github.com/paulmach/orb/planar"
 	database_sql "github.com/sfomuseum/go-database/sql"
 	"github.com/whosonfirst/go-ioutil"
-	"github.com/whosonfirst/go-reader"
+	"github.com/whosonfirst/go-reader/v2"
 	"github.com/whosonfirst/go-whosonfirst-database/sql/tables"
 	"github.com/whosonfirst/go-whosonfirst-spatial"
 	"github.com/whosonfirst/go-whosonfirst-spatial-sqlite/wkttoorb"

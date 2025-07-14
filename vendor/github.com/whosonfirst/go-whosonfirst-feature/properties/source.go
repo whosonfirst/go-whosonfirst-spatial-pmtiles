@@ -2,6 +2,7 @@ package properties
 
 import (
 	"fmt"
+
 	"github.com/tidwall/gjson"
 )
 
@@ -10,8 +11,8 @@ func Source(body []byte) (string, error) {
 	var source string
 
 	possible := []string{
-		"properties.src:alt_label",
-		"properties.src:geom",
+		PATH_SRC_ALT_LABEL,
+		PATH_SRC_GEOM,
 	}
 
 	for _, path := range possible {
@@ -25,7 +26,7 @@ func Source(body []byte) (string, error) {
 	}
 
 	if source == "" {
-		return "", fmt.Errorf("Missing src:geom or src:alt_label property")
+		return "", MissingProperty(fmt.Sprintf("%s or %s", PATH_SRC_ALT_LABEL, PATH_SRC_GEOM))
 	}
 
 	return source, nil

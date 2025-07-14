@@ -6,7 +6,7 @@ import (
 
 func Created(body []byte) int64 {
 
-	rsp := gjson.GetBytes(body, "properties.wof:created")
+	rsp := gjson.GetBytes(body, PATH_WOF_CREATED)
 
 	if !rsp.Exists() {
 		return -1

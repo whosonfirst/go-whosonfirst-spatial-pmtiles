@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/sfomuseum/go-flags/flagset"
-	"github.com/whosonfirst/go-reader"
+	"github.com/whosonfirst/go-reader/v2"
 	iter_flags "github.com/whosonfirst/go-whosonfirst-iterate/v3/flags"
 	"github.com/whosonfirst/go-whosonfirst-spatial/database"
 )
@@ -35,7 +35,7 @@ func DefaultFlagSet() (*flag.FlagSet, error) {
 
 	fs.StringVar(&spatial_database_uri, "spatial-database-uri", "rtree://", desc_databases)
 
-	available_readers := reader.Schemes()
+	available_readers := reader.ReaderSchemes()
 	desc_readers := fmt.Sprintf("A valid whosonfirst/go-reader.Reader URI. Available options are: %s", available_readers)
 
 	fs.StringVar(&properties_reader_uri, "properties-reader-uri", "", fmt.Sprintf("%s. If the value is {spatial-database-uri} then the value of the '-spatial-database-uri' implements the reader.Reader interface and will be used.", desc_readers))

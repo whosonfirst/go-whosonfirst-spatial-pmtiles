@@ -6,7 +6,7 @@ import (
 	"io"
 	"log/slog"
 
-	"github.com/whosonfirst/go-whosonfirst-export/v2"
+	"github.com/whosonfirst/go-whosonfirst-export/v3"
 	"github.com/whosonfirst/go-whosonfirst-iterate/v3"
 	"github.com/whosonfirst/go-whosonfirst-spatial/database"
 	"github.com/whosonfirst/go-whosonfirst-spatial/filter"
@@ -23,7 +23,6 @@ type updateApplication struct {
 	resolver            *hierarchy.PointInPolygonHierarchyResolver
 	writer              writer.Writer
 	exporter            export.Exporter
-	export_opts         *export.Options
 	spatial_db          database.SpatialDatabase
 	sprResultsFunc      hierarchy_filter.FilterSPRResultsFunc
 	sprFilterInputs     *filter.SPRInputs
@@ -125,7 +124,7 @@ func (app *updateApplication) updateAndPublishFeature(ctx context.Context, body 
 
 	if has_changed {
 
-		has_changed, err = export.ExportChanged(new_body, body, app.export_opts, io.Discard)
+		has_changed, new_body, err = export.Export(ctx, new_body)
 
 		if err != nil {
 			return nil, fmt.Errorf("Failed to determine if export has changed post update, %w", err)
@@ -134,10 +133,10 @@ func (app *updateApplication) updateAndPublishFeature(ctx context.Context, body 
 
 	if has_changed {
 
-		new_body, err = app.publishFeature(ctx, new_body)
+		_, err = wof_writer.WriteBytes(ctx, app.writer, new_body)
 
 		if err != nil {
-			return nil, fmt.Errorf("Failed to publish feature, %w", err)
+			return nil, err
 		}
 	}
 
@@ -149,22 +148,4 @@ func (app *updateApplication) updateAndPublishFeature(ctx context.Context, body 
 func (app *updateApplication) updateFeature(ctx context.Context, body []byte) (bool, []byte, error) {
 
 	return app.resolver.PointInPolygonAndUpdate(ctx, app.sprFilterInputs, app.sprResultsFunc, app.hierarchyUpdateFunc, body)
-}
-
-// PublishFeature exports 'body' using the `whosonfirst/go-writer/v3` instance associated with 'app'.
-func (app *updateApplication) publishFeature(ctx context.Context, body []byte) ([]byte, error) {
-
-	new_body, err := app.exporter.Export(ctx, body)
-
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = wof_writer.WriteBytes(ctx, app.writer, new_body)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return new_body, nil
 }

@@ -3,7 +3,6 @@ package uid
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 )
 
@@ -46,10 +45,6 @@ func (pr *YMDProvider) UID(ctx context.Context, args ...interface{}) (UID, error
 	}
 
 	return NewYMDUID(ctx, date)
-}
-
-func (pr *YMDProvider) SetLogger(ctx context.Context, logger *log.Logger) error {
-	return nil
 }
 
 func NewYMDUID(ctx context.Context, date time.Time) (UID, error) {

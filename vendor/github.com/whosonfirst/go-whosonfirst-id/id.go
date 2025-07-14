@@ -1,14 +1,12 @@
 package id
 
 import (
-	_ "github.com/aaronland/go-uid-proxy"
-	_ "github.com/aaronland/go-uid-whosonfirst"
-)
-
-import (
 	"context"
 	"fmt"
 
+	_ "github.com/aaronland/go-uid-proxy"
+	_ "github.com/aaronland/go-uid-whosonfirst"
+	
 	"github.com/aaronland/go-uid"
 )
 
@@ -40,6 +38,7 @@ type WOFProvider struct {
 // settings.
 func NewProvider(ctx context.Context) (Provider, error) {
 	uri := "proxy://?provider=whosonfirst://"
+	// uri := "proxy:///?provider=whosonfirst://&minimum=5&pool=memory%3A%2F%2F"
 	return NewProviderWithURI(ctx, uri)
 }
 

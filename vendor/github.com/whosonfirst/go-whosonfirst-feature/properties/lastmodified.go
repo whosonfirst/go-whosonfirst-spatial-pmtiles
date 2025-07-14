@@ -6,7 +6,7 @@ import (
 
 func LastModified(body []byte) int64 {
 
-	rsp := gjson.GetBytes(body, "properties.wof:lastmodified")
+	rsp := gjson.GetBytes(body, PATH_WOF_LASTMODIFIED)
 
 	if !rsp.Exists() {
 		return -1

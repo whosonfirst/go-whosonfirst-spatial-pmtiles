@@ -103,13 +103,12 @@ import (
        "context"
 
        _ "github.com/mattn/go-sqlite3"
-       _ "github.com/whosonfirst/go-reader-database-sql"
        
        "github.com/sfomuseum/go-sfomuseum-mapshaper"
        "github.com/whosonfirst/go-whosonfirst-spatial/database"
        "github.com/whosonfirst/go-whosonfirst-spatial/filter"
        "github.com/whosonfirst/go-whosonfirst-spatial/hierarchy"
-       "github.com/whosonfirst/go-reader"
+       "github.com/whosonfirst/go-reader/v2"
        hierarchy_filter "github.com/whosonfirst/go-whosonfirst-spatial/hierarchy/filter"       
 )
 

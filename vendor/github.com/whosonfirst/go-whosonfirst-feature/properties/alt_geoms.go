@@ -6,7 +6,7 @@ import (
 
 func AltGeometries(body []byte) ([]string, error) {
 
-	rsp := gjson.GetBytes(body, "properties.src:geom_alt")
+	rsp := gjson.GetBytes(body, PATH_SRC_GEOM_ALT)
 	possible := rsp.Array()
 
 	count := len(possible)

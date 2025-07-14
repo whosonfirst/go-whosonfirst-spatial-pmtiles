@@ -12,7 +12,7 @@ import (
 	"sync/atomic"
 
 	"github.com/sfomuseum/go-timings"
-	"github.com/whosonfirst/go-reader"
+	"github.com/whosonfirst/go-reader/v2"
 	"github.com/whosonfirst/go-whosonfirst-placetypes"
 	"github.com/whosonfirst/go-whosonfirst-spatial/database"
 )

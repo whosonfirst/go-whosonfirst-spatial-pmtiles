@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/aaronland/go-roster"
-	"github.com/whosonfirst/go-reader"
+	"github.com/whosonfirst/go-reader/v2"
 	"github.com/whosonfirst/go-whosonfirst-spatial"
 	"github.com/whosonfirst/go-writer/v3"
 )
