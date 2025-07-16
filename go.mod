@@ -19,10 +19,10 @@ require (
 	github.com/whosonfirst/go-ioutil v1.0.2
 	github.com/whosonfirst/go-reader/v2 v2.0.0
 	github.com/whosonfirst/go-whosonfirst-feature v0.0.29
-	github.com/whosonfirst/go-whosonfirst-spatial v0.17.0
+	github.com/whosonfirst/go-whosonfirst-spatial v0.18.0
 	github.com/whosonfirst/go-whosonfirst-spatial-grpc v0.3.0
-	github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.15.0
-	github.com/whosonfirst/go-whosonfirst-spatial-www v0.7.0
+	github.com/whosonfirst/go-whosonfirst-spatial-sqlite v0.15.1
+	github.com/whosonfirst/go-whosonfirst-spatial-www v0.7.1
 	github.com/whosonfirst/go-whosonfirst-spr/v2 v2.3.7
 	github.com/whosonfirst/go-whosonfirst-uri v1.3.0
 	gocloud.dev v0.42.0
@@ -167,7 +167,7 @@ require (
 	github.com/whosonfirst/go-whosonfirst-id v1.3.1 // indirect
 	github.com/whosonfirst/go-whosonfirst-iterate/v3 v3.1.0 // indirect
 	github.com/whosonfirst/go-whosonfirst-names v0.1.0 // indirect
-	github.com/whosonfirst/go-whosonfirst-placetypes v0.7.3 // indirect
+	github.com/whosonfirst/go-whosonfirst-placetypes v0.8.0 // indirect
 	github.com/whosonfirst/go-whosonfirst-reader/v2 v2.0.0 // indirect
 	github.com/whosonfirst/go-whosonfirst-sources v0.1.0 // indirect
 	github.com/whosonfirst/go-whosonfirst-spelunker v0.0.6 // indirect

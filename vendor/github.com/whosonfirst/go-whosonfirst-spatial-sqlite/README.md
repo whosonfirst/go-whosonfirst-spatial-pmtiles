@@ -28,8 +28,8 @@ $> ./bin/wof-sqlite-index \
 	-index-alt-files \
 	-spatial-tables \
 	-timings \
-	-dsn /usr/local/ca-alt.db \
-	-mode repo:// \
+	-database-uri 'sql://sqlite3?dsn=/usr/local/ca-alt.db' \
+	-iterator-uri repo:// \
 	/usr/local/data/whosonfirst-data-admin-ca/
 
 13:09:44.642004 [wof-sqlite-index-features] STATUS time to index rtree (11860) : 30.469010289s
