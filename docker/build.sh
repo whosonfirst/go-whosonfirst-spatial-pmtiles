@@ -7,7 +7,7 @@ WRITE_FEATURES=""
 HELP=""
 
 NAME="whosonfirst"	# for example -n whosonfirst"
-ITERATOR="org:///tmp"
+ITERATOR="githuborg:///tmp"
 ZOOM="12"
 
 LAYER_NAME=""	# tippecanoe layer name
