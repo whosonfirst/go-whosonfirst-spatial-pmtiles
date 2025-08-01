@@ -14,8 +14,9 @@ LAYER_NAME=""	# tippecanoe layer name
 PROPERTIES=""	# for example: -p 'wof:hierarchy wof:concordances'
 
 FORGIVING=""
+VERBOSE=""
 
-while getopts "i:l:n:p:s:t:z:fFh" opt; do
+while getopts "i:l:n:p:s:t:z:fFhv" opt; do
     case "$opt" in
 	f)
 	    WRITE_FEATURES=1
@@ -44,6 +45,9 @@ while getopts "i:l:n:p:s:t:z:fFh" opt; do
 	t )
 	    TARGET=$OPTARG
 	    ;;
+	v )
+	    VERBOSE=1
+	    ;;
 	z )
 	    ZOOM=$OPTARG
 	    ;;
@@ -67,7 +71,12 @@ if [ "${FORGIVING}" != "" ]
 then
     FEATURES_ARGS="${FEATURES_ARGS} -forgiving"
 fi
-			 
+
+if [ "${VERBOSE}" == "1" ]
+then
+    FEATURES_ARGS="${FEATURES_ARGS} -verbose"
+fi
+
 for PROP in ${PROPERTIES}
 do
     FEATURES_ARGS="${FEATURES_ARGS} -spr-append-property ${PROP}"
