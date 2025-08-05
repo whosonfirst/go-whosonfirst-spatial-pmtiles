@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"sync"
 
-	"log/slog"
-
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 	wof_properties "github.com/whosonfirst/go-whosonfirst-feature/properties"
@@ -47,9 +45,6 @@ func EnsureWOFIdAlt(ctx context.Context, feature []byte) ([]byte, error) {
 }
 
 func EnsureWOFId(ctx context.Context, feature []byte) ([]byte, error) {
-
-	slog.SetLogLoggerLevel(slog.LevelDebug)
-	slog.Debug("Verbose logging enabled")
 
 	provider, err := idProvider(ctx)
 

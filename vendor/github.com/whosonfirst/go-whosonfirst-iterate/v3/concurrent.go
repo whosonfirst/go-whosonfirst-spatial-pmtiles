@@ -13,10 +13,12 @@ import (
 	"regexp"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/dustin/go-humanize"
 	"github.com/whosonfirst/go-whosonfirst-uri"
 )
 
@@ -46,6 +48,12 @@ type concurrentIterator struct {
 	dedupe bool
 	// Lookup table to track records (specifically their relative URI) that have been processed
 	dedupe_map *sync.Map
+	// Boolean flag indicating whether stats should be logged. Default is true.
+	with_stats bool
+	// The inteval at which stats are logged. Default is 60 seconds.
+	stats_interval time.Duration
+	// The level at which stats are logged. Default is INFO.
+	stats_level slog.Level
 }
 
 // NewConcurrentIterator() returns a new `Iterator` instance derived from 'iterator_uri' and 'it'. The former is expected
@@ -58,6 +66,9 @@ type concurrentIterator struct {
 // * `?_retry=` A boolean value indicating whether failed iterators should be retried. (Default is false.)
 // * `?_max_attempts=` The number of times to retry a failed iterator. (Default is 1.)
 // * `?_retry_after=` The number of seconds to wait before retrying a failed iterator. (Default is 10.)
+// * `?_with_stats=` Boolean flag indicating whether stats should be logged. Default is true.
+// * `?_stats_interval=` The number of seconds between stats logging events. Default is 60.
+// * `?_stas_level=` The (slog/log) level at which stats are logged. Default is INFO.
 // These parameters will be used to wrap and perform additional checks when iterating through documents using 'it'.
 func NewConcurrentIterator(ctx context.Context, iterator_uri string, it Iterator) (Iterator, error) {
 
@@ -74,6 +85,10 @@ func NewConcurrentIterator(ctx context.Context, iterator_uri string, it Iterator
 	retry := false
 	max_attempts := 1
 	retry_after := 10 // seconds
+
+	with_stats := true
+	stats_interval := 1 * time.Minute
+	stats_level := slog.LevelInfo
 
 	if q.Has("_max_procs") {
 
@@ -123,12 +138,15 @@ func NewConcurrentIterator(ctx context.Context, iterator_uri string, it Iterator
 	}
 
 	i := &concurrentIterator{
-		iterator:     it,
-		seen:         int64(0),
-		iterating:    new(atomic.Bool),
-		max_procs:    max_procs,
-		max_attempts: max_attempts,
-		retry_after:  retry_after,
+		iterator:       it,
+		seen:           int64(0),
+		iterating:      new(atomic.Bool),
+		max_procs:      max_procs,
+		max_attempts:   max_attempts,
+		retry_after:    retry_after,
+		with_stats:     with_stats,
+		stats_interval: stats_interval,
+		stats_level:    stats_level,
 	}
 
 	if q.Has("_include") {
@@ -176,10 +194,65 @@ func NewConcurrentIterator(ctx context.Context, iterator_uri string, it Iterator
 			i.dedupe = true
 			i.dedupe_map = new(sync.Map)
 		}
+	}
 
+	if q.Has("_with_stats") {
+
+		v, err := strconv.ParseBool(q.Get("_with_stats"))
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to parse '_with_stats' parameter, %w", err)
+		}
+
+		i.with_stats = v
+	}
+
+	if q.Has("_stats_interval") {
+
+		v, err := strconv.Atoi(q.Get("_stats_interval"))
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to parse '_stats_interval' parameter, %w", err)
+		}
+
+		i.stats_interval = time.Duration(v) * time.Second
+	}
+
+	if q.Has("_stats_level") {
+
+		switch strings.ToUpper(q.Get("_stats_level")) {
+		case "DEBUG":
+			i.stats_level = slog.LevelDebug
+		case "INFO":
+			i.stats_level = slog.LevelInfo
+		case "WARN":
+			i.stats_level = slog.LevelWarn
+		case "ERROR":
+			i.stats_level = slog.LevelError
+		default:
+			return nil, fmt.Errorf("Invalid or unsupport log level for stats")
+		}
+
+		slog.Info("BUELLER", "level", i.stats_level)
 	}
 
 	return i, nil
+}
+
+func (it *concurrentIterator) showStats(ctx context.Context, t1 time.Time) {
+
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+
+	slog.Log(ctx, it.stats_level,
+		"Iterator stats",
+		"elapsed", time.Since(t1),
+		"seen", it.Seen(),
+		"allocated", humanize.Bytes(m.Alloc),
+		"total allocated", humanize.Bytes(m.TotalAlloc),
+		"sys", humanize.Bytes(m.Sys),
+		"numgc", m.NumGC,
+	)
 }
 
 // Iterate will return an `iter.Seq2[*Record, error]` for each record encountered in 'uris'.
@@ -188,6 +261,30 @@ func (it *concurrentIterator) Iterate(ctx context.Context, uris ...string) iter.
 	return func(yield func(rec *Record, err error) bool) {
 
 		t1 := time.Now()
+
+		if it.with_stats {
+
+			ticker := time.NewTicker(it.stats_interval)
+			ticker_done := make(chan bool)
+
+			defer func() {
+				ticker.Stop()
+				ticker_done <- true
+			}()
+
+			go func() {
+
+				for {
+					select {
+					case <-ticker_done:
+						it.showStats(ctx, t1)
+						return
+					case <-ticker.C:
+						it.showStats(ctx, t1)
+					}
+				}
+			}()
+		}
 
 		defer func() {
 			slog.Debug("Time to process paths", "count", len(uris), "time", time.Since(t1))
@@ -217,11 +314,15 @@ func (it *concurrentIterator) Iterate(ctx context.Context, uris ...string) iter.
 			go func(uri string) {
 
 				logger := slog.Default()
-				logger = logger.With("uri", uri)
-
 				t2 := time.Now()
 
+				var it_counter int64
+				attempts := 0
+
 				defer func() {
+					logger.Debug("Run garbage collector")
+					runtime.GC()
+
 					logger.Debug("Time to iterate uri", "time", time.Since(t2))
 				}()
 
@@ -232,6 +333,17 @@ func (it *concurrentIterator) Iterate(ctx context.Context, uris ...string) iter.
 					done_ch <- true
 				}()
 
+				logger_uri, err := ScrubURI(uri)
+
+				if err != nil {
+					slog.Error("Failed to scrub URI", "error", err)
+					return
+				}
+
+				logger = logger.With("uri", logger_uri)
+
+				// END OF put me in a funciton somewhere...
+
 				select {
 				case <-ctx.Done():
 					return
@@ -239,36 +351,45 @@ func (it *concurrentIterator) Iterate(ctx context.Context, uris ...string) iter.
 					// pass
 				}
 
-				// The number of records processed across all attempts (it.max_attempts)
-				it_counter := int64(0)
-				attempts := 0
+				atomic.StoreInt64(&it_counter, 0)
 
-				do_iter := func() error {
+				do_iter := func(target_uri string) error {
+
+					logger_uri, err := ScrubURI(target_uri)
+
+					if err != nil {
+						return err
+					}
 
 					// The number of records processed in this attempt
-					local_counter := int64(1)
+					var local_counter int64
+					atomic.StoreInt64(&local_counter, 0)
 
-					for rec, err := range it.iterator.Iterate(ctx, uri) {
+					logger.Debug("Iterate target", "target uri", logger_uri, "counter", atomic.LoadInt64(&it_counter), "local counter", atomic.LoadInt64(&local_counter))
+
+					for rec, err := range it.iterator.Iterate(ctx, target_uri) {
 
 						if err != nil {
-							logger.Error("Iterator failed", "counter", it_counter, "local counter", local_counter, "error", err)
+							logger.Error("Iterator failed", "counter", atomic.LoadInt64(&it_counter), "local counter", atomic.LoadInt64(&local_counter), "error", err)
 							return err
 						}
 
-						if it_counter > local_counter {
-							logger.Debug("Local counter < counter, skipping", "counter", it_counter, "local counter", local_counter)
-							local_counter += 1
+						if atomic.LoadInt64(&it_counter) > atomic.LoadInt64(&local_counter) {
+							logger.Debug("Iterator counter > local counter, skipping", "path", rec.Path, "counter", atomic.LoadInt64(&it_counter), "local counter", atomic.LoadInt64(&local_counter))
+							atomic.AddInt64(&local_counter, 1)
+							rec.Body.Close()
 							continue
 						}
 
-						local_counter += 1
-						it_counter += 1
-
+						atomic.AddInt64(&local_counter, 1)
+						atomic.AddInt64(&it_counter, 1)
 						atomic.AddInt64(&it.seen, 1)
 
 						ok, err := it.shouldYieldRecord(ctx, rec)
 
 						if err != nil {
+							logger.Warn("Failed to determine if record should yield", "path", rec.Path, "error", err)
+							rec.Body.Close()
 							continue
 						}
 
@@ -277,7 +398,6 @@ func (it *concurrentIterator) Iterate(ctx context.Context, uris ...string) iter.
 							continue
 						}
 
-						logger.Debug("Yield record", "counter", it_counter, "local counter", local_counter, "path", rec.Path)
 						rec_ch <- rec
 					}
 
@@ -286,10 +406,15 @@ func (it *concurrentIterator) Iterate(ctx context.Context, uris ...string) iter.
 
 				for attempts < it.max_attempts {
 
-					attempts += 1
-					err := do_iter()
+					logger.Debug("Do iter", "attempt", attempts, "max attempts", it.max_attempts, "counter", atomic.LoadInt64(&it_counter))
 
-					if err != nil {
+					attempts += 1
+					err := do_iter(uri)
+
+					if err == nil {
+						logger.Debug("Iteration successful", "attempt", attempts, "max attempts", it.max_attempts, "counter", atomic.LoadInt64(&it_counter))
+						break
+					} else {
 
 						logger.Error("Iterator failed", "attempts", attempts, "max attempts", it.max_attempts, "error", err)
 

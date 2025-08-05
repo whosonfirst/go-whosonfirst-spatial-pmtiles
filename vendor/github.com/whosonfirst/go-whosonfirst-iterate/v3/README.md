@@ -216,6 +216,9 @@ The following query paramters are honoured for `iterate.Iterator` URIs passed to
 | _max_retries | Int | No | The maximum number of attempts to walk any given URI. Defaults to "1" and the `_retry` parameter _must_ evaluate to a true value in order to change the default. |
 | _retry_after | Int | The number of seconds to wait between attempts to walk any given URI. Defaults to "10" (seconds) and the `_retry` parameter _must_ evaluate to a true value in order to change the default. |
 | _dedupe | Bool | No | A boolean value to track and skip records (specifically their relative URI) that have already been processed. |
+| _with_stats | Bool | No | Boolean flag indicating whether stats should be logged. Default is true. |
+| _stats_interval | Int | No | The number of seconds between stats logging events. Default is 60. |
+| _stats_level | String | No | The (slog/log) level at which stats are logged. Default is INFO. |
 
 ## Filters
 

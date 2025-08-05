@@ -147,6 +147,7 @@ _To be written_
 
 ## Tools
 
+```
 $> make cli
 go build -tags mattn -ldflags="-s -w" -mod vendor -o bin/http-server cmd/http-server/main.go
 go build -tags mattn -ldflags="-s -w" -mod vendor -o bin/grpc-server cmd/grpc-server/main.go
@@ -154,6 +155,7 @@ go build -tags mattn -ldflags="-s -w" -mod vendor -o bin/grpc-client cmd/grpc-cl
 go build -tags mattn -ldflags="-s -w" -mod vendor -o bin/update-hierarchies cmd/update-hierarchies/main.go
 go build -tags mattn -ldflags="-s -w" -mod vendor -o bin/pip cmd/pip/main.go
 go build -tags mattn -ldflags="-s -w" -mod vendor -o bin/intersects cmd/intersects/main.go
+```
 
 ### pip
 

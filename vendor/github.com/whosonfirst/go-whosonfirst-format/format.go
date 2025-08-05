@@ -5,25 +5,17 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/paulmach/orb/geojson"
 	"github.com/tidwall/pretty"
 )
-
-// Feature represents a WOF Feature, ready to be encoded to JSON
-type Feature struct {
-	Type       string      `json:"type"`
-	ID         int64       `json:"id"`
-	Properties interface{} `json:"properties"`
-	Bbox       interface{} `json:"bbox,omitempty"`
-	Geometry   interface{} `json:"geometry"`
-}
 
 // two space indent
 const indent = "  "
 
 // FormatFeature transforms a byte array `b` into a correctly formatted WOF file
 func FormatBytes(b []byte) ([]byte, error) {
-	var f *Feature
-	err := json.Unmarshal(b, &f)
+
+	f, err := geojson.UnmarshalFeature(b)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal bytes in to Feature, %w", err)
@@ -33,7 +25,7 @@ func FormatBytes(b []byte) ([]byte, error) {
 }
 
 // FormatFeature transforms a Feature into a correctly formatted WOF file
-func FormatFeature(feature *Feature) ([]byte, error) {
+func FormatFeature(feature *geojson.Feature) ([]byte, error) {
 	var buf bytes.Buffer
 
 	_, err := buf.WriteString("{\n")
@@ -46,7 +38,7 @@ func FormatFeature(feature *Feature) ([]byte, error) {
 		return buf.Bytes(), err
 	}
 
-	err = writeKey(&buf, "type", feature.Type, true, false)
+	err = writeKey(&buf, "type", "Feature", true, false)
 	if err != nil {
 		return buf.Bytes(), err
 	}
@@ -56,12 +48,15 @@ func FormatFeature(feature *Feature) ([]byte, error) {
 		return buf.Bytes(), err
 	}
 
-	err = writeKey(&buf, "bbox", feature.Bbox, true, false)
+	err = writeKey(&buf, "bbox", feature.BBox, true, false)
 	if err != nil {
 		return buf.Bytes(), err
 	}
 
-	err = writeKey(&buf, "geometry", feature.Geometry, false, true)
+	// See this? It's important. For whatever reason orb/geojson.Feature.Geometry is of
+	// type orb.Geometry (rather than orb/geojson.Geometry). Computers...
+
+	err = writeKey(&buf, "geometry", geojson.NewGeometry(feature.Geometry), false, true)
 	if err != nil {
 		return buf.Bytes(), err
 	}

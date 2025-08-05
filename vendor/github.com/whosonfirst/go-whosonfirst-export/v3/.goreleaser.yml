@@ -1,36 +1,26 @@
+version: 2
 before:
   hooks:
     - go mod tidy
 builds:
-  -
-    id: wof-export-feature
-    binary: wof-export-feature
+  - id: wof-export
+    binary: wof-export
     env:
       - CGO_ENABLED=0
     goos:
       - linux
       - windows
       - darwin
-    main: ./cmd/wof-export-feature
+    main: ./cmd/wof-export
 archives:
-  -
-    id: wof-export-feature
-    builds:
-      - wof-export-feature
-    replacements:
-      darwin: Darwin
-      linux: Linux
-      windows: Windows
-      386: i386
-      amd64: x86_64
-    format: binary
+  - name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
 checksum:
-  name_template: 'checksums.txt'
+  name_template: "checksums.txt"
 snapshot:
   name_template: "{{ incpatch .Tag }}-next"
 changelog:
   sort: asc
   filters:
     exclude:
-      - '^docs:'
-      - '^test:'
+      - "^docs:"
+      - "^test:"

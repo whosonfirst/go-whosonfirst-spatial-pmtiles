@@ -11,7 +11,7 @@ builds:
       - linux
       - windows
       - darwin
-    main: ./cmd
+    main: ./cmd/wof-format/main.go    
 archives:
   -
     id: wof-format
@@ -33,4 +33,4 @@ changelog:
   filters:
     exclude:
       - '^docs:'
-      - '^test:'
+      - '^fixtures:'

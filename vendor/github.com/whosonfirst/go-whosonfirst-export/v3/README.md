@@ -10,11 +10,9 @@ Go package for exporting Who's On First documents.
 
 This package is designed to perform all the steps necessary to "export" (as in create or update) a Who's On First record taking care to ensure correct formatting, default values and validation.
 
-_Note: As of this writing comprehensive validation is still a work in progress._
-
 ## Example
 
-Version 3.x of this package introduce major, backward-incompatible changes from earlier releases. That said, migragting from version 2.x to 3.x should be relatively straightforward as a the _basic_ concepts are still the same but (hopefully) simplified. There are some important changes "under the hood" but the user-facing changes, while important, should be easy to update.
+Version 3.x of this package introduce major, backward-incompatible changes from earlier releases. That said, migragting from version 2.x to 3.x should be relatively straightforward as the _basic_ concepts are still the same but (hopefully) simplified. There are some important changes "under the hood" but the user-facing changes, while important, should be easy to update.
 
 _All error handling removed for the sake of brevity._
 
@@ -89,7 +87,7 @@ func NewWhosOnFirstExporter(ctx context.Context, uri string) (export.Exporter, e
 }
 ```
 
-For a complete implementation consult [exporter_whosonfirst.go](exporter_whosonfirst.go)._
+_For a complete implementation consult [exporter_whosonfirst.go](exporter_whosonfirst.go)._
 
 #### whosonfirst://
 
