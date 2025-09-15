@@ -7,7 +7,7 @@ import (
 	"io"
 	"log"
 
-	"github.com/whosonfirst/go-whosonfirst-spatial"	
+	"github.com/whosonfirst/go-whosonfirst-spatial"
 )
 
 // Write implements the whosonfirst/go-writer interface so that the database itself can be used as a

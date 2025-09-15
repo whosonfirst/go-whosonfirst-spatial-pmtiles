@@ -3,10 +3,8 @@ package export
 import (
 	"context"
 	"fmt"
-	"log/slog"
 
 	"github.com/whosonfirst/go-whosonfirst-export/v3/properties"
-	wof_properties "github.com/whosonfirst/go-whosonfirst-feature/properties"
 )
 
 // PrepareAltFeatureWithoutTimestamps ensures the presence of necessary field and/or default values for a Who's On First "alternate geometry"
@@ -17,19 +15,6 @@ func PrepareAltFeatureWithoutTimestamps(ctx context.Context, feature []byte) ([]
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to ensure wof:id, %w", err)
-	}
-
-	_, err = wof_properties.Name(feature)
-
-	if err != nil {
-		slog.Warn("Failed to derive name for alternate geometry", "error", err)
-	}
-
-	feature, err = properties.EnsurePlacetype(ctx, feature)
-
-	if err != nil {
-
-		return nil, fmt.Errorf("Failed to ensure placetype, %w", err)
 	}
 
 	feature, err = properties.EnsureRepo(ctx, feature)

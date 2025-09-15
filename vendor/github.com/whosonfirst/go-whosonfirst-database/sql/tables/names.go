@@ -73,11 +73,11 @@ func (t *NamesTable) InitializeTable(ctx context.Context, db *sql.DB) error {
 	return database_sql.CreateTableIfNecessary(ctx, db, t)
 }
 
-func (t *NamesTable) IndexRecord(ctx context.Context, db *sql.DB, i interface{}) error {
-	return t.IndexFeature(ctx, db, i.([]byte))
+func (t *NamesTable) IndexRecord(ctx context.Context, db *sql.DB, tx *sql.Tx, i interface{}) error {
+	return t.IndexFeature(ctx, db, tx, i.([]byte))
 }
 
-func (t *NamesTable) IndexFeature(ctx context.Context, db *sql.DB, f []byte) error {
+func (t *NamesTable) IndexFeature(ctx context.Context, db *sql.DB, tx *sql.Tx, f []byte) error {
 
 	if alt.IsAlt(f) {
 		return nil
@@ -101,12 +101,6 @@ func (t *NamesTable) IndexFeature(ctx context.Context, db *sql.DB, f []byte) err
 	names := properties.Names(f)
 
 	db_driver := database_sql.Driver(db)
-
-	tx, err := db.Begin()
-
-	if err != nil {
-		return database_sql.BeginTransactionError(t, err)
-	}
 
 	var delete_q string
 
@@ -196,12 +190,6 @@ func (t *NamesTable) IndexFeature(ctx context.Context, db *sql.DB, f []byte) err
 			}
 
 		}
-	}
-
-	err = tx.Commit()
-
-	if err != nil {
-		return database_sql.CommitTransactionError(t, err)
 	}
 
 	return nil

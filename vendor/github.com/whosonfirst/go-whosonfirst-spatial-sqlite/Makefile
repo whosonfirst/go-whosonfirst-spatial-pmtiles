@@ -25,3 +25,10 @@ grpcd:
 	go run -tags $(TAGS) -mod $(GOMOD) \
 		cmd/grpc-server/main.go \
 		'sqlite://$(ENGINE)?dsn=$(DSN)'
+
+pip:
+	go run -tags $(TAGS) -mod $(GOMOD) \
+		cmd/pip/main.go \
+		-spatial-database-uri 'sqlite://sqlite3?dsn=$(DSN)' \
+		-latitude 37.621131 \
+		-longitude -122.384292

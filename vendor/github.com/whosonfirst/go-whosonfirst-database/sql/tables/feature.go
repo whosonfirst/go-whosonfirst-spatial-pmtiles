@@ -9,5 +9,5 @@ import (
 
 type FeatureTable interface {
 	database_sql.Table
-	IndexFeature(context.Context, *sql.DB, []byte) error
+	IndexFeature(context.Context, *sql.DB, *sql.Tx, []byte) error
 }

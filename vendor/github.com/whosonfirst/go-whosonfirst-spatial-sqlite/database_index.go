@@ -4,7 +4,6 @@ package sqlite
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"iter"
@@ -13,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/planar"
@@ -47,25 +48,19 @@ func (r *SQLiteSpatialDatabase) IndexFeature(ctx context.Context, body []byte) e
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	err := r.rtree_table.IndexRecord(ctx, r.db, body)
-
-	if err != nil {
-		return fmt.Errorf("Failed to index record in rtree table, %w", err)
-	}
-
-	err = r.spr_table.IndexRecord(ctx, r.db, body)
-
-	if err != nil {
-		return fmt.Errorf("Failed to index record in spr table, %w", err)
+	tables := []database_sql.Table{
+		r.rtree_table,
+		r.spr_table,
 	}
 
 	if r.geojson_table != nil {
+		tables = append(tables, r.geojson_table)
+	}
 
-		err = r.geojson_table.IndexRecord(ctx, r.db, body)
+	err := database_sql.IndexRecord(ctx, r.db, body, tables...)
 
-		if err != nil {
-			return fmt.Errorf("Failed to index record in geojson table, %w", err)
-		}
+	if err != nil {
+		return fmt.Errorf("Failed to index record, %w", err)
 	}
 
 	return nil
@@ -134,6 +129,12 @@ func (r *SQLiteSpatialDatabase) RemoveFeature(ctx context.Context, str_id string
 // that are inclusive of any filters defined by 'filters'.
 func (db *SQLiteSpatialDatabase) PointInPolygon(ctx context.Context, coord *orb.Point, filters ...spatial.Filter) (spr.StandardPlacesResults, error) {
 
+	t1 := time.Now()
+
+	defer func() {
+		slog.Debug("Time to PIP", "time", time.Since(t1))
+	}()
+
 	results := make([]spr.StandardPlacesResult, 0)
 
 	for r, err := range db.PointInPolygonWithIterator(ctx, coord, filters...) {
@@ -156,6 +157,12 @@ func (db *SQLiteSpatialDatabase) PointInPolygonWithIterator(ctx context.Context,
 
 	return func(yield func(spr.StandardPlacesResult, error) bool) {
 
+		t1 := time.Now()
+
+		defer func() {
+			slog.Debug("Time to PIP", "time", time.Since(t1))
+		}()
+
 		rows, err := db.getIntersectsByCoord(ctx, coord, filters...)
 
 		if err != nil {
@@ -163,18 +170,65 @@ func (db *SQLiteSpatialDatabase) PointInPolygonWithIterator(ctx context.Context,
 			return
 		}
 
-		for r, err := range db.inflateResults(ctx, rows, coord, filters...) {
+		seen := new(sync.Map)
+		wg := new(sync.WaitGroup)
 
-			if !yield(r, err) {
-				return
-			}
+		working := new(atomic.Bool)
+		working.Store(true)
+
+		for _, sp := range rows {
+
+			wg.Go(func() {
+
+				if !working.Load() {
+					return
+				}
+
+				_, exists := seen.Load(sp.Id)
+
+				if exists {
+					return
+				}
+
+				r, err := db.inflatePointInPolygonSpatialIndex(ctx, sp, coord, filters...)
+
+				if err != nil {
+
+					slog.Error("Failed to inflate index", "error", err)
+
+					if working.Load() {
+
+						if !yield(nil, err) {
+							working.Swap(false)
+						}
+					}
+
+					return
+				}
+
+				if r == nil {
+					return
+				}
+
+				seen.Store(sp.Id, r)
+
+				if working.Load() {
+					yield(r, nil)
+				}
+			})
 		}
 
-		return
+		wg.Wait()
 	}
 }
 
 func (db *SQLiteSpatialDatabase) Intersects(ctx context.Context, geom orb.Geometry, filters ...spatial.Filter) (spr.StandardPlacesResults, error) {
+
+	t1 := time.Now()
+
+	defer func() {
+		slog.Debug("Time to intersects", "time", time.Since(t1))
+	}()
 
 	results := make([]spr.StandardPlacesResult, 0)
 
@@ -207,30 +261,53 @@ func (db *SQLiteSpatialDatabase) IntersectsWithIterator(ctx context.Context, geo
 			return
 		}
 
-		// Do not return (yield) the same ID multiple times
 		seen := new(sync.Map)
+		wg := new(sync.WaitGroup)
 
-		for r, err := range db.inflateIntersectsResults(ctx, rows, geom, filters...) {
+		working := new(atomic.Bool)
+		working.Store(true)
 
-			if err != nil {
-				yield(nil, err)
-				break
-			}
+		for _, sp := range rows {
 
-			_, exists := seen.Load(r.Id())
+			wg.Go(func() {
 
-			if exists {
-				continue
-			}
+				if !working.Load() {
+					return
+				}
 
-			seen.Store(r.Id(), true)
+				_, exists := seen.Load(sp.Id)
 
-			if !yield(r, nil) {
-				break
-			}
+				if exists {
+					return
+				}
+
+				r, err := db.inflateIntersectsSpatialIndex(ctx, sp, geom, filters...)
+
+				if err != nil {
+
+					if working.Load() {
+
+						if !yield(nil, err) {
+							working.Swap(false)
+						}
+					}
+
+					return
+				}
+
+				if r == nil {
+					return
+				}
+
+				seen.Store(sp.Id, true)
+
+				if working.Load() {
+					yield(r, nil)
+				}
+			})
 		}
 
-		return
+		wg.Wait()
 	}
 }
 
@@ -276,10 +353,42 @@ func (db *SQLiteSpatialDatabase) getIntersectsByRect(ctx context.Context, rect *
 
 	intersects := make([]*RTreeSpatialIndex, 0)
 
-	for i, err := range db.rowsToSpatialIndices(ctx, rows, filters...) {
+	for rows.Next() {
+
+		var id string
+		var feature_id string
+		var is_alt int32
+		var alt_label string
+		var geometry string
+		var minx float64
+		var miny float64
+		var maxx float64
+		var maxy float64
+
+		err := rows.Scan(&id, &feature_id, &is_alt, &alt_label, &geometry, &minx, &miny, &maxx, &maxy)
 
 		if err != nil {
 			return nil, err
+		}
+
+		min := orb.Point{minx, miny}
+		max := orb.Point{maxx, maxy}
+
+		rect := orb.Bound{
+			Min: min,
+			Max: max,
+		}
+
+		i := &RTreeSpatialIndex{
+			Id:        fmt.Sprintf("%s#%s", feature_id, id),
+			FeatureId: feature_id,
+			bounds:    rect,
+			geometry:  geometry,
+		}
+
+		if is_alt == 1 {
+			i.IsAlt = true
+			i.AltLabel = alt_label
 		}
 
 		intersects = append(intersects, i)
@@ -287,235 +396,6 @@ func (db *SQLiteSpatialDatabase) getIntersectsByRect(ctx context.Context, rect *
 
 	logger.Debug("Intersects by rect candidates", "r", rect, "count", len(intersects))
 	return intersects, nil
-}
-
-// inflateResults creates `spr.StandardPlacesResult` instances for each record defined in 'possible'.
-func (db *SQLiteSpatialDatabase) inflateResults(ctx context.Context, possible []*RTreeSpatialIndex, c *orb.Point, filters ...spatial.Filter) iter.Seq2[spr.StandardPlacesResult, error] {
-
-	return func(yield func(spr.StandardPlacesResult, error) bool) {
-
-		seen := new(sync.Map)
-
-		for _, sp := range possible {
-
-			// sp_id := fmt.Sprintf("%s:%s", sp.Id, sp.AltLabel)
-			feature_id := fmt.Sprintf("%s:%s", sp.FeatureId, sp.AltLabel)
-
-			logger := slog.Default()
-			logger = logger.With("feature id", feature_id)
-			logger = logger.With("latitude", c.Y())
-			logger = logger.With("longitude", c.X())
-
-			logger.Debug("Inflate spatial index")
-
-			// have we already looked up the filters for this ID?
-			// see notes below
-
-			_, ok := seen.Load(feature_id)
-
-			if ok {
-				continue
-			}
-
-			// START OF maybe move all this code in to whosonfirst/go-whosonfirst-sqlite-features/tables/rtree.go
-
-			var poly orb.Polygon
-			var err error
-
-			// This is to account for version of the whosonfirst/go-whosonfirst-sqlite-features
-			// package < 0.10.0 that stored geometries as JSON-encoded strings. Subsequent versions
-			// use WKT encoding.
-
-			// This is the bottleneck. It appears to be this:
-			// https://github.com/paulmach/orb/issues/132
-			// maybe... https://github.com/Succo/wktToOrb/ ?
-
-			if strings.HasPrefix(sp.geometry, "[[[") {
-				// Investigate https://github.com/paulmach/orb/tree/master/geojson#performance
-				err = json.Unmarshal([]byte(sp.geometry), &poly)
-			} else {
-
-				// poly, err = wkt.UnmarshalPolygon(sp.geometry)
-
-				o, err := wkttoorb.Scan(sp.geometry)
-
-				if err != nil {
-					continue
-				}
-
-				poly = o.(orb.Polygon)
-			}
-
-			if err != nil {
-				logger.Error("Failed to derive polygon", "error", err)
-				continue
-			}
-
-			// END OF maybe move all this code in to whosonfirst/go-whosonfirst-sqlite-features/tables/rtree.go
-
-			if !planar.PolygonContains(poly, *c) {
-				logger.Debug("Coordinate not contained by feature polygon")
-				continue
-			}
-
-			// there is at least one ring that contains the coord
-			// now we check the filters - whether or not they pass
-			// we can skip every subsequent polygon with the same
-			// ID
-
-			_, ok = seen.LoadOrStore(feature_id, true)
-
-			if ok {
-				continue
-			}
-
-			s, err := db.retrieveSPR(ctx, sp.Path())
-
-			if err != nil {
-				logger.Error("Failed to retrieve feature cache", "key", sp.Path(), "error", err)
-				continue
-			}
-
-			matches := true
-
-			for _, f := range filters {
-
-				err = filter.FilterSPR(f, s)
-
-				if err != nil {
-					slog.Debug("Feature failed SPR filter", "feature_id", feature_id, "error", err)
-					matches = false
-					break
-				}
-			}
-
-			if !matches {
-				continue
-			}
-
-			logger.Debug("Return inflated SPR", "id", s.Id())
-			yield(s, nil)
-		}
-	}
-}
-
-// inflateResults creates `spr.StandardPlacesResult` instances for each record defined in 'possible'.
-func (db *SQLiteSpatialDatabase) inflateIntersectsResults(ctx context.Context, possible []*RTreeSpatialIndex, geom orb.Geometry, filters ...spatial.Filter) iter.Seq2[spr.StandardPlacesResult, error] {
-
-	return func(yield func(spr.StandardPlacesResult, error) bool) {
-
-		seen := new(sync.Map)
-
-		for _, sp := range possible {
-
-			// sp_id := fmt.Sprintf("%s:%s", sp.Id, sp.AltLabel)
-			feature_id := fmt.Sprintf("%s:%s", sp.FeatureId, sp.AltLabel)
-
-			logger := slog.Default()
-			logger = logger.With("feature id", feature_id)
-			logger = logger.With("geometry", geom.GeoJSONType())
-
-			logger.Debug("Inflate spatial index")
-
-			// have we already looked up the filters for this ID?
-			// see notes below
-
-			_, ok := seen.Load(feature_id)
-
-			if ok {
-				continue
-			}
-
-			// START OF maybe move all this code in to whosonfirst/go-whosonfirst-sqlite-features/tables/rtree.go
-
-			var poly orb.Polygon
-			var err error
-
-			// This is to account for version of the whosonfirst/go-whosonfirst-sqlite-features
-			// package < 0.10.0 that stored geometries as JSON-encoded strings. Subsequent versions
-			// use WKT encoding.
-
-			// This is the bottleneck. It appears to be this:
-			// https://github.com/paulmach/orb/issues/132
-			// maybe... https://github.com/Succo/wktToOrb/ ?
-
-			if strings.HasPrefix(sp.geometry, "[[[") {
-				// Investigate https://github.com/paulmach/orb/tree/master/geojson#performance
-				err = json.Unmarshal([]byte(sp.geometry), &poly)
-			} else {
-
-				// poly, err = wkt.UnmarshalPolygon(sp.geometry)
-
-				o, err := wkttoorb.Scan(sp.geometry)
-
-				if err != nil {
-					continue
-				}
-
-				poly = o.(orb.Polygon)
-			}
-
-			if err != nil {
-				logger.Error("Failed to derive polygon", "error", err)
-				continue
-			}
-
-			// END OF maybe move all this code in to whosonfirst/go-whosonfirst-sqlite-features/tables/rtree.go
-
-			intersects := false
-
-			ok, err = geo.Intersects(poly, geom)
-
-			if err != nil {
-				logger.Error("Failed to determine intersection", "error", err)
-				continue
-			}
-
-			intersects = ok
-
-			if !intersects {
-				continue
-			}
-
-			// there is at least one ring that contains the coord
-			// now we check the filters - whether or not they pass
-			// we can skip every subsequent polygon with the same
-			// ID
-
-			_, ok = seen.LoadOrStore(feature_id, true)
-
-			if ok {
-				continue
-			}
-
-			s, err := db.retrieveSPR(ctx, sp.Path())
-
-			if err != nil {
-				logger.Error("Failed to retrieve feature cache", "key", sp.Path(), "error", err)
-				continue
-			}
-
-			matches := true
-
-			for _, f := range filters {
-
-				err = filter.FilterSPR(f, s)
-
-				if err != nil {
-					slog.Debug("Feature failed SPR filter", "feature_id", feature_id, "error", err)
-					matches = false
-					break
-				}
-			}
-
-			if !matches {
-				continue
-			}
-
-			logger.Debug("Return inflated SPR", "id", s.Id())
-			yield(s, nil)
-		}
-	}
 }
 
 // retrieveSPR retrieves a `spr.StandardPlacesResult` instance from the local database cache identified by 'uri_str'.
@@ -556,51 +436,172 @@ func (r *SQLiteSpatialDatabase) retrieveSPR(ctx context.Context, uri_str string)
 	return s, nil
 }
 
-func (db *SQLiteSpatialDatabase) rowsToSpatialIndices(ctx context.Context, rows *sql.Rows, filters ...spatial.Filter) iter.Seq2[*RTreeSpatialIndex, error] {
+func (db *SQLiteSpatialDatabase) inflateIntersectsSpatialIndex(ctx context.Context, sp *RTreeSpatialIndex, geom orb.Geometry, filters ...spatial.Filter) (spr.StandardPlacesResult, error) {
 
-	return func(yield func(*RTreeSpatialIndex, error) bool) {
+	// sp_id := fmt.Sprintf("%s:%s", sp.Id, sp.AltLabel)
+	feature_id := fmt.Sprintf("%s:%s", sp.FeatureId, sp.AltLabel)
 
-		for rows.Next() {
+	logger := slog.Default()
+	logger = logger.With("feature id", feature_id)
+	logger = logger.With("geometry", geom.GeoJSONType())
 
-			var id string
-			var feature_id string
-			var is_alt int32
-			var alt_label string
-			var geometry string
-			var minx float64
-			var miny float64
-			var maxx float64
-			var maxy float64
+	logger.Debug("Inflate spatial index")
 
-			err := rows.Scan(&id, &feature_id, &is_alt, &alt_label, &geometry, &minx, &miny, &maxx, &maxy)
+	// START OF maybe move all this code in to whosonfirst/go-whosonfirst-sqlite-features/tables/rtree.go
 
-			if err != nil {
-				yield(nil, fmt.Errorf("Result row scan failed, %w", err))
-				break
-			}
+	var poly orb.Polygon
+	var err error
 
-			min := orb.Point{minx, miny}
-			max := orb.Point{maxx, maxy}
+	// This is to account for version of the whosonfirst/go-whosonfirst-sqlite-features
+	// package < 0.10.0 that stored geometries as JSON-encoded strings. Subsequent versions
+	// use WKT encoding.
 
-			rect := orb.Bound{
-				Min: min,
-				Max: max,
-			}
+	// This is the bottleneck. It appears to be this:
+	// https://github.com/paulmach/orb/issues/132
+	// maybe... https://github.com/Succo/wktToOrb/ ?
 
-			i := &RTreeSpatialIndex{
-				Id:        fmt.Sprintf("%s#%s", feature_id, id),
-				FeatureId: feature_id,
-				bounds:    rect,
-				geometry:  geometry,
-			}
+	if strings.HasPrefix(sp.geometry, "[[[") {
+		// Investigate https://github.com/paulmach/orb/tree/master/geojson#performance
+		err = json.Unmarshal([]byte(sp.geometry), &poly)
+	} else {
 
-			if is_alt == 1 {
-				i.IsAlt = true
-				i.AltLabel = alt_label
-			}
+		// poly, err = wkt.UnmarshalPolygon(sp.geometry)
 
-			yield(i, nil)
+		o, err := wkttoorb.Scan(sp.geometry)
+
+		if err != nil {
+			return nil, err
 		}
 
+		poly = o.(orb.Polygon)
 	}
+
+	if err != nil {
+		logger.Error("Failed to derive polygon", "error", err)
+		return nil, err
+	}
+
+	// END OF maybe move all this code in to whosonfirst/go-whosonfirst-sqlite-features/tables/rtree.go
+
+	intersects := false
+
+	ok, err := geo.Intersects(poly, geom)
+
+	if err != nil {
+		logger.Error("Failed to determine intersection", "error", err)
+		return nil, nil
+	}
+
+	intersects = ok
+
+	if !intersects {
+		return nil, nil
+	}
+
+	s, err := db.retrieveSPR(ctx, sp.Path())
+
+	if err != nil {
+		logger.Error("Failed to retrieve feature cache", "key", sp.Path(), "error", err)
+		return nil, err
+	}
+
+	matches := true
+
+	for _, f := range filters {
+
+		err = filter.FilterSPR(f, s)
+
+		if err != nil {
+			slog.Debug("Feature failed SPR filter", "feature_id", feature_id, "error", err)
+			matches = false
+			break
+		}
+	}
+
+	if !matches {
+		return nil, nil
+	}
+
+	logger.Debug("Return inflated SPR", "id", s.Id())
+	return s, nil
+}
+
+func (db *SQLiteSpatialDatabase) inflatePointInPolygonSpatialIndex(ctx context.Context, sp *RTreeSpatialIndex, c *orb.Point, filters ...spatial.Filter) (spr.StandardPlacesResult, error) {
+
+	// sp_id := fmt.Sprintf("%s:%s", sp.Id, sp.AltLabel)
+	feature_id := fmt.Sprintf("%s:%s", sp.FeatureId, sp.AltLabel)
+
+	logger := slog.Default()
+	logger = logger.With("feature id", feature_id)
+	logger = logger.With("latitude", c.Y())
+	logger = logger.With("longitude", c.X())
+
+	logger.Debug("Inflate spatial index")
+
+	// START OF maybe move all this code in to whosonfirst/go-whosonfirst-sqlite-features/tables/rtree.go
+
+	var poly orb.Polygon
+	var err error
+
+	// This is to account for version of the whosonfirst/go-whosonfirst-sqlite-features
+	// package < 0.10.0 that stored geometries as JSON-encoded strings. Subsequent versions
+	// use WKT encoding.
+
+	// This is the bottleneck. It appears to be this:
+	// https://github.com/paulmach/orb/issues/132
+	// maybe... https://github.com/Succo/wktToOrb/ ?
+
+	if strings.HasPrefix(sp.geometry, "[[[") {
+		// Investigate https://github.com/paulmach/orb/tree/master/geojson#performance
+		err = json.Unmarshal([]byte(sp.geometry), &poly)
+	} else {
+
+		// poly, err = wkt.UnmarshalPolygon(sp.geometry)
+
+		o, err := wkttoorb.Scan(sp.geometry)
+
+		if err != nil {
+			return nil, err
+		}
+
+		poly = o.(orb.Polygon)
+	}
+
+	if err != nil {
+		logger.Error("Failed to derive polygon", "error", err)
+		return nil, err
+	}
+
+	// END OF maybe move all this code in to whosonfirst/go-whosonfirst-sqlite-features/tables/rtree.go
+
+	if !planar.PolygonContains(poly, *c) {
+		logger.Debug("Coordinate not contained by feature polygon")
+		return nil, nil
+	}
+
+	s, err := db.retrieveSPR(ctx, sp.Path())
+
+	if err != nil {
+		logger.Error("Failed to retrieve feature cache", "key", sp.Path(), "error", err)
+		return nil, err
+	}
+
+	matches := true
+
+	for _, f := range filters {
+
+		err = filter.FilterSPR(f, s)
+
+		if err != nil {
+			slog.Debug("Feature failed SPR filter", "feature_id", feature_id, "error", err)
+			matches = false
+			break
+		}
+	}
+
+	if !matches {
+		return nil, nil
+	}
+
+	return s, nil
 }
