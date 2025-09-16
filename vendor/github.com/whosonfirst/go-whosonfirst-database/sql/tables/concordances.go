@@ -63,11 +63,11 @@ func (t *ConcordancesTable) InitializeTable(ctx context.Context, db *sql.DB) err
 	return database_sql.CreateTableIfNecessary(ctx, db, t)
 }
 
-func (t *ConcordancesTable) IndexRecord(ctx context.Context, db *sql.DB, i interface{}) error {
-	return t.IndexFeature(ctx, db, i.([]byte))
+func (t *ConcordancesTable) IndexRecord(ctx context.Context, db *sql.DB, tx *sql.Tx, i interface{}) error {
+	return t.IndexFeature(ctx, db, tx, i.([]byte))
 }
 
-func (t *ConcordancesTable) IndexFeature(ctx context.Context, db *sql.DB, f []byte) error {
+func (t *ConcordancesTable) IndexFeature(ctx context.Context, db *sql.DB, tx *sql.Tx, f []byte) error {
 
 	if alt.IsAlt(f) {
 		return nil
@@ -79,12 +79,6 @@ func (t *ConcordancesTable) IndexFeature(ctx context.Context, db *sql.DB, f []by
 
 	if err != nil {
 		return MissingPropertyError(t, "id", err)
-	}
-
-	tx, err := db.Begin()
-
-	if err != nil {
-		return database_sql.BeginTransactionError(t, err)
 	}
 
 	var delete_q string
@@ -150,12 +144,6 @@ func (t *ConcordancesTable) IndexFeature(ctx context.Context, db *sql.DB, f []by
 		if err != nil {
 			return database_sql.ExecuteStatementError(t, err)
 		}
-	}
-
-	err = tx.Commit()
-
-	if err != nil {
-		return database_sql.CommitTransactionError(t, err)
 	}
 
 	return nil

@@ -96,11 +96,11 @@ func (t *SpelunkerTable) InitializeTable(ctx context.Context, db *sql.DB) error 
 	return database_sql.CreateTableIfNecessary(ctx, db, t)
 }
 
-func (t *SpelunkerTable) IndexRecord(ctx context.Context, db *sql.DB, i interface{}) error {
-	return t.IndexFeature(ctx, db, i.([]byte))
+func (t *SpelunkerTable) IndexRecord(ctx context.Context, db *sql.DB, tx *sql.Tx, i interface{}) error {
+	return t.IndexFeature(ctx, db, tx, i.([]byte))
 }
 
-func (t *SpelunkerTable) IndexFeature(ctx context.Context, db *sql.DB, f []byte) error {
+func (t *SpelunkerTable) IndexFeature(ctx context.Context, db *sql.DB, tx *sql.Tx, f []byte) error {
 
 	is_alt := alt.IsAlt(f)
 
@@ -141,12 +141,6 @@ func (t *SpelunkerTable) IndexFeature(ctx context.Context, db *sql.DB, f []byte)
 
 	db_driver := database_sql.Driver(db)
 
-	tx, err := db.Begin()
-
-	if err != nil {
-		return database_sql.BeginTransactionError(t, err)
-	}
-
 	var insert_q string
 
 	switch db_driver {
@@ -185,12 +179,6 @@ func (t *SpelunkerTable) IndexFeature(ctx context.Context, db *sql.DB, f []byte)
 
 	if err != nil {
 		return database_sql.ExecuteStatementError(t, err)
-	}
-
-	err = tx.Commit()
-
-	if err != nil {
-		return database_sql.CommitTransactionError(t, err)
 	}
 
 	return nil

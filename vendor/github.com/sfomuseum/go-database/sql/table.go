@@ -21,7 +21,7 @@ type Table interface {
 	Name() string
 	Schema(*sql.DB) (string, error)
 	InitializeTable(context.Context, *sql.DB) error
-	IndexRecord(context.Context, *sql.DB, interface{}) error
+	IndexRecord(context.Context, *sql.DB, *sql.Tx, interface{}) error
 }
 
 func HasTable(ctx context.Context, db *sql.DB, table_name string) (bool, error) {
@@ -70,4 +70,25 @@ func CreateTableIfNecessary(ctx context.Context, db *sql.DB, t Table) error {
 	}
 
 	return nil
+}
+
+func IndexRecord(ctx context.Context, db *sql.DB, r interface{}, tables ...Table) error {
+
+	tx, err := db.Begin()
+
+	if err != nil {
+		return err
+	}
+
+	for _, t := range tables {
+
+		err := t.IndexRecord(ctx, db, tx, r)
+
+		if err != nil {
+			tx.Rollback()
+			return fmt.Errorf("Failed to index %s table, %w", t.Name(), err)
+		}
+	}
+
+	return tx.Commit()
 }

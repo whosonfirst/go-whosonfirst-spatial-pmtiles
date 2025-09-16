@@ -67,6 +67,7 @@ func ValidateAlt(body []byte) error {
 
 	opts := DefaultValidateOptions()
 	opts.ValidateName = false
+	opts.ValidatePlacetype = false	
 	opts.ValidateNames = false
 	opts.ValidateEDTF = false
 	opts.ValidateIsCurrent = false

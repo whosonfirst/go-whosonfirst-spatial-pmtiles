@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	
+
 	"github.com/whosonfirst/go-whosonfirst-export/v3/properties"
 	"github.com/whosonfirst/go-whosonfirst-feature/alt"
 	"github.com/whosonfirst/go-whosonfirst-format"
@@ -23,7 +23,9 @@ func Export(ctx context.Context, feature []byte) (bool, []byte, error) {
 		return false, nil, fmt.Errorf("Failed to remove timestamps from input record, %w", err)
 	}
 
-	if alt.IsAlt(feature) {
+	is_alt := alt.IsAlt(feature)
+
+	if is_alt {
 		new_feature, err = PrepareAltFeatureWithoutTimestamps(ctx, feature)
 	} else {
 		new_feature, err = PrepareFeatureWithoutTimestamps(ctx, feature)
@@ -41,7 +43,7 @@ func Export(ctx context.Context, feature []byte) (bool, []byte, error) {
 
 	// Do we really need to care about leading/trailing whitespace for this comparison?
 	// I don't think we need to.
-	
+
 	if bytes.Equal(bytes.TrimSpace(tmp_feature), bytes.TrimSpace(new_feature)) {
 		return false, feature, nil
 	}
@@ -52,7 +54,11 @@ func Export(ctx context.Context, feature []byte) (bool, []byte, error) {
 		return true, nil, fmt.Errorf("Failed to prepare record, %w", err)
 	}
 
-	err = validate.ValidateAlt(new_feature)
+	if is_alt {
+		err = validate.ValidateAlt(new_feature)
+	} else {
+		err = validate.Validate(new_feature)
+	}
 
 	if err != nil {
 		return true, nil, fmt.Errorf("Failed to validate record, %w", err)

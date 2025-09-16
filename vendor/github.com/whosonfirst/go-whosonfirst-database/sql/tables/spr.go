@@ -96,11 +96,11 @@ func (t *SPRTable) Schema(db *sql.DB) (string, error) {
 	return LoadSchema(db, SPR_TABLE_NAME)
 }
 
-func (t *SPRTable) IndexRecord(ctx context.Context, db *sql.DB, i interface{}) error {
-	return t.IndexFeature(ctx, db, i.([]byte))
+func (t *SPRTable) IndexRecord(ctx context.Context, db *sql.DB, tx *sql.Tx, i interface{}) error {
+	return t.IndexFeature(ctx, db, tx, i.([]byte))
 }
 
-func (t *SPRTable) IndexFeature(ctx context.Context, db *sql.DB, f []byte) error {
+func (t *SPRTable) IndexFeature(ctx context.Context, db *sql.DB, tx *sql.Tx, f []byte) error {
 
 	is_alt := alt.IsAlt(f)
 
@@ -257,12 +257,6 @@ func (t *SPRTable) IndexFeature(ctx context.Context, db *sql.DB, f []byte) error
 		s.LastModified(),
 	}
 
-	tx, err := db.Begin()
-
-	if err != nil {
-		return database_sql.BeginTransactionError(t, err)
-	}
-
 	stmt, err := tx.Prepare(insert_q)
 
 	if err != nil {
@@ -275,12 +269,6 @@ func (t *SPRTable) IndexFeature(ctx context.Context, db *sql.DB, f []byte) error
 
 	if err != nil {
 		return database_sql.ExecuteStatementError(t, err)
-	}
-
-	err = tx.Commit()
-
-	if err != nil {
-		return database_sql.CommitTransactionError(t, err)
 	}
 
 	return nil

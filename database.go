@@ -9,10 +9,9 @@ import (
 	"sync"
 	"time"
 
-	_ "github.com/aaronland/gocloud-blob/s3"
+	_ "github.com/aaronland/gocloud/blob/s3"
 	_ "github.com/whosonfirst/go-whosonfirst-spatial-sqlite"
 	_ "gocloud.dev/blob/fileblob"
-	_ "gocloud.dev/docstore/awsdynamodb"
 	_ "gocloud.dev/docstore/memdocstore"
 	_ "modernc.org/sqlite"
 

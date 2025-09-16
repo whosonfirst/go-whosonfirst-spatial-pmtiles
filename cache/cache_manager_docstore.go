@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	aa_docstore "github.com/aaronland/gocloud-docstore"
+	aa_docstore "github.com/aaronland/gocloud/docstore"
 	"gocloud.dev/docstore"
 )
 

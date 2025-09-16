@@ -98,15 +98,14 @@ func (t *GeoJSONTable) Schema(db *sql.DB) (string, error) {
 }
 
 func (t *GeoJSONTable) InitializeTable(ctx context.Context, db *sql.DB) error {
-
 	return database_sql.CreateTableIfNecessary(ctx, db, t)
 }
 
-func (t *GeoJSONTable) IndexRecord(ctx context.Context, db *sql.DB, i interface{}) error {
-	return t.IndexFeature(ctx, db, i.([]byte))
+func (t *GeoJSONTable) IndexRecord(ctx context.Context, db *sql.DB, tx *sql.Tx, i interface{}) error {
+	return t.IndexFeature(ctx, db, tx, i.([]byte))
 }
 
-func (t *GeoJSONTable) IndexFeature(ctx context.Context, db *sql.DB, f []byte) error {
+func (t *GeoJSONTable) IndexFeature(ctx context.Context, db *sql.DB, tx *sql.Tx, f []byte) error {
 
 	is_alt := alt.IsAlt(f)
 
@@ -138,12 +137,6 @@ func (t *GeoJSONTable) IndexFeature(ctx context.Context, db *sql.DB, f []byte) e
 	}
 
 	lastmod := properties.LastModified(f)
-
-	tx, err := db.Begin()
-
-	if err != nil {
-		return database_sql.BeginTransactionError(t, err)
-	}
 
 	str_body := string(f)
 
@@ -193,12 +186,6 @@ func (t *GeoJSONTable) IndexFeature(ctx context.Context, db *sql.DB, f []byte) e
 
 	if err != nil {
 		return database_sql.ExecuteStatementError(t, err)
-	}
-
-	err = tx.Commit()
-
-	if err != nil {
-		return database_sql.CommitTransactionError(t, err)
 	}
 
 	return nil

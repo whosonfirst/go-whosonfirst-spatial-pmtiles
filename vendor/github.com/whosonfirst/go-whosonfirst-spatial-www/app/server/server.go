@@ -10,10 +10,10 @@ import (
 
 	"github.com/NYTimes/gziphandler"
 	"github.com/aaronland/go-http-maps/v2"
-	"github.com/aaronland/go-http-ping/v2"
-	"github.com/aaronland/go-http-server/v2"
+	"github.com/aaronland/go-http/v3/handlers"
+	"github.com/aaronland/go-http/v3/server"
 	"github.com/rs/cors"
-	"github.com/sfomuseum/go-http-auth"
+	"github.com/aaronland/go-http/v3/auth"
 	"github.com/whosonfirst/go-whosonfirst-spatial-www/http"
 	"github.com/whosonfirst/go-whosonfirst-spatial-www/http/api"
 	"github.com/whosonfirst/go-whosonfirst-spatial-www/static/www"
@@ -76,7 +76,7 @@ func RunWithOptions(ctx context.Context, opts *RunOptions) error {
 
 	mux := gohttp.NewServeMux()
 
-	ping_handler, err := ping.PingPongHandler()
+	ping_handler, err := handlers.PingPongHandler()
 
 	if err != nil {
 		return fmt.Errorf("failed to create ping handler because %s", err)

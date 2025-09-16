@@ -113,11 +113,11 @@ func (t *GeometriesTable) InitializeTable(ctx context.Context, db *sql.DB) error
 	return database_sql.CreateTableIfNecessary(ctx, db, t)
 }
 
-func (t *GeometriesTable) IndexRecord(ctx context.Context, db *sql.DB, i interface{}) error {
-	return t.IndexFeature(ctx, db, i.([]byte))
+func (t *GeometriesTable) IndexRecord(ctx context.Context, db *sql.DB, tx *sql.Tx, i interface{}) error {
+	return t.IndexFeature(ctx, db, tx, i.([]byte))
 }
 
-func (t *GeometriesTable) IndexFeature(ctx context.Context, db *sql.DB, f []byte) error {
+func (t *GeometriesTable) IndexFeature(ctx context.Context, db *sql.DB, tx *sql.Tx, f []byte) error {
 
 	is_alt := alt.IsAlt(f)
 
@@ -140,12 +140,6 @@ func (t *GeometriesTable) IndexFeature(ctx context.Context, db *sql.DB, f []byte
 	lastmod := properties.LastModified(f)
 
 	db_driver := database_sql.Driver(db)
-
-	tx, err := db.Begin()
-
-	if err != nil {
-		return database_sql.BeginTransactionError(t, err)
-	}
 
 	geojson_geom, err := geometry.Geometry(f)
 
@@ -195,12 +189,6 @@ func (t *GeometriesTable) IndexFeature(ctx context.Context, db *sql.DB, f []byte
 
 	if err != nil {
 		return database_sql.ExecuteStatementError(t, err)
-	}
-
-	err = tx.Commit()
-
-	if err != nil {
-		return database_sql.CommitTransactionError(t, err)
 	}
 
 	return nil

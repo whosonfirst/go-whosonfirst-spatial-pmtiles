@@ -4,11 +4,11 @@ package sqlite
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"io"
 	"strings"
-	"database/sql"
-	
+
 	"github.com/whosonfirst/go-ioutil"
 	"github.com/whosonfirst/go-whosonfirst-uri"
 )
@@ -77,7 +77,7 @@ func (r *SQLiteSpatialDatabase) Exists(ctx context.Context, str_uri string) (boo
 
 	return true, nil
 }
-	
+
 // ReadURI implements the whosonfirst/go-reader interface so that the database itself can be used as a
 // reader.Reader instance
 func (r *SQLiteSpatialDatabase) ReaderURI(ctx context.Context, str_uri string) string {

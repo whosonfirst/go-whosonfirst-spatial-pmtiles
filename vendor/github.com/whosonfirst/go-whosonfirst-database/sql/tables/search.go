@@ -59,11 +59,11 @@ func (t *SearchTable) Schema(db *sql.DB) (string, error) {
 	return LoadSchema(db, SEARCH_TABLE_NAME)
 }
 
-func (t *SearchTable) IndexRecord(ctx context.Context, db *sql.DB, i interface{}) error {
-	return t.IndexFeature(ctx, db, i.([]byte))
+func (t *SearchTable) IndexRecord(ctx context.Context, db *sql.DB, tx *sql.Tx, i interface{}) error {
+	return t.IndexFeature(ctx, db, tx, i.([]byte))
 }
 
-func (t *SearchTable) IndexFeature(ctx context.Context, db *sql.DB, f []byte) error {
+func (t *SearchTable) IndexFeature(ctx context.Context, db *sql.DB, tx *sql.Tx, f []byte) error {
 
 	if alt.IsAlt(f) {
 		return nil
@@ -181,12 +181,6 @@ func (t *SearchTable) IndexFeature(ctx context.Context, db *sql.DB, f []byte) er
 		is_current.Flag(), is_ceased.Flag(), is_deprecated.Flag(), is_superseded.Flag(),
 	}
 
-	tx, err := db.Begin()
-
-	if err != nil {
-		return database_sql.BeginTransactionError(t, err)
-	}
-
 	s, err := tx.Prepare(fmt.Sprintf("DELETE FROM %s WHERE id = ?", t.Name()))
 
 	if err != nil {
@@ -213,12 +207,6 @@ func (t *SearchTable) IndexFeature(ctx context.Context, db *sql.DB, f []byte) er
 
 	if err != nil {
 		return database_sql.ExecuteStatementError(t, err)
-	}
-
-	err = tx.Commit()
-
-	if err != nil {
-		return database_sql.CommitTransactionError(t, err)
 	}
 
 	return nil

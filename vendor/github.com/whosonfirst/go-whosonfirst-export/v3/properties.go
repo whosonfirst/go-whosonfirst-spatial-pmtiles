@@ -88,6 +88,33 @@ func AssignPropertiesIfChanged(ctx context.Context, body []byte, to_assign map[s
 	return changed, body, nil
 }
 
+// RemovePropertiesIfChanged filters 'to_remove' to ensure they are present in 'body' before removing them.
+func RemovePropertiesIfChanged(ctx context.Context, body []byte, to_remove []string) (bool, []byte, error) {
+
+	props := make([]string, 0)
+
+	for _, path := range to_remove {
+
+		rsp := gjson.GetBytes(body, path)
+
+		if rsp.Exists() {
+			props = append(props, path)
+		}
+	}
+
+	if len(props) == 0 {
+		return false, body, nil
+	}
+
+	new_body, err := RemoveProperties(ctx, body, props)
+
+	if err != nil {
+		return true, nil, err
+	}
+
+	return true, new_body, err
+}
+
 // RemoveProperties removes all the properties in 'to_remove' from 'body'.
 func RemoveProperties(ctx context.Context, body []byte, to_remove []string) ([]byte, error) {
 
