@@ -9,21 +9,22 @@ import "encoding/json"
 //
 //	import (
 //	  jsoniter "github.com/json-iterator/go"
-//	  "github.com/paulmach/orb"
+//	  "github.com/paulmach/orb/geojson"
 //	)
 //
+//	// in an init() or main(), etc.
 //	var c = jsoniter.Config{
 //	  EscapeHTML:              true,
 //	  SortMapKeys:             false,
 //	  MarshalFloatWith6Digits: true,
 //	}.Froze()
 //
-//	orb.CustomJSONMarshaler = c
-//	orb.CustomJSONUnmarshaler = c
+//	geojson.CustomJSONMarshaler = c
+//	geojson.CustomJSONUnmarshaler = c
 //
 // Note that any errors encountered during marshaling will be different.
 var CustomJSONMarshaler interface {
-	Marshal(v interface{}) ([]byte, error)
+	Marshal(v any) ([]byte, error)
 } = nil
 
 // CustomJSONUnmarshaler can be set to have the code use a different
@@ -33,24 +34,25 @@ var CustomJSONMarshaler interface {
 //
 //	import (
 //	  jsoniter "github.com/json-iterator/go"
-//	  "github.com/paulmach/orb"
+//	  "github.com/paulmach/orb/geojson"
 //	)
 //
-//	var c = jsoniter.Config{
+//	// in an init() or main(), etc.
+//	c := jsoniter.Config{
 //	  EscapeHTML:              true,
 //	  SortMapKeys:             false,
 //	  MarshalFloatWith6Digits: true,
 //	}.Froze()
 //
-//	orb.CustomJSONMarshaler = c
-//	orb.CustomJSONUnmarshaler = c
+//	geojson.CustomJSONMarshaler = c
+//	geojson.CustomJSONUnmarshaler = c
 //
 // Note that any errors encountered during unmarshaling will be different.
 var CustomJSONUnmarshaler interface {
-	Unmarshal(data []byte, v interface{}) error
+	Unmarshal(data []byte, v any) error
 } = nil
 
-func marshalJSON(v interface{}) ([]byte, error) {
+func marshalJSON(v any) ([]byte, error) {
 	if CustomJSONMarshaler == nil {
 		return json.Marshal(v)
 	}
@@ -58,7 +60,7 @@ func marshalJSON(v interface{}) ([]byte, error) {
 	return CustomJSONMarshaler.Marshal(v)
 }
 
-func unmarshalJSON(data []byte, v interface{}) error {
+func unmarshalJSON(data []byte, v any) error {
 	if CustomJSONUnmarshaler == nil {
 		return json.Unmarshal(data, v)
 	}

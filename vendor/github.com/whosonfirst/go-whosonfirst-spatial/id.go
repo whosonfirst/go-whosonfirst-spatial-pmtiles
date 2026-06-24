@@ -7,7 +7,7 @@ import (
 )
 
 // SpatialIdWithFeatures generates a unique identifiers derived from the feature data in 'body'.
-func SpatialIdWithFeature(body []byte, extra ...interface{}) (string, error) {
+func SpatialIdWithFeature(body []byte, extra ...any) (string, error) {
 
 	id, err := properties.Id(body)
 

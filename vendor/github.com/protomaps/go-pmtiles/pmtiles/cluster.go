@@ -2,7 +2,6 @@ package pmtiles
 
 import (
 	"fmt"
-	"github.com/schollz/progressbar/v3"
 	"io"
 	"log"
 	"os"
@@ -14,7 +13,7 @@ func Cluster(logger *log.Logger, InputPMTiles string, deduplicate bool) error {
 		return err
 	}
 
-	buf := make([]byte, 127)
+	buf := make([]byte, HeaderV3LenBytes)
 	_, err = file.Read(buf)
 	if err != nil {
 		return err
@@ -41,7 +40,7 @@ func Cluster(logger *log.Logger, InputPMTiles string, deduplicate bool) error {
 		return err
 	}
 
-	bar := progressbar.Default(int64(header.TileEntriesCount))
+	bar := defaultProgressbar(logger, int64(header.TileEntriesCount))
 
 	err = IterateEntries(header,
 		func(offset uint64, length uint64) ([]byte, error) {
@@ -66,6 +65,6 @@ func Cluster(logger *log.Logger, InputPMTiles string, deduplicate bool) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("total directory size %d (%f%% of original)\n", newHeader.RootLength+newHeader.LeafDirectoryLength, float64(newHeader.RootLength+newHeader.LeafDirectoryLength)/float64(header.RootLength+header.LeafDirectoryLength)*100)
+	logger.Printf("total directory size %d (%f%% of original)\n", newHeader.RootLength+newHeader.LeafDirectoryLength, float64(newHeader.RootLength+newHeader.LeafDirectoryLength)/float64(header.RootLength+header.LeafDirectoryLength)*100)
 	return nil
 }

@@ -47,7 +47,6 @@ import (
 // runContainer16 does run-length encoding of sets of
 // uint16 integers.
 type runContainer16 struct {
-	// iv is a slice of sorted, non-overlapping, non-adjacent intervals.
 	iv []interval16
 }
 

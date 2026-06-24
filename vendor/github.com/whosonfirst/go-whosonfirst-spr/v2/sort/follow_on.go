@@ -3,6 +3,7 @@ package sort
 import (
 	"context"
 	"fmt"
+
 	"github.com/whosonfirst/go-whosonfirst-spr/v2"
 )
 

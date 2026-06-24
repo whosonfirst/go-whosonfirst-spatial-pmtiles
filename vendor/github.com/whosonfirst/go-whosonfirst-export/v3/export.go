@@ -95,3 +95,37 @@ func WriteExportIfChanged(ctx context.Context, feature []byte, wr io.Writer) (bo
 
 	return true, nil
 }
+
+// HasChanges returns a boolean value indicating whether 'old_feature' and 'new_feature' have changes (indepedent of timestamps).
+func HasChanges(ctx context.Context, old_feature []byte, new_feature []byte) (bool, error) {
+
+	tmp_feature, err := properties.RemoveTimestamps(ctx, old_feature)
+
+	if err != nil {
+		return false, fmt.Errorf("Failed to remove timestamps from input record, %w", err)
+	}
+
+	is_alt := alt.IsAlt(new_feature)
+
+	if is_alt {
+		new_feature, err = PrepareAltFeatureWithoutTimestamps(ctx, new_feature)
+	} else {
+		new_feature, err = PrepareFeatureWithoutTimestamps(ctx, new_feature)
+	}
+
+	if err != nil {
+		return false, fmt.Errorf("Failed to prepare new record, %w", err)
+	}
+
+	new_feature, err = format.FormatBytes(new_feature)
+
+	if err != nil {
+		return false, fmt.Errorf("Failed to format new record, %w", err)
+	}
+
+	if bytes.Equal(bytes.TrimSpace(tmp_feature), bytes.TrimSpace(new_feature)) {
+		return false, nil
+	}
+
+	return true, nil
+}

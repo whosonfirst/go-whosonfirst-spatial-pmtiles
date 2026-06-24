@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/RoaringBitmap/roaring/roaring64"
-	"github.com/schollz/progressbar/v3"
 	"zombiezen.com/go/sqlite"
 )
 
@@ -46,7 +45,7 @@ func (r *resolver) NumContents() uint64 {
 
 // must be called in increasing tile_id order, uniquely
 func (r *resolver) AddTileIsNew(tileID uint64, data []byte, runLength uint32) (bool, []byte) {
-	r.AddressedTiles++
+	r.AddressedTiles += uint64(runLength)
 	var found offsetLen
 	var ok bool
 	var sumString string
@@ -190,7 +189,7 @@ func convertMbtiles(logger *log.Logger, input string, output string, deduplicate
 	logger.Println("Pass 2: writing tiles")
 	resolve := newResolver(deduplicate, header.TileType == Mvt)
 	{
-		bar := progressbar.Default(int64(tileset.GetCardinality()))
+		bar := defaultProgressbar(logger, int64(tileset.GetCardinality()))
 		i := tileset.Iterator()
 		stmt := conn.Prep("SELECT tile_data FROM tiles WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?")
 
@@ -256,7 +255,7 @@ func finalize(logger *log.Logger, resolve *resolver, header HeaderV3, tmpfile *o
 	}
 	defer outfile.Close()
 
-	rootBytes, leavesBytes, numLeaves := optimizeDirectories(resolve.Entries, 16384-HeaderV3LenBytes, Gzip)
+	rootBytes, leavesBytes, numLeaves := BuildDirectories(resolve.Entries, 16384-HeaderV3LenBytes, Gzip)
 
 	if numLeaves > 0 {
 		logger.Println("Root dir bytes: ", len(rootBytes))

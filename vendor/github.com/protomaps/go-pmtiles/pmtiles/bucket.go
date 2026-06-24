@@ -185,7 +185,11 @@ func (b HTTPBucket) NewRangeReaderEtag(ctx context.Context, key string, offset, 
 
 	resp, err := b.client.Do(req)
 	if err != nil {
-		return nil, "", resp.StatusCode, err
+		if resp != nil {
+			return nil, "", resp.StatusCode, err
+		} else {
+			return nil, "", 1, err
+		}
 	}
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusPartialContent {
@@ -315,7 +319,11 @@ func NormalizeBucketKey(bucket string, prefix string, key string) (string, strin
 			if strings.HasSuffix(dir, "/") {
 				dir = dir[:len(dir)-1]
 			}
-			return u.Scheme + "://" + u.Host + dir, file, nil
+			keyWithQuery := file
+			if u.RawQuery != "" {
+				keyWithQuery = keyWithQuery + "?" + u.RawQuery
+			}
+			return u.Scheme + "://" + u.Host + dir, keyWithQuery, nil
 		}
 		fileprotocol := "file://"
 		if string(os.PathSeparator) != "/" {

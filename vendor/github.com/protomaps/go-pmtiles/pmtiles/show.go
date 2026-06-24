@@ -108,7 +108,7 @@ func Show(_ *log.Logger, output io.Writer, bucketURL string, key string, showHea
 				case string:
 					fmt.Println(k, v)
 				default:
-					fmt.Println(k, "<object...>")
+					fmt.Println(k, "<object, use --metadata to view full JSON metadata>")
 				}
 			}
 
@@ -152,9 +152,6 @@ func Show(_ *log.Logger, output io.Writer, bucketURL string, key string, showHea
 				}
 				dirOffset = header.LeafDirectoryOffset + entry.Offset
 				dirLength = uint64(entry.Length)
-			} else {
-				fmt.Println("Tile not found in archive.")
-				return nil
 			}
 		}
 	}

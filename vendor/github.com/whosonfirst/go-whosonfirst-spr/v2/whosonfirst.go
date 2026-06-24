@@ -2,6 +2,8 @@ package spr
 
 import (
 	"fmt"
+	"strconv"
+
 	"github.com/sfomuseum/go-edtf"
 	"github.com/sfomuseum/go-edtf/parser"
 	"github.com/whosonfirst/go-whosonfirst-feature/alt"
@@ -10,7 +12,6 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-flags"
 	"github.com/whosonfirst/go-whosonfirst-flags/existential"
 	"github.com/whosonfirst/go-whosonfirst-uri"
-	"strconv"
 )
 
 // It would be nice to be able to omit zero-length arrays (wof:belongsto, etc)

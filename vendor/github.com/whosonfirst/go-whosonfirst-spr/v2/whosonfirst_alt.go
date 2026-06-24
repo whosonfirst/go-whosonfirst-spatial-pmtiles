@@ -2,13 +2,14 @@ package spr
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
+
 	"github.com/sfomuseum/go-edtf"
 	"github.com/whosonfirst/go-whosonfirst-feature/geometry"
 	"github.com/whosonfirst/go-whosonfirst-feature/properties"
 	"github.com/whosonfirst/go-whosonfirst-flags"
 	"github.com/whosonfirst/go-whosonfirst-uri"
-	"strconv"
-	"strings"
 )
 
 // WOFStandardPlacesResult is a struct that implements the `StandardPlacesResult` for
@@ -16,7 +17,7 @@ import (
 type WOFAltStandardPlacesResult struct {
 	StandardPlacesResult `json:",omitempty"`
 	WOFId                string  `json:"wof:id"`
-	WOFParentId	int64 `json:wof:parent_id"`
+	WOFParentId          int64   `json:wof:parent_id"`
 	WOFName              string  `json:"wof:name"`
 	WOFPlacetype         string  `json:"wof:placetype"`
 	MZLatitude           float64 `json:"mz:latitude"`
@@ -103,7 +104,7 @@ func WhosOnFirstAltSPR(f []byte) (StandardPlacesResult, error) {
 
 	spr := WOFAltStandardPlacesResult{
 		WOFId:          str_id,
-		WOFParentId: -1,
+		WOFParentId:    -1,
 		WOFPlacetype:   "alt",
 		WOFName:        name,
 		MZLatitude:     lat,

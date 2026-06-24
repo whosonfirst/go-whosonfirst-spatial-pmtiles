@@ -5,7 +5,7 @@ import (
 	"compress/gzip"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 
 	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/encoding/mvt/vectortile"
@@ -23,7 +23,7 @@ func UnmarshalGzipped(data []byte) (Layers, error) {
 		return nil, fmt.Errorf("failed to create gzreader: %v", err)
 	}
 
-	decoded, err := ioutil.ReadAll(gzreader)
+	decoded, err := io.ReadAll(gzreader)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unzip: %v", err)
 	}
@@ -45,7 +45,7 @@ func Unmarshal(data []byte) (Layers, error) {
 // decoder is here to reuse objects to save allocations/memory.
 type decoder struct {
 	keys     []string
-	values   []interface{}
+	values   []any
 	features [][]byte
 
 	valMsg *protoscan.Message
@@ -429,7 +429,7 @@ func (gd *geomDecoder) done() bool {
 	return !gd.iter.HasNext()
 }
 
-func decodeValueMsg(msg *protoscan.Message) (interface{}, error) {
+func decodeValueMsg(msg *protoscan.Message) (any, error) {
 	for msg.Next() {
 		switch msg.FieldNumber() {
 		case 1:

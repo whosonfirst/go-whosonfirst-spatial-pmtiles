@@ -312,7 +312,7 @@ func (rb *Bitmap) FrozenView(buf []byte) error {
  * <typecodes>   uint8_t[num_containers]
  * <header>      uint32_t
  *
- * <header> is a 4-byte value which is a bit union of frozenCookie (15 bits)
+ * <header> is a 4-byte value which is a bit union of FROZEN_COOKIE (15 bits)
  * and the number of containers (17 bits).
  *
  * <counts> stores number of elements for every container.
@@ -328,50 +328,43 @@ func (rb *Bitmap) FrozenView(buf []byte) error {
  * All members have their native alignments during deserilization except <header>,
  * which is not guaranteed to be aligned by 4 bytes.
  */
-const frozenCookie = 13766
+const FROZEN_COOKIE = 13766
 
 var (
-	// ErrFrozenBitmapInvalidCookie is returned when the header does not contain the frozenCookie.
-	ErrFrozenBitmapInvalidCookie = errors.New("header does not contain the frozenCookie")
-	// ErrFrozenBitmapBigEndian is returned when the header is big endian.
-	ErrFrozenBitmapBigEndian = errors.New("loading big endian frozen bitmaps is not supported")
-	// ErrFrozenBitmapIncomplete is returned when the buffer is too small to contain a frozen bitmap.
-	ErrFrozenBitmapIncomplete = errors.New("input buffer too small to contain a frozen bitmap")
-	// ErrFrozenBitmapOverpopulated is returned when the number of containers is too large.
-	ErrFrozenBitmapOverpopulated = errors.New("too many containers")
-	// ErrFrozenBitmapUnexpectedData is returned when the buffer contains unexpected data.
-	ErrFrozenBitmapUnexpectedData = errors.New("spurious data in input")
-	// ErrFrozenBitmapInvalidTypecode is returned when the typecode is invalid.
-	ErrFrozenBitmapInvalidTypecode = errors.New("unrecognized typecode")
-	// ErrFrozenBitmapBufferTooSmall is returned when the buffer is too small.
-	ErrFrozenBitmapBufferTooSmall = errors.New("buffer too small")
+	FrozenBitmapInvalidCookie   = errors.New("header does not contain the FROZEN_COOKIE")
+	FrozenBitmapBigEndian       = errors.New("loading big endian frozen bitmaps is not supported")
+	FrozenBitmapIncomplete      = errors.New("input buffer too small to contain a frozen bitmap")
+	FrozenBitmapOverpopulated   = errors.New("too many containers")
+	FrozenBitmapUnexpectedData  = errors.New("spurious data in input")
+	FrozenBitmapInvalidTypecode = errors.New("unrecognized typecode")
+	FrozenBitmapBufferTooSmall  = errors.New("buffer too small")
 )
 
 func (ra *roaringArray) frozenView(buf []byte) error {
 	if len(buf) < 4 {
-		return ErrFrozenBitmapIncomplete
+		return FrozenBitmapIncomplete
 	}
 
 	headerBE := binary.BigEndian.Uint32(buf[len(buf)-4:])
-	if headerBE&0x7fff == frozenCookie {
-		return ErrFrozenBitmapBigEndian
+	if headerBE&0x7fff == FROZEN_COOKIE {
+		return FrozenBitmapBigEndian
 	}
 
 	header := binary.LittleEndian.Uint32(buf[len(buf)-4:])
 	buf = buf[:len(buf)-4]
 
-	if header&0x7fff != frozenCookie {
-		return ErrFrozenBitmapInvalidCookie
+	if header&0x7fff != FROZEN_COOKIE {
+		return FrozenBitmapInvalidCookie
 	}
 
 	nCont := int(header >> 15)
 	if nCont > (1 << 16) {
-		return ErrFrozenBitmapOverpopulated
+		return FrozenBitmapOverpopulated
 	}
 
 	// 1 byte per type, 2 bytes per key, 2 bytes per count.
 	if len(buf) < 5*nCont {
-		return ErrFrozenBitmapIncomplete
+		return FrozenBitmapIncomplete
 	}
 
 	types := buf[len(buf)-nCont:]
@@ -396,12 +389,12 @@ func (ra *roaringArray) frozenView(buf []byte) error {
 			nRun++
 			nRunEl += int(counts[i])
 		default:
-			return ErrFrozenBitmapInvalidTypecode
+			return FrozenBitmapInvalidTypecode
 		}
 	}
 
 	if len(buf) < (1<<13)*nBitmap+4*nRunEl+2*nArrayEl {
-		return ErrFrozenBitmapIncomplete
+		return FrozenBitmapIncomplete
 	}
 
 	bitsetsArena := byteSliceAsUint64Slice(buf[:(1<<13)*nBitmap])
@@ -414,7 +407,7 @@ func (ra *roaringArray) frozenView(buf []byte) error {
 	buf = buf[2*nArrayEl:]
 
 	if len(buf) != 0 {
-		return ErrFrozenBitmapUnexpectedData
+		return FrozenBitmapUnexpectedData
 	}
 
 	var c container
@@ -481,10 +474,9 @@ func (ra *roaringArray) frozenView(buf []byte) error {
 	return nil
 }
 
-// GetFrozenSizeInBytes returns the size in bytes of the frozen bitmap.
-func (rb *Bitmap) GetFrozenSizeInBytes() uint64 {
+func (bm *Bitmap) GetFrozenSizeInBytes() uint64 {
 	nBits, nArrayEl, nRunEl := uint64(0), uint64(0), uint64(0)
-	for _, c := range rb.highlowcontainer.containers {
+	for _, c := range bm.highlowcontainer.containers {
 		switch v := c.(type) {
 		case *bitmapContainer:
 			nBits++
@@ -494,21 +486,19 @@ func (rb *Bitmap) GetFrozenSizeInBytes() uint64 {
 			nRunEl += uint64(len(v.iv))
 		}
 	}
-	return 4 + 5*uint64(len(rb.highlowcontainer.containers)) +
+	return 4 + 5*uint64(len(bm.highlowcontainer.containers)) +
 		(nBits << 13) + 2*nArrayEl + 4*nRunEl
 }
 
-// Freeze serializes the bitmap in the CRoaring's frozen format.
-func (rb *Bitmap) Freeze() ([]byte, error) {
-	sz := rb.GetFrozenSizeInBytes()
+func (bm *Bitmap) Freeze() ([]byte, error) {
+	sz := bm.GetFrozenSizeInBytes()
 	buf := make([]byte, sz)
-	_, err := rb.FreezeTo(buf)
+	_, err := bm.FreezeTo(buf)
 	return buf, err
 }
 
-// FreezeTo serializes the bitmap in the CRoaring's frozen format.
-func (rb *Bitmap) FreezeTo(buf []byte) (int, error) {
-	containers := rb.highlowcontainer.containers
+func (bm *Bitmap) FreezeTo(buf []byte) (int, error) {
+	containers := bm.highlowcontainer.containers
 	nCont := len(containers)
 
 	nBits, nArrayEl, nRunEl := 0, 0, 0
@@ -525,7 +515,7 @@ func (rb *Bitmap) FreezeTo(buf []byte) (int, error) {
 
 	serialSize := 4 + 5*nCont + (1<<13)*nBits + 4*nRunEl + 2*nArrayEl
 	if len(buf) < serialSize {
-		return 0, ErrFrozenBitmapBufferTooSmall
+		return 0, FrozenBitmapBufferTooSmall
 	}
 
 	bitsArena := byteSliceAsUint64Slice(buf[:(1<<13)*nBits])
@@ -546,10 +536,10 @@ func (rb *Bitmap) FreezeTo(buf []byte) (int, error) {
 	types := buf[:nCont]
 	buf = buf[nCont:]
 
-	header := uint32(frozenCookie | (nCont << 15))
+	header := uint32(FROZEN_COOKIE | (nCont << 15))
 	binary.LittleEndian.PutUint32(buf[:4], header)
 
-	copy(keys, rb.highlowcontainer.keys[:])
+	copy(keys, bm.highlowcontainer.keys[:])
 
 	for i, c := range containers {
 		switch v := c.(type) {
@@ -576,12 +566,11 @@ func (rb *Bitmap) FreezeTo(buf []byte) (int, error) {
 	return serialSize, nil
 }
 
-// WriteFrozenTo serializes the bitmap in the CRoaring's frozen format.
-func (rb *Bitmap) WriteFrozenTo(wr io.Writer) (int, error) {
+func (bm *Bitmap) WriteFrozenTo(wr io.Writer) (int, error) {
 	// FIXME: this is a naive version that iterates 4 times through the
 	// containers and allocates 3*len(containers) bytes; it's quite likely
 	// it can be done more efficiently.
-	containers := rb.highlowcontainer.containers
+	containers := bm.highlowcontainer.containers
 	written := 0
 
 	for _, c := range containers {
@@ -620,7 +609,7 @@ func (rb *Bitmap) WriteFrozenTo(wr io.Writer) (int, error) {
 		}
 	}
 
-	n, err := wr.Write(uint16SliceAsByteSlice(rb.highlowcontainer.keys))
+	n, err := wr.Write(uint16SliceAsByteSlice(bm.highlowcontainer.keys))
 	written += n
 	if err != nil {
 		return written, err
@@ -652,7 +641,7 @@ func (rb *Bitmap) WriteFrozenTo(wr io.Writer) (int, error) {
 		return written, err
 	}
 
-	header := uint32(frozenCookie | (len(containers) << 15))
+	header := uint32(FROZEN_COOKIE | (len(containers) << 15))
 	if err := binary.Write(wr, binary.LittleEndian, header); err != nil {
 		return written, err
 	}

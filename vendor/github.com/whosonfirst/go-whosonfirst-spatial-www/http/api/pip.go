@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/aaronland/go-http/v3/sanitize"
+	"github.com/aaronland/go-http/v4/sanitize"
 	"github.com/sfomuseum/go-timings"
 	"github.com/whosonfirst/go-whosonfirst-spatial"
 	spatial_app "github.com/whosonfirst/go-whosonfirst-spatial/application"

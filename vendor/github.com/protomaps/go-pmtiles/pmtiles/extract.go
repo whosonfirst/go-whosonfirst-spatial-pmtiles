@@ -8,7 +8,6 @@ import (
 	"github.com/RoaringBitmap/roaring/roaring64"
 	"github.com/dustin/go-humanize"
 	"github.com/paulmach/orb"
-	"github.com/schollz/progressbar/v3"
 	"golang.org/x/sync/errgroup"
 	"io"
 	"io/ioutil"
@@ -144,7 +143,7 @@ type overfetchListItem struct {
 	index        int
 }
 
-// MergeRanges takes a slice of SrcDstRanges, that:
+// mergeRanges takes a slice of SrcDstRanges, that:
 // * is non-contiguous, and is sorted by DstOffset
 // * an Overfetch parameter
 //   - overfetch = 0.2 means we can request an extra 20%
@@ -156,7 +155,7 @@ type overfetchListItem struct {
 //	input ranges are merged in order of smallest byte distance to next range
 //	until the overfetch budget is consumed.
 //	The list is sorted by Length
-func MergeRanges(ranges []srcDstRange, overfetch float32) (*list.List, uint64) {
+func mergeRanges(ranges []srcDstRange, overfetch float32) (*list.List, uint64) {
 	totalSize := 0
 
 	shortest := make([]*overfetchListItem, len(ranges))
@@ -249,10 +248,13 @@ func MergeRanges(ranges []srcDstRange, overfetch float32) (*list.List, uint64) {
 // 9. get and write the metadata.
 // 10. write the leaf directories (if any)
 // 11. Get all tiles, and write directly to the output.
-func Extract(_ *log.Logger, bucketURL string, key string, minzoom int8, maxzoom int8, regionFile string, bbox string, output string, downloadThreads int, overfetch float32, dryRun bool) error {
+func Extract(ctx context.Context, logger *log.Logger, bucketURL string, key string, minzoom int8, maxzoom int8, regionFile string, bbox string, output string, downloadThreads int, overfetch float32, dryRun bool) error {
 	// 1. fetch the header
 	start := time.Now()
-	ctx := context.Background()
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
 
 	bucketURL, key, err := NormalizeBucketKey(bucketURL, "", key)
 
@@ -366,9 +368,9 @@ func Extract(_ *log.Logger, bucketURL string, key string, minzoom int8, maxzoom 
 		leafRanges = append(leafRanges, srcDstRange{header.LeafDirectoryOffset + leaf.Offset, 0, uint64(leaf.Length)})
 	}
 
-	overfetchLeaves, _ := MergeRanges(leafRanges, overfetch)
+	overfetchLeaves, _ := mergeRanges(leafRanges, overfetch)
 	numOverfetchLeaves := overfetchLeaves.Len()
-	fmt.Printf("fetching %d dirs, %d chunks, %d requests\n", len(leaves), len(leafRanges), overfetchLeaves.Len())
+	logger.Printf("fetching %d dirs, %d chunks, %d requests\n", len(leaves), len(leafRanges), overfetchLeaves.Len())
 
 	for {
 		if overfetchLeaves.Len() == 0 {
@@ -408,20 +410,20 @@ func Extract(_ *log.Logger, bucketURL string, key string, minzoom int8, maxzoom 
 		return tileEntries[i].TileID < tileEntries[j].TileID
 	})
 
-	fmt.Printf("Region tiles %d, result tile entries %d\n", relevantSet.GetCardinality(), len(tileEntries))
+	logger.Printf("Region tiles %d, result tile entries %d\n", relevantSet.GetCardinality(), len(tileEntries))
 
 	// 6. create the new header and chunk list
 	// we now need to re-encode this entry list using cumulative offsets
 	reencoded, tileParts, tiledataLength, addressedTiles, tileContents := reencodeEntries(tileEntries)
 
-	overfetchRanges, totalBytes := MergeRanges(tileParts, overfetch)
+	overfetchRanges, totalBytes := mergeRanges(tileParts, overfetch)
 
 	numOverfetchRanges := overfetchRanges.Len()
-	fmt.Printf("fetching %d tiles, %d chunks, %d requests\n", len(reencoded), len(tileParts), overfetchRanges.Len())
+	logger.Printf("fetching %d tiles, %d chunks, %d requests\n", len(reencoded), len(tileParts), overfetchRanges.Len())
 
 	// TODO: takes up too much RAM
 	// construct the directories
-	newRootBytes, newLeavesBytes, _ := optimizeDirectories(reencoded, 16384-HeaderV3LenBytes, Gzip)
+	newRootBytes, newLeavesBytes, _ := BuildDirectories(reencoded, 16384-HeaderV3LenBytes, Gzip)
 
 	// 7. write the modified header
 	header.RootOffset = HeaderV3LenBytes
@@ -438,6 +440,11 @@ func Extract(_ *log.Logger, bucketURL string, key string, minzoom int8, maxzoom 
 
 	header.MaxZoom = uint8(maxzoom)
 	header.MinZoom = uint8(minzoom)
+	if header.CenterZoom < header.MinZoom {
+		header.CenterZoom = header.MinZoom
+	} else if header.CenterZoom > header.MaxZoom {
+		header.CenterZoom = header.MaxZoom
+	}
 
 	headerBytes := SerializeHeader(header)
 
@@ -455,9 +462,10 @@ func Extract(_ *log.Logger, bucketURL string, key string, minzoom int8, maxzoom 
 			return err
 		}
 
-		outfile.Truncate(127 + int64(len(newRootBytes)) + int64(header.MetadataLength) + int64(len(newLeavesBytes)) + int64(totalActualBytes))
-
-		_, err = outfile.Write(headerBytes)
+		// set the file size and write empty space for the header for now
+		// see comment below
+		outfile.Truncate(HeaderV3LenBytes + int64(len(newRootBytes)) + int64(header.MetadataLength) + int64(len(newLeavesBytes)) + int64(totalActualBytes))
+		_, err = outfile.Write(make([]byte, HeaderV3LenBytes))
 		if err != nil {
 			return err
 		}
@@ -479,7 +487,10 @@ func Extract(_ *log.Logger, bucketURL string, key string, minzoom int8, maxzoom 
 			return err
 		}
 
-		outfile.Write(metadataBytes)
+		_, err = outfile.Write(metadataBytes)
+		if err != nil {
+			return err
+		}
 
 		// 10. write the leaf directories
 		_, err = outfile.Write(newLeavesBytes)
@@ -487,7 +498,8 @@ func Extract(_ *log.Logger, bucketURL string, key string, minzoom int8, maxzoom 
 			return err
 		}
 
-		bar := progressbar.DefaultBytes(
+		bar := defaultBytesProgressbar(
+			logger,
 			int64(totalBytes),
 			"fetching chunks",
 		)
@@ -551,15 +563,25 @@ func Extract(_ *log.Logger, bucketURL string, key string, minzoom int8, maxzoom 
 		if err != nil {
 			return err
 		}
+
+		// Write the header when finishing,
+		// otherwise a extract cancelled during the tile download section
+		// will appear valid with "pmtiles verify"
+		// even though the tile contents are corrupted.
+		outfile.Seek(0, io.SeekStart)
+		_, err = outfile.Write(headerBytes)
+		if err != nil {
+			return err
+		}
 	}
 
-	fmt.Printf("Completed in %v with %v download threads (%v tiles/s).\n", time.Since(start), downloadThreads, float64(len(reencoded))/float64(time.Since(start).Seconds()))
+	logger.Printf("Completed in %v with %v download threads (%v tiles/s).\n", time.Since(start), downloadThreads, float64(len(reencoded))/float64(time.Since(start).Seconds()))
 	totalRequests := 2                  // header + root
 	totalRequests += numOverfetchLeaves // leaves
 	totalRequests++                     // metadata
 	totalRequests += numOverfetchRanges
-	fmt.Printf("Extract required %d total requests.\n", totalRequests)
-	fmt.Printf("Extract transferred %s (overfetch %v) for an archive size of %s\n", humanize.Bytes(totalBytes), overfetch, humanize.Bytes(totalActualBytes))
+	logger.Printf("Extract required %d total requests.\n", totalRequests)
+	logger.Printf("Extract transferred %s (overfetch %v) for an archive size of %s\n", humanize.Bytes(totalBytes), overfetch, humanize.Bytes(totalActualBytes))
 
 	return nil
 }

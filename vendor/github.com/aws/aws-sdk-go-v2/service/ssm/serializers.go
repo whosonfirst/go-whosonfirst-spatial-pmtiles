@@ -12319,6 +12319,11 @@ func awsAwsjson11_serializeOpDocumentCreateAssociationBatchInput(v *CreateAssoci
 	object := value.Object()
 	defer object.Close()
 
+	if v.AssociationDispatchAssumeRole != nil {
+		ok := object.Key("AssociationDispatchAssumeRole")
+		ok.String(*v.AssociationDispatchAssumeRole)
+	}
+
 	if v.Entries != nil {
 		ok := object.Key("Entries")
 		if err := awsAwsjson11_serializeDocumentCreateAssociationBatchRequestEntries(v.Entries, ok); err != nil {
@@ -12343,6 +12348,11 @@ func awsAwsjson11_serializeOpDocumentCreateAssociationInput(v *CreateAssociation
 	if v.ApplyOnlyAtCronInterval {
 		ok := object.Key("ApplyOnlyAtCronInterval")
 		ok.Boolean(v.ApplyOnlyAtCronInterval)
+	}
+
+	if v.AssociationDispatchAssumeRole != nil {
+		ok := object.Key("AssociationDispatchAssumeRole")
+		ok.String(*v.AssociationDispatchAssumeRole)
 	}
 
 	if v.AssociationName != nil {
@@ -14126,6 +14136,11 @@ func awsAwsjson11_serializeOpDocumentGetDeployablePatchSnapshotForInstanceInput(
 	if v.SnapshotId != nil {
 		ok := object.Key("SnapshotId")
 		ok.String(*v.SnapshotId)
+	}
+
+	if v.UseS3DualStackEndpoint {
+		ok := object.Key("UseS3DualStackEndpoint")
+		ok.Boolean(v.UseS3DualStackEndpoint)
 	}
 
 	return nil
@@ -15956,6 +15971,11 @@ func awsAwsjson11_serializeOpDocumentUpdateAssociationInput(v *UpdateAssociation
 	if v.ApplyOnlyAtCronInterval {
 		ok := object.Key("ApplyOnlyAtCronInterval")
 		ok.Boolean(v.ApplyOnlyAtCronInterval)
+	}
+
+	if v.AssociationDispatchAssumeRole != nil {
+		ok := object.Key("AssociationDispatchAssumeRole")
+		ok.String(*v.AssociationDispatchAssumeRole)
 	}
 
 	if v.AssociationId != nil {

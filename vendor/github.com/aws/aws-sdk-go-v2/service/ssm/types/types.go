@@ -182,6 +182,13 @@ type AssociationDescription struct {
 	// it. This parameter isn't supported for rate expressions.
 	ApplyOnlyAtCronInterval bool
 
+	// A role used by association to take actions on your behalf. State Manager will
+	// assume this role and call required APIs when dispatching configurations to
+	// nodes. If not specified, [service-linked role for Systems Manager]will be used by default.
+	//
+	// [service-linked role for Systems Manager]: https://docs.aws.amazon.com/systems-manager/latest/userguide/using-service-linked-roles.html
+	AssociationDispatchAssumeRole *string
+
 	// The association ID.
 	AssociationId *string
 
@@ -483,6 +490,13 @@ type AssociationVersionInfo struct {
 	// this option if you don't want an association to run immediately after you create
 	// it. This parameter isn't supported for rate expressions.
 	ApplyOnlyAtCronInterval bool
+
+	// A role used by association to take actions on your behalf. State Manager will
+	// assume this role and call required APIs when dispatching configurations to
+	// nodes. If not specified, [service-linked role for Systems Manager]will be used by default.
+	//
+	// [service-linked role for Systems Manager]: https://docs.aws.amazon.com/systems-manager/latest/userguide/using-service-linked-roles.html
+	AssociationDispatchAssumeRole *string
 
 	// The ID created by the system when the association was created.
 	AssociationId *string
@@ -5064,6 +5078,10 @@ type PatchRule struct {
 	// that the patch is marked as approved in the patch baseline. For example, a value
 	// of 7 means that patches are approved seven days after they are released.
 	//
+	// Patch Manager evaluates patch release dates using Coordinated Universal Time
+	// (UTC). If the day represented by 7 is 2025-11-16 , patches released between
+	// 2025-11-16T00:00:00Z and 2025-11-16T23:59:59Z will be included in the approval.
+	//
 	// This parameter is marked as Required: No , but your request must include a value
 	// for either ApproveAfterDays or ApproveUntilDate .
 	//
@@ -5081,7 +5099,11 @@ type PatchRule struct {
 	// The cutoff date for auto approval of released patches. Any patches released on
 	// or before this date are installed automatically.
 	//
-	// Enter dates in the format YYYY-MM-DD . For example, 2024-12-31 .
+	// Enter dates in the format YYYY-MM-DD . For example, 2025-11-16 .
+	//
+	// Patch Manager evaluates patch release dates using Coordinated Universal Time
+	// (UTC). If you enter the date 2025-11-16 , patches released between
+	// 2025-11-16T00:00:00Z and 2025-11-16T23:59:59Z will be included in the approval.
 	//
 	// This parameter is marked as Required: No , but your request must include a value
 	// for either ApproveUntilDate or ApproveAfterDays .
@@ -6020,6 +6042,8 @@ type TargetLocation struct {
 
 	// Indicates whether to include child organizational units (OUs) that are children
 	// of the targeted OUs. The default is false .
+	//
+	// This parameter is not supported by State Manager.
 	IncludeChildOrganizationUnits bool
 
 	// The Amazon Web Services Regions targeted by the current Automation execution.
@@ -6031,10 +6055,12 @@ type TargetLocation struct {
 
 	// The maximum number of Amazon Web Services Regions and Amazon Web Services
 	// accounts allowed to run the Automation concurrently.
+	// TargetLocationMaxConcurrency has a default value of 1.
 	TargetLocationMaxConcurrency *string
 
 	// The maximum number of errors allowed before the system stops queueing
 	// additional Automation executions for the currently running Automation.
+	// TargetLocationMaxErrors has a default value of 0.
 	TargetLocationMaxErrors *string
 
 	// A list of key-value mappings to target resources. If you specify values for

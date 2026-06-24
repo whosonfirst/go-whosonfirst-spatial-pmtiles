@@ -3,12 +3,15 @@
 This package **encodes and decodes** [GeoJSON](http://geojson.org/) into Go structs
 using the geometries in the [orb](https://github.com/paulmach/orb) package.
 
+Generics are supported for Feature Properties, but the default is `map[string]any`.
+See the [Generic Properties](#generic-properties) section below for more information.
+
 Supports both the [json.Marshaler](https://pkg.go.dev/encoding/json#Marshaler) and
 [json.Unmarshaler](https://pkg.go.dev/encoding/json#Unmarshaler) interfaces.
 The package also provides helper functions such as `UnmarshalFeatureCollection` and `UnmarshalFeature`.
 
-The types also support BSON via the [bson.Marshaler](https://pkg.go.dev/go.mongodb.org/mongo-driver/bson#Marshaler) and
-[bson.Unmarshaler](https://pkg.go.dev/go.mongodb.org/mongo-driver/bson#Unmarshaler) interfaces.
+The types also support BSON via the [bson.Marshaler](https://pkg.go.dev/go.mongodb.org/mongo-driver/v2/bson#Marshaler) and
+[bson.Unmarshaler](https://pkg.go.dev/go.mongodb.org/mongo-driver/v2/bson#Unmarshaler) interfaces.
 These types can be used directly when working with MongoDB.
 
 ## Unmarshalling (JSON -> Go)
@@ -47,7 +50,7 @@ rawJSON, _ := fc.MarshalJSON()
 blob, _ := json.Marshal(fc)
 ```
 
-## Foreign/extra members in a feature collection
+## Foreign/extra members in feature and feature collection
 
 ```go
 rawJSON := []byte(`
@@ -81,17 +84,18 @@ This can be enabled with something like this:
 ```go
 import (
   jsoniter "github.com/json-iterator/go"
-  "github.com/paulmach/orb"
+  "github.com/paulmach/orb/geojson"
 )
 
-var c = jsoniter.Config{
+// in an init() or main(), etc.
+c := jsoniter.Config{
   EscapeHTML:              true,
   SortMapKeys:             false,
   MarshalFloatWith6Digits: true,
 }.Froze()
 
-CustomJSONMarshaler = c
-CustomJSONUnmarshaler = c
+geojson.CustomJSONMarshaler = c
+geojson.CustomJSONUnmarshaler = c
 ```
 
 The above change can have dramatic performance implications, see the benchmarks below
@@ -129,4 +133,29 @@ f.Properties.MustBool(key string, def ...bool) bool
 f.Properties.MustFloat64(key string, def ...float64) float64
 f.Properties.MustInt(key string, def ...int) int
 f.Properties.MustString(key string, def ...string) string
+```
+
+## Generic Properties
+
+Go 1.18 introduced generics, and with it the ability to have a custom type for feature properties.
+
+```go
+type MyProperties struct {
+  Name string `json:"name"`
+  Age  int    `json:"age"`
+}
+
+fc := geojson.FeatureCollectionOf[MyProperties]{}
+fc.Append(
+  &geojson.FeatureOf[MyProperties]{
+    Geometry: orb.Point{1, 2},
+    Properties: MyProperties{Name: "Alice", Age: 30},
+  },
+)
+
+// unmarshalling can be even easier
+fc2 := geojson.FeatureCollectionOf[MyProperties]{}
+err := json.Unmarshal(rawJSON, &fc2)
+
+fc2.Features[0].Properties.Name // == "Alice"
 ```

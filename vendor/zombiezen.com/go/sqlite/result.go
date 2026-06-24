@@ -1,4 +1,4 @@
-// Copyright 2021 Roxy Light
+// Copyright 2021 Ross Light
 // SPDX-License-Identifier: ISC
 
 package sqlite
@@ -326,10 +326,7 @@ func (code ResultCode) String() string {
 
 // Message returns the English-language text that describes the result code.
 func (code ResultCode) Message() string {
-	tls := libc.NewTLS()
-	defer tls.Close()
-	initlib(tls)
-	cstr := lib.Xsqlite3_errstr(tls, int32(code))
+	cstr := lib.Xsqlite3_errstr(nil, int32(code))
 	return libc.GoString(cstr)
 }
 
@@ -351,38 +348,9 @@ func (e sqliteError) Error() string {
 	return e.code.Message()
 }
 
-type extendedError struct {
-	code    ResultCode
-	offset  int // negative if not present
-	message string
-}
-
-func (e *extendedError) Error() string {
-	m := e.code.Message()
-	if e.message == "" || e.message == m {
-		// Only use the connection's message if it's adding more information.
-		// Sometimes the connection will return the code's message.
-		return m
-	}
-	return m + ": " + e.message
-}
-
-func (e *extendedError) As(target any) bool {
-	switch target := target.(type) {
-	case *sqliteError:
-		*target = sqliteError{e.code}
-		return true
-	case **extendedError:
-		*target = e
-		return true
-	default:
-		return false
-	}
-}
-
-// ErrCode returns the error's SQLite error code
-// or [ResultError] if the error does not represent a SQLite error.
-// ErrCode returns [ResultOK] if and only if the error is nil.
+// ErrCode returns the error's SQLite error code or ResultError if the error
+// does not represent a SQLite error. ErrorCode returns ResultOK if and only if
+// the error is nil.
 func ErrCode(err error) ResultCode {
 	if err == nil {
 		return ResultOK
@@ -391,13 +359,4 @@ func ErrCode(err error) ResultCode {
 		return e.code
 	}
 	return ResultError
-}
-
-// ErrorOffset returns the byte offset of the start of the SQL token
-// that the error references if known.
-func ErrorOffset(err error) (offset int, ok bool) {
-	if e := (*extendedError)(nil); errors.As(err, &e) {
-		return e.offset, e.offset >= 0
-	}
-	return -1, false
 }

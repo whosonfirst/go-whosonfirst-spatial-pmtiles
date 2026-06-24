@@ -4,17 +4,18 @@ package sort
 import (
 	"context"
 	"fmt"
-	"github.com/aaronland/go-roster"
-	"github.com/whosonfirst/go-whosonfirst-spr/v2"
 	"net/url"
 	"sort"
 	"strings"
+
+	"github.com/aaronland/go-roster"
+	"github.com/whosonfirst/go-whosonfirst-spr/v2"
 )
 
 // SortedStandardPlacesResults implements the `spr.StandardPlacesResults` interface for sorted results.
 type SortedStandardPlacesResults struct {
 	spr.StandardPlacesResults `json:",omitempty"`
-	Places []spr.StandardPlacesResult `json:"places"`
+	Places                    []spr.StandardPlacesResult `json:"places"`
 }
 
 // Results returns a list of `spr.StandardPlacesResults` instances.

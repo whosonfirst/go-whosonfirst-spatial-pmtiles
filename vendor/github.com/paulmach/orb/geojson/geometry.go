@@ -4,11 +4,10 @@ import (
 	"errors"
 
 	"github.com/paulmach/orb"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
-// ErrInvalidGeometry will be returned if a the json of the geometry is invalid.
+// ErrInvalidGeometry will be returned if the json of the geometry is invalid.
 var ErrInvalidGeometry = errors.New("geojson: invalid geometry")
 
 // A Geometry matches the structure of a GeoJSON Geometry.
@@ -19,7 +18,7 @@ type Geometry struct {
 }
 
 // NewGeometry will create a Geometry object but will convert
-// the input into a GoeJSON geometry. For example, it will convert
+// the input into a GeoJSON geometry. For example, it will convert
 // Rings and Bounds into Polygons.
 func NewGeometry(g orb.Geometry) *Geometry {
 	jg := &Geometry{}
@@ -44,7 +43,7 @@ func NewGeometry(g orb.Geometry) *Geometry {
 }
 
 // Geometry returns the orb.Geometry for the geojson Geometry.
-// This will convert the "Geometries" into a orb.Collection if applicable.
+// This will convert the "Geometries" into an orb.Collection if applicable.
 func (g *Geometry) Geometry() orb.Geometry {
 	if g.Coordinates != nil {
 		return g.Coordinates
@@ -77,16 +76,17 @@ func (g *Geometry) MarshalBSON() ([]byte, error) {
 
 // MarshalBSONValue will marshal the geometry into a BSON value
 // with the structure of a GeoJSON Geometry.
-func (g *Geometry) MarshalBSONValue() (bsontype.Type, []byte, error) {
+func (g *Geometry) MarshalBSONValue() (byte, []byte, error) {
 	// implementing MarshalBSONValue allows us to marshal into a null value
 	// needed to match behavior with the JSON marshalling.
 
 	if g.Coordinates == nil && len(g.Geometries) == 0 {
-		return bsontype.Null, nil, nil
+		return byte(bson.TypeNull), nil, nil
 	}
 
 	ng := newGeometryMarshallDoc(g)
-	return bson.MarshalValue(ng)
+	t, data, err := bson.MarshalValue(ng)
+	return byte(t), data, err
 }
 
 func newGeometryMarshallDoc(g *Geometry) *geometryMarshallDoc {

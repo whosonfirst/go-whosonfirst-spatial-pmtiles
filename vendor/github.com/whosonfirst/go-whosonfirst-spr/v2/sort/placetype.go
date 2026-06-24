@@ -3,9 +3,10 @@ package sort
 import (
 	"context"
 	"fmt"
+	"sort"
+
 	"github.com/whosonfirst/go-whosonfirst-placetypes"
 	"github.com/whosonfirst/go-whosonfirst-spr/v2"
-	"sort"
 )
 
 func init() {

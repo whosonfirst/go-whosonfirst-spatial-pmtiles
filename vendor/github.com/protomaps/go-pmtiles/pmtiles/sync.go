@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/cespare/xxhash/v2"
 	"github.com/dustin/go-humanize"
-	"github.com/schollz/progressbar/v3"
 	"golang.org/x/sync/errgroup"
 	"io"
 	"log"
@@ -85,7 +84,8 @@ func Sync(logger *log.Logger, oldVersion string, newVersion string, dryRun bool)
 	if err != nil {
 		return err
 	}
-	bar := progressbar.DefaultBytes(
+	bar := defaultBytesProgressbar(
+		logger,
 		resp.ContentLength,
 		"downloading syncfile",
 	)
@@ -122,7 +122,8 @@ func Sync(logger *log.Logger, oldVersion string, newVersion string, dryRun bool)
 		return fmt.Errorf("archive must be clustered for sync")
 	}
 
-	bar = progressbar.Default(
+	bar = defaultProgressbar(
+		logger,
 		int64(len(blocks)),
 		"calculating diff",
 	)
@@ -217,7 +218,7 @@ func Sync(logger *log.Logger, oldVersion string, newVersion string, dryRun bool)
 	blocksMatched := float64(len(have)) / float64(len(blocks)) * 100
 	pct := float64(toTransfer) / float64(totalRemoteBytes) * 100
 
-	fmt.Printf("%d/%d blocks matched (%.1f%%), need to transfer %s/%s (%.1f%%).\n", len(have), len(blocks), blocksMatched, humanize.Bytes(toTransfer), humanize.Bytes(totalRemoteBytes), pct)
+	logger.Printf("%d/%d blocks matched (%.1f%%), need to transfer %s/%s (%.1f%%).\n", len(have), len(blocks), blocksMatched, humanize.Bytes(toTransfer), humanize.Bytes(totalRemoteBytes), pct)
 
 	ranges := make([]srcDstRange, 0)
 	for _, v := range wanted {
@@ -241,7 +242,7 @@ func Sync(logger *log.Logger, oldVersion string, newVersion string, dryRun bool)
 		}
 	}
 
-	fmt.Printf("need %d chunks\n", len(ranges))
+	logger.Printf("need %d chunks\n", len(ranges))
 
 	if !dryRun {
 		req, err := http.NewRequest("HEAD", newVersion, nil)
@@ -282,7 +283,8 @@ func Sync(logger *log.Logger, oldVersion string, newVersion string, dryRun bool)
 		req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", newHeader.LeafDirectoryOffset, newHeader.LeafDirectoryOffset+newHeader.LeafDirectoryLength-1))
 		resp, err = client.Do(req)
 
-		leafBar := progressbar.DefaultBytes(
+		leafBar := defaultBytesProgressbar(
+			logger,
 			int64(newHeader.LeafDirectoryLength),
 			"downloading leaf directories",
 		)
@@ -290,7 +292,8 @@ func Sync(logger *log.Logger, oldVersion string, newVersion string, dryRun bool)
 		leafBar.Close()
 
 		fmt.Println(len(have), "local chunks")
-		bar := progressbar.DefaultBytes(
+		bar := defaultBytesProgressbar(
+			logger,
 			int64(totalRemoteBytes-toTransfer),
 			"copying local chunks",
 		)
@@ -308,7 +311,8 @@ func Sync(logger *log.Logger, oldVersion string, newVersion string, dryRun bool)
 		multiRanges := makeMultiRanges(ranges, int64(newHeader.TileDataOffset), 1048576-200)
 		fmt.Println("Batched into http requests", len(multiRanges))
 
-		bar = progressbar.DefaultBytes(
+		bar = defaultBytesProgressbar(
+			logger,
 			int64(toTransfer),
 			"fetching remote chunks",
 		)
@@ -378,6 +382,6 @@ func Sync(logger *log.Logger, oldVersion string, newVersion string, dryRun bool)
 		}
 	}
 
-	fmt.Printf("Completed sync in %v.\n", time.Since(start))
+	logger.Printf("Completed sync in %v.\n", time.Since(start))
 	return nil
 }

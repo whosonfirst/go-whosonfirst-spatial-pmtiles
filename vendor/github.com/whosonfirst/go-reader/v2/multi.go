@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"sync"
 
 	"github.com/hashicorp/go-multierror"
@@ -18,6 +19,16 @@ type MultiReader struct {
 	readers []Reader
 	lookup  map[string]int
 	mu      *sync.RWMutex
+}
+
+func init() {
+	ctx := context.Background()
+	// Note: We are calling NewMultiReader until it gets renamed as
+	// NewMultiReaderFromReaders whenever we get around to releasing /v3
+	err := RegisterReader(ctx, "multi", NewMultiReaderFromURI)
+	if err != nil {
+		panic(err)
+	}
 }
 
 // NewMultiReaderFromURIs returns a new `Reader` instance for reading documents from one or more `Reader` instances.
@@ -40,7 +51,33 @@ func NewMultiReaderFromURIs(ctx context.Context, uris ...string) (Reader, error)
 	return NewMultiReader(ctx, readers...)
 }
 
-// NewMultiReaderFromURIs returns a new `Reader` instance for reading documents from one or more `Reader` instances.
+// NewMultiReaderFromURI returns a new `Reader` instance for reading documents from one or more `Reader` instances.
+// derived from 'uri' which takes the form of:
+//
+//	multi://?reader=READER_URI&reader=READER_URI
+//
+// Note: If and when this package is bumped to /v3 this method will be renamed NewMultiReader (but not before).
+func NewMultiReaderFromURI(ctx context.Context, uri string) (Reader, error) {
+
+	u, err := url.Parse(uri)
+
+	if err != nil {
+		return nil, err
+	}
+
+	q := u.Query()
+
+	if !q.Has("reader") {
+		return nil, fmt.Errorf("Missing ?reader= parameter(s)")
+	}
+
+	reader_uris := q["reader"]
+
+	return NewMultiReaderFromURIs(ctx, reader_uris...)
+}
+
+// NewMultiReader returns a new `Reader` instance for reading documents from one or more `Reader` instances.
+// Note: If and when this package is bumped to /v3 this method will be renamed NewMultiReaderFromReaders (but not before).
 func NewMultiReader(ctx context.Context, readers ...Reader) (Reader, error) {
 
 	lookup := make(map[string]int)

@@ -4,3 +4,4 @@ src
 *.bak
 bin
 !bin/.gitignore
+.DS_Store
