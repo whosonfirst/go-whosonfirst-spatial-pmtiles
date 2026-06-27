@@ -7,7 +7,7 @@ import (
 
 // UnmarshalGeoJSON unmarshals a geometry that is encoded as a GeoJSON Geometry Object.
 //
-// NoValidate{} can be passed in to disable geometry constraint validation.
+// [NoValidate]{} can be passed in to disable geometry constraint validation.
 func UnmarshalGeoJSON(input []byte, nv ...NoValidate) (Geometry, error) {
 	var root geojsonNode
 	if err := json.Unmarshal(input, &root); err != nil {
@@ -101,10 +101,10 @@ type geojsonMultiPolygon struct {
 }
 
 type geojsonGeometryCollection struct {
-	geoms []interface{}
+	geoms []any
 }
 
-func decodeGeoJSON(node geojsonNode) (interface{}, error) {
+func decodeGeoJSON(node geojsonNode) (any, error) {
 	switch node.Type {
 	case "Point":
 		c, err := extract1DimFloat64s(node.Coords)
@@ -126,7 +126,7 @@ func decodeGeoJSON(node geojsonNode) (interface{}, error) {
 		return geojsonMultiPolygon{c}, err
 	case "GeometryCollection":
 		parent := geojsonGeometryCollection{
-			geoms: make([]interface{}, len(node.Geoms)),
+			geoms: make([]any, len(node.Geoms)),
 		}
 		for i, g := range node.Geoms {
 			child, err := decodeGeoJSON(g)
@@ -169,7 +169,7 @@ func geojsonInvalidCoordinatesLengthError(n int) error {
 	return geojsonSyntaxError{fmt.Sprintf("invalid geojson coordinate length: %d", n)}
 }
 
-func detectCoordinatesLengths(node interface{}, hasLength map[int]struct{}) error {
+func detectCoordinatesLengths(node any, hasLength map[int]struct{}) error {
 	switch node := node.(type) {
 	case geojsonPoint:
 		n := len(node.coords)
@@ -244,7 +244,7 @@ func detectCoordinatesLengths(node interface{}, hasLength map[int]struct{}) erro
 	}
 }
 
-func geojsonNodeToGeometry(node interface{}, ctype CoordinatesType) Geometry {
+func geojsonNodeToGeometry(node any, ctype CoordinatesType) Geometry {
 	switch node := node.(type) {
 	case geojsonPoint:
 		coords, ok := oneDimFloat64sToCoordinates(node.coords, ctype)

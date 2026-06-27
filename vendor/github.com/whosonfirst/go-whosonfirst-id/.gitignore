@@ -1,6 +1,0 @@
-*~
-pkg
-src
-*.bak
-!vendor/src
-bin/wof-*

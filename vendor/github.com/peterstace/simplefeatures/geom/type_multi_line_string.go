@@ -3,14 +3,13 @@ package geom
 import (
 	"database/sql/driver"
 	"fmt"
-	"unsafe"
 
 	"github.com/peterstace/simplefeatures/rtree"
 )
 
 // MultiLineString is a linear geometry that consists of a collection of
-// LineStrings. Its zero value is the empty MultiLineString (i.e. the
-// collection of zero LineStrings) of 2D coordinate type. It is immutable after
+// [LineString]s. Its zero value is the empty MultiLineString (i.e. the
+// collection of zero [LineString]s) of 2D coordinate type. It is immutable after
 // creation.
 type MultiLineString struct {
 	// Invariant: ctype matches the coordinates type of each line.
@@ -19,8 +18,8 @@ type MultiLineString struct {
 }
 
 // NewMultiLineString creates a MultiLineString from its constituent
-// LineStrings. The coordinates type of the MultiLineString is the lowest
-// common coordinates type of its LineStrings.
+// [LineString]s. The coordinates type of the MultiLineString is the lowest
+// common coordinates type of its [LineString]s.
 //
 // It doesn't perform any validation on the result. The Validate method can be
 // used to check the validity of the result if needed.
@@ -43,7 +42,7 @@ func NewMultiLineString(lines []LineString) MultiLineString {
 }
 
 // Validate checks if the MultiLineString is valid. The only validation rule is
-// that each LineString in the collection must be valid.
+// that each [LineString] in the collection must be valid.
 func (m MultiLineString) Validate() error {
 	for i, ls := range m.lines {
 		if err := ls.Validate(); err != nil {
@@ -53,23 +52,23 @@ func (m MultiLineString) Validate() error {
 	return nil
 }
 
-// Type returns the GeometryType for a MultiLineString.
+// Type returns the [GeometryType] for a MultiLineString.
 func (m MultiLineString) Type() GeometryType {
 	return TypeMultiLineString
 }
 
-// AsGeometry converts this MultiLineString into a Geometry.
+// AsGeometry converts this MultiLineString into a [Geometry].
 func (m MultiLineString) AsGeometry() Geometry {
-	return Geometry{TypeMultiLineString, unsafe.Pointer(&m)}
+	return Geometry{impl: m}
 }
 
-// NumLineStrings gives the number of LineString elements in the
+// NumLineStrings gives the number of [LineString] elements in the
 // MultiLineString.
 func (m MultiLineString) NumLineStrings() int {
 	return len(m.lines)
 }
 
-// LineStringN gives the nth (zero indexed) LineString element.
+// LineStringN gives the nth (zero indexed) [LineString] element.
 func (m MultiLineString) LineStringN(n int) LineString {
 	return m.lines[n]
 }
@@ -100,7 +99,7 @@ func (m MultiLineString) AppendWKT(dst []byte) []byte {
 // points, such as self intersection or self tangency. A MultiLineString is
 // simple if and only if the following conditions hold:
 //
-// 1. Each element (a LineString) is simple.
+// 1. Each element (a [LineString]) is simple.
 //
 // 2. The intersection between any two distinct elements occurs at points that
 // are on the boundaries of both elements.
@@ -196,7 +195,7 @@ func (m MultiLineString) IsSimple() bool {
 }
 
 // IsEmpty return true if and only if this MultiLineString doesn't contain any
-// LineStrings, or only contains empty LineStrings.
+// [LineString]s, or only contains empty [LineString]s.
 func (m MultiLineString) IsEmpty() bool {
 	for _, ls := range m.lines {
 		if !ls.IsEmpty() {
@@ -206,7 +205,7 @@ func (m MultiLineString) IsEmpty() bool {
 	return true
 }
 
-// Envelope returns the Envelope that most tightly surrounds the geometry.
+// Envelope returns the [Envelope] that most tightly surrounds the geometry.
 func (m MultiLineString) Envelope() Envelope {
 	var env Envelope
 	for _, ls := range m.lines {
@@ -216,7 +215,7 @@ func (m MultiLineString) Envelope() Envelope {
 }
 
 // Boundary returns the spatial boundary of this MultiLineString. This is
-// calculated using the "mod 2 rule". The rule states that a Point is included
+// calculated using the "mod 2 rule". The rule states that a [Point] is included
 // as part of the boundary if and only if it appears on the boundary of an odd
 // number of members in the collection.
 func (m MultiLineString) Boundary() MultiPoint {
@@ -255,13 +254,13 @@ func (m MultiLineString) Boundary() MultiPoint {
 	return NewMultiPoint(mod2Points)
 }
 
-// Value implements the database/sql/driver.Valuer interface by returning the
-// WKB (Well Known Binary) representation of this Geometry.
+// Value implements the [database/sql/driver.Valuer] interface by returning the
+// WKB (Well Known Binary) representation of this [Geometry].
 func (m MultiLineString) Value() (driver.Value, error) {
 	return m.AsBinary(), nil
 }
 
-// Scan implements the database/sql.Scanner interface by parsing the src value
+// Scan implements the [database/sql.Scanner] interface by parsing the src value
 // as WKB (Well Known Binary).
 //
 // If the WKB doesn't represent a MultiLineString geometry, then an error is returned.
@@ -269,8 +268,8 @@ func (m MultiLineString) Value() (driver.Value, error) {
 // Geometry constraint validation is performed on the resultant geometry (an
 // error will be returned if the geometry is invalid). If this validation isn't
 // needed or is undesirable, then the WKB should be scanned into a byte slice
-// and then UnmarshalWKB called manually (passing in NoValidate{}).
-func (m *MultiLineString) Scan(src interface{}) error {
+// and then [UnmarshalWKB] called manually (passing in [NoValidate]{}).
+func (m *MultiLineString) Scan(src any) error {
 	return scanAsType(src, m)
 }
 
@@ -300,7 +299,7 @@ func (m MultiLineString) ConvexHull() Geometry {
 	return convexHull(m.AsGeometry())
 }
 
-// MarshalJSON implements the encoding/json.Marshaler interface by encoding
+// MarshalJSON implements the [encoding/json.Marshaler] interface by encoding
 // this geometry as a GeoJSON geometry object.
 func (m MultiLineString) MarshalJSON() ([]byte, error) {
 	var dst []byte
@@ -310,13 +309,13 @@ func (m MultiLineString) MarshalJSON() ([]byte, error) {
 	return dst, nil
 }
 
-// UnmarshalJSON implements the encoding/json.Unmarshaler interface by decoding
+// UnmarshalJSON implements the [encoding/json.Unmarshaler] interface by decoding
 // the GeoJSON representation of a MultiLineString.
 func (m *MultiLineString) UnmarshalJSON(buf []byte) error {
 	return unmarshalGeoJSONAsType(buf, m)
 }
 
-// Coordinates returns the coordinates of each constituent LineString in the
+// Coordinates returns the coordinates of each constituent [LineString] in the
 // MultiLineString.
 func (m MultiLineString) Coordinates() []Sequence {
 	n := m.NumLineStrings()
@@ -396,15 +395,19 @@ func (m MultiLineString) Reverse() MultiLineString {
 	return MultiLineString{linestrings, m.ctype}
 }
 
-// CoordinatesType returns the CoordinatesType used to represent points making
+// CoordinatesType returns the [CoordinatesType] used to represent points making
 // up the geometry.
 func (m MultiLineString) CoordinatesType() CoordinatesType {
 	return m.ctype
 }
 
-// ForceCoordinatesType returns a new MultiLineString with a different CoordinatesType. If a
+// ForceCoordinatesType returns a new MultiLineString with a different [CoordinatesType]. If a
 // dimension is added, then new values are populated with 0.
 func (m MultiLineString) ForceCoordinatesType(newCType CoordinatesType) MultiLineString {
+	if len(m.lines) == 0 {
+		// Canonicalize empty slice to nil so that reflect.DeepEqual works correctly.
+		return MultiLineString{nil, newCType}
+	}
 	flat := make([]LineString, len(m.lines))
 	for i := range m.lines {
 		flat[i] = m.lines[i].ForceCoordinatesType(newCType)
@@ -438,7 +441,7 @@ func (m MultiLineString) asLines() []line {
 	return lines
 }
 
-// PointOnSurface returns a Point on one of the LineStrings in the collection.
+// PointOnSurface returns a [Point] on one of the [LineString]s in the collection.
 func (m MultiLineString) PointOnSurface() Point {
 	// Find the nearest control point on the LineString, ignoring the start/end points.
 	nearest := newNearestPointAccumulator(m.Centroid())
@@ -471,14 +474,14 @@ func (m MultiLineString) controlPoints() int {
 	return sum
 }
 
-// Dump returns the MultiLineString represented as a LineString slice.
+// Dump returns the MultiLineString represented as a [LineString] slice.
 func (m MultiLineString) Dump() []LineString {
 	lss := make([]LineString, len(m.lines))
 	copy(lss, m.lines)
 	return lss
 }
 
-// DumpCoordinates returns the coordinates (as a Sequence) that constitute the
+// DumpCoordinates returns the coordinates (as a [Sequence]) that constitute the
 // MultiLineString.
 func (m MultiLineString) DumpCoordinates() Sequence {
 	var n int

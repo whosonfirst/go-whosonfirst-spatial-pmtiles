@@ -1,0 +1,15 @@
+package filter
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/whosonfirst/go-reader/v2"
+	"github.com/whosonfirst/go-whosonfirst/v4/spr"
+)
+
+func WhosOnFirstSPRResultsFunc(ctx context.Context, r reader.Reader, body []byte, possible []spr.StandardPlacesResult) (spr.StandardPlacesResult, error) {
+
+	// https://github.com/whosonfirst/py-mapzen-whosonfirst-hierarchy/blob/master/mapzen/whosonfirst/hierarchy/__init__.py
+	return nil, fmt.Errorf("Not implemented")
+}

@@ -3,33 +3,46 @@ package geom
 import (
 	"database/sql/driver"
 	"fmt"
-	"unsafe"
 )
 
-// Geometry is a single geometry of any type. Its zero value is valid and is
-// an empty GeometryCollection. It is immutable after creation.
+// [Geometry] is a single geometry of any type. Its zero value is valid and is an
+// empty [GeometryCollection]. It is immutable after creation.
+//
+// Note: The internal representation is designed such that [reflect.DeepEqual]
+// produces the same result as [ExactEquals] when called with no options.
 type Geometry struct {
-	gtype GeometryType
-	ptr   unsafe.Pointer
+	impl interface {
+		Type() GeometryType
+		AsText() string
+		MarshalJSON() ([]byte, error)
+		AppendWKT(dst []byte) []byte
+		AppendWKB(dst []byte) []byte
+		IsEmpty() bool
+		Envelope() Envelope
+		Centroid() Point
+		CoordinatesType() CoordinatesType
+		Validate() error
+		Summary() string
+	}
 }
 
-// GeometryType represents one of the 7 geometry types.
+// [GeometryType] represents one of the 7 geometry types.
 type GeometryType int
 
 const (
-	// TypeGeometryCollection is the type of a GeometryCollection.
+	// TypeGeometryCollection is the type of a [GeometryCollection].
 	TypeGeometryCollection GeometryType = iota
-	// TypePoint is the type of a Point.
+	// TypePoint is the type of a [Point].
 	TypePoint
-	// TypeLineString is the type of a LineString.
+	// TypeLineString is the type of a [LineString].
 	TypeLineString
-	// TypePolygon is the type of a Polygon.
+	// TypePolygon is the type of a [Polygon].
 	TypePolygon
-	// TypeMultiPoint is the type of a MultiPoint.
+	// TypeMultiPoint is the type of a [MultiPoint].
 	TypeMultiPoint
-	// TypeMultiLineString is the type of a MultiLineString.
+	// TypeMultiLineString is the type of a [MultiLineString].
 	TypeMultiLineString
-	// TypeMultiPolygon is the type of a MultiPolygon.
+	// TypeMultiPolygon is the type of a [MultiPolygon].
 	TypeMultiPolygon
 )
 
@@ -54,94 +67,97 @@ func (t GeometryType) String() string {
 	}
 }
 
-// Type returns the type of the Geometry.
+// Type returns the [GeometryType] of the [Geometry].
 func (g Geometry) Type() GeometryType {
-	return g.gtype
+	if g.impl == nil {
+		return TypeGeometryCollection
+	}
+	return g.impl.Type()
 }
 
-// IsGeometryCollection return true iff the Geometry is a GeometryCollection geometry.
-func (g Geometry) IsGeometryCollection() bool { return g.gtype == TypeGeometryCollection }
+// IsGeometryCollection return true iff the [Geometry] is a [GeometryCollection] geometry.
+func (g Geometry) IsGeometryCollection() bool { return g.Type() == TypeGeometryCollection }
 
-// IsPoint return true iff the Geometry is a Point geometry.
-func (g Geometry) IsPoint() bool { return g.gtype == TypePoint }
+// IsPoint return true iff the [Geometry] is a [Point] geometry.
+func (g Geometry) IsPoint() bool { return g.Type() == TypePoint }
 
-// IsLineString return true iff the Geometry is a LineString geometry.
-func (g Geometry) IsLineString() bool { return g.gtype == TypeLineString }
+// IsLineString return true iff the [Geometry] is a [LineString] geometry.
+func (g Geometry) IsLineString() bool { return g.Type() == TypeLineString }
 
-// IsPolygon return true iff the Geometry is a Polygon geometry.
-func (g Geometry) IsPolygon() bool { return g.gtype == TypePolygon }
+// IsPolygon return true iff the [Geometry] is a [Polygon] geometry.
+func (g Geometry) IsPolygon() bool { return g.Type() == TypePolygon }
 
-// IsMultiPoint return true iff the Geometry is a MultiPoint geometry.
-func (g Geometry) IsMultiPoint() bool { return g.gtype == TypeMultiPoint }
+// IsMultiPoint return true iff the [Geometry] is a [MultiPoint] geometry.
+func (g Geometry) IsMultiPoint() bool { return g.Type() == TypeMultiPoint }
 
-// IsMultiLineString return true iff the Geometry is a MultiLineString geometry.
-func (g Geometry) IsMultiLineString() bool { return g.gtype == TypeMultiLineString }
+// IsMultiLineString return true iff the [Geometry] is a [MultiLineString] geometry.
+func (g Geometry) IsMultiLineString() bool { return g.Type() == TypeMultiLineString }
 
-// IsMultiPolygon return true iff the Geometry is a MultiPolygon geometry.
-func (g Geometry) IsMultiPolygon() bool { return g.gtype == TypeMultiPolygon }
+// IsMultiPolygon return true iff the [Geometry] is a [MultiPolygon] geometry.
+func (g Geometry) IsMultiPolygon() bool { return g.Type() == TypeMultiPolygon }
 
 func (g Geometry) check(gtype GeometryType) {
-	if g.gtype != gtype {
-		panic(fmt.Sprintf("called As%s on Geometry containing %s", gtype, g.gtype))
+	if g.Type() != gtype {
+		panic(fmt.Sprintf("called As%s on Geometry containing %s", gtype, g.Type()))
 	}
 }
 
-// MustAsGeometryCollection returns the geometry as a GeometryCollection. It
-// panics if the geometry is not a GeometryCollection.
+// MustAsGeometryCollection returns the geometry as a [GeometryCollection]. It
+// panics if the geometry is not a [GeometryCollection].
 func (g Geometry) MustAsGeometryCollection() GeometryCollection {
-	g.check(TypeGeometryCollection)
-	if g.ptr == nil {
+	if g.impl == nil {
 		// Special case so that the zero Geometry value is interpreted as an
 		// empty GeometryCollection.
 		return GeometryCollection{}
 	}
-	return *(*GeometryCollection)(g.ptr)
+	g.check(TypeGeometryCollection)
+	return g.impl.(GeometryCollection)
 }
 
-// MustAsPoint returns the geometry as a Point. It panics if the geometry is
-// not a Point.
+// MustAsPoint returns the geometry as a [Point]. It panics if the geometry is
+// not a [Point].
 func (g Geometry) MustAsPoint() Point {
 	g.check(TypePoint)
-	return *(*Point)(g.ptr)
+	return g.impl.(Point)
 }
 
-// MustAsLineString returns the geometry as a LineString. It panics if the
-// geometry is not a LineString.
+// MustAsLineString returns the geometry as a [LineString]. It panics if the
+// geometry is not a [LineString].
 func (g Geometry) MustAsLineString() LineString {
 	g.check(TypeLineString)
-	return *(*LineString)(g.ptr)
+	return g.impl.(LineString)
 }
 
-// MustAsPolygon returns the geometry as a Polygon. It panics if the geometry
-// is not a Polygon.
+// MustAsPolygon returns the geometry as a [Polygon]. It panics if the geometry
+// is not a [Polygon].
 func (g Geometry) MustAsPolygon() Polygon {
 	g.check(TypePolygon)
-	return *(*Polygon)(g.ptr)
+	return g.impl.(Polygon)
 }
 
-// MustAsMultiPoint returns the geometry as a MultiPoint. It panics if the
-// geometry is not a MultiPoint.
+// MustAsMultiPoint returns the geometry as a [MultiPoint]. It panics if the
+// geometry is not a [MultiPoint].
 func (g Geometry) MustAsMultiPoint() MultiPoint {
 	g.check(TypeMultiPoint)
-	return *(*MultiPoint)(g.ptr)
+	return g.impl.(MultiPoint)
 }
 
-// MustAsMultiLineString returns the geometry as a MultiLineString. It panics
-// if the geometry is not a MultiLineString.
+// MustAsMultiLineString returns the geometry as a [MultiLineString]. It panics
+// if the geometry is not a [MultiLineString].
 func (g Geometry) MustAsMultiLineString() MultiLineString {
 	g.check(TypeMultiLineString)
-	return *(*MultiLineString)(g.ptr)
+	return g.impl.(MultiLineString)
 }
 
-// MustAsMultiPolygon returns the geometry as a MultiPolygon. It panics if the
-// Geometry is not a MultiPolygon.
+// MustAsMultiPolygon returns the geometry as a [MultiPolygon]. It panics if the
+// [Geometry] is not a [MultiPolygon].
 func (g Geometry) MustAsMultiPolygon() MultiPolygon {
 	g.check(TypeMultiPolygon)
-	return *(*MultiPolygon)(g.ptr)
+	return g.impl.(MultiPolygon)
 }
 
-// AsGeometryCollection checks if the geometry is a GeometryCollection, and
-// returns it as a GeometryCollection if it is. The returned flag indicates if
+// AsGeometryCollection checks if the geometry is a [GeometryCollection], and
+// returns it as a [GeometryCollection] if it is. The returned flag indicates if
 // the conversion was successful.
 func (g Geometry) AsGeometryCollection() (GeometryCollection, bool) {
 	if !g.IsGeometryCollection() {
@@ -150,7 +166,7 @@ func (g Geometry) AsGeometryCollection() (GeometryCollection, bool) {
 	return g.MustAsGeometryCollection(), true
 }
 
-// AsPoint checks if the geometry is a Point, and returns it as a Point if it
+// AsPoint checks if the geometry is a [Point], and returns it as a [Point] if it
 // is. The returned flag indicates if the conversion was successful.
 func (g Geometry) AsPoint() (Point, bool) {
 	if !g.IsPoint() {
@@ -159,8 +175,8 @@ func (g Geometry) AsPoint() (Point, bool) {
 	return g.MustAsPoint(), true
 }
 
-// AsLineString checks if the geometry is a LineString, and returns it as a
-// LineString if it is. The returned flag indicates if the conversion was
+// AsLineString checks if the geometry is a [LineString], and returns it as a
+// [LineString] if it is. The returned flag indicates if the conversion was
 // successful.
 func (g Geometry) AsLineString() (LineString, bool) {
 	if !g.IsLineString() {
@@ -169,7 +185,7 @@ func (g Geometry) AsLineString() (LineString, bool) {
 	return g.MustAsLineString(), true
 }
 
-// AsPolygon checks if the geometry is a Polygon, and returns it as a Polygon
+// AsPolygon checks if the geometry is a [Polygon], and returns it as a [Polygon]
 // if it is. The returned flag indicates if the conversion was successful.
 func (g Geometry) AsPolygon() (Polygon, bool) {
 	if !g.IsPolygon() {
@@ -178,8 +194,8 @@ func (g Geometry) AsPolygon() (Polygon, bool) {
 	return g.MustAsPolygon(), true
 }
 
-// AsMultiPoint checks if the geometry is a MultiPoint, and returns it as a
-// MultiPoint if it is. The returned flag indicates if the conversion was
+// AsMultiPoint checks if the geometry is a [MultiPoint], and returns it as a
+// [MultiPoint] if it is. The returned flag indicates if the conversion was
 // successful.
 func (g Geometry) AsMultiPoint() (MultiPoint, bool) {
 	if !g.IsMultiPoint() {
@@ -188,8 +204,8 @@ func (g Geometry) AsMultiPoint() (MultiPoint, bool) {
 	return g.MustAsMultiPoint(), true
 }
 
-// AsMultiLineString checks if the geometry is a MultiLineString, and returns
-// it as a MultiLineString if it is. The returned flag indicates if the
+// AsMultiLineString checks if the geometry is a [MultiLineString], and returns
+// it as a [MultiLineString] if it is. The returned flag indicates if the
 // conversion was successful.
 func (g Geometry) AsMultiLineString() (MultiLineString, bool) {
 	if !g.IsMultiLineString() {
@@ -198,8 +214,8 @@ func (g Geometry) AsMultiLineString() (MultiLineString, bool) {
 	return g.MustAsMultiLineString(), true
 }
 
-// AsMultiPolygon checks if the geometry is a MultiPolygon, and returns it as a
-// MultiPolygon if it is. The returned flag indicates if the conversion was
+// AsMultiPolygon checks if the geometry is a [MultiPolygon], and returns it as a
+// [MultiPolygon] if it is. The returned flag indicates if the conversion was
 // successful.
 func (g Geometry) AsMultiPolygon() (MultiPolygon, bool) {
 	if !g.IsMultiPolygon() {
@@ -210,57 +226,29 @@ func (g Geometry) AsMultiPolygon() (MultiPolygon, bool) {
 
 // AsText returns the WKT (Well Known Text) representation of this geometry.
 func (g Geometry) AsText() string {
-	switch g.gtype {
-	case TypeGeometryCollection:
-		return g.MustAsGeometryCollection().AsText()
-	case TypePoint:
-		return g.MustAsPoint().AsText()
-	case TypeLineString:
-		return g.MustAsLineString().AsText()
-	case TypePolygon:
-		return g.MustAsPolygon().AsText()
-	case TypeMultiPoint:
-		return g.MustAsMultiPoint().AsText()
-	case TypeMultiLineString:
-		return g.MustAsMultiLineString().AsText()
-	case TypeMultiPolygon:
-		return g.MustAsMultiPolygon().AsText()
-	default:
-		panic("unknown geometry: " + g.gtype.String())
+	if g.impl == nil {
+		return GeometryCollection{}.AsText()
 	}
+	return g.impl.AsText()
 }
 
-// MarshalJSON implements the encoding/json.Marshaler interface by encoding
+// MarshalJSON implements the [encoding/json.Marshaler] interface by encoding
 // this geometry as a GeoJSON geometry object.
 func (g Geometry) MarshalJSON() ([]byte, error) {
-	switch g.gtype {
-	case TypeGeometryCollection:
-		return g.MustAsGeometryCollection().MarshalJSON()
-	case TypePoint:
-		return g.MustAsPoint().MarshalJSON()
-	case TypeLineString:
-		return g.MustAsLineString().MarshalJSON()
-	case TypePolygon:
-		return g.MustAsPolygon().MarshalJSON()
-	case TypeMultiPoint:
-		return g.MustAsMultiPoint().MarshalJSON()
-	case TypeMultiLineString:
-		return g.MustAsMultiLineString().MarshalJSON()
-	case TypeMultiPolygon:
-		return g.MustAsMultiPolygon().MarshalJSON()
-	default:
-		panic("unknown geometry: " + g.gtype.String())
+	if g.impl == nil {
+		return GeometryCollection{}.MarshalJSON()
 	}
+	return g.impl.MarshalJSON()
 }
 
-// UnmarshalJSON implements the encoding/json.Unmarshaller interface by
+// UnmarshalJSON implements the [encoding/json.Unmarshaler] interface by
 // parsing the JSON stream as GeoJSON geometry object.
 //
-// Geometry constraint validation is performed on the resultant geometry (an
+// [Geometry] constraint validation is performed on the resultant geometry (an
 // error will be returned if the geometry is invalid). If this validation isn't
 // needed or is undesirable, then the GeoJSON value should be scanned into a
-// json.RawMessage value and then UnmarshalJSON called manually (passing in
-// NoValidate{}).
+// [json.RawMessage] value and then [Geometry.UnmarshalJSON] called manually (passing in
+// [NoValidate]{}).
 func (g *Geometry) UnmarshalJSON(p []byte) error {
 	geom, err := UnmarshalGeoJSON(p)
 	if err != nil {
@@ -273,7 +261,7 @@ func (g *Geometry) UnmarshalJSON(p []byte) error {
 // unmarshalGeoJSONAsType unmarshals GeoJSON directly into the concrete
 // geometry specified by dst (which should be a pointer to the concrete
 // geometry type).
-func unmarshalGeoJSONAsType(p []byte, dst interface{}) error {
+func unmarshalGeoJSONAsType(p []byte, dst any) error {
 	g, err := UnmarshalGeoJSON(p)
 	if err != nil {
 		return err
@@ -292,24 +280,10 @@ func unmarshalGeoJSONAsType(p []byte, dst interface{}) error {
 // AppendWKT appends the WKT (Well Known Text) representation of this geometry
 // to the input byte slice.
 func (g Geometry) AppendWKT(dst []byte) []byte {
-	switch g.gtype {
-	case TypeGeometryCollection:
-		return (*GeometryCollection)(g.ptr).AppendWKT(dst)
-	case TypePoint:
-		return (*Point)(g.ptr).AppendWKT(dst)
-	case TypeLineString:
-		return (*LineString)(g.ptr).AppendWKT(dst)
-	case TypePolygon:
-		return (*Polygon)(g.ptr).AppendWKT(dst)
-	case TypeMultiPoint:
-		return (*MultiPoint)(g.ptr).AppendWKT(dst)
-	case TypeMultiLineString:
-		return (*MultiLineString)(g.ptr).AppendWKT(dst)
-	case TypeMultiPolygon:
-		return (*MultiPolygon)(g.ptr).AppendWKT(dst)
-	default:
-		panic("unknown geometry: " + g.gtype.String())
+	if g.impl == nil {
+		return GeometryCollection{}.AppendWKT(dst)
 	}
+	return g.impl.AppendWKT(dst)
 }
 
 // AsBinary returns the WKB (Well Known Text) representation of the geometry.
@@ -320,40 +294,26 @@ func (g Geometry) AsBinary() []byte {
 // AppendWKB appends the WKB (Well Known Text) representation of the geometry
 // to the input slice.
 func (g Geometry) AppendWKB(dst []byte) []byte {
-	switch g.gtype {
-	case TypeGeometryCollection:
-		return g.MustAsGeometryCollection().AppendWKB(dst)
-	case TypePoint:
-		return g.MustAsPoint().AppendWKB(dst)
-	case TypeLineString:
-		return g.MustAsLineString().AppendWKB(dst)
-	case TypePolygon:
-		return g.MustAsPolygon().AppendWKB(dst)
-	case TypeMultiPoint:
-		return g.MustAsMultiPoint().AppendWKB(dst)
-	case TypeMultiLineString:
-		return g.MustAsMultiLineString().AppendWKB(dst)
-	case TypeMultiPolygon:
-		return g.MustAsMultiPolygon().AppendWKB(dst)
-	default:
-		panic("unknown geometry: " + g.gtype.String())
+	if g.impl == nil {
+		return GeometryCollection{}.AppendWKB(dst)
 	}
+	return g.impl.AppendWKB(dst)
 }
 
-// Value implements the database/sql/driver.Valuer interface by returning the
-// WKB (Well Known Binary) representation of this Geometry.
+// Value implements the [database/sql/driver.Valuer] interface by returning the
+// WKB (Well Known Binary) representation of this [Geometry].
 func (g Geometry) Value() (driver.Value, error) {
 	return g.AsBinary(), nil
 }
 
-// Scan implements the database/sql.Scanner interface by parsing the src value
+// Scan implements the [database/sql.Scanner] interface by parsing the src value
 // as WKB (Well Known Binary).
 //
-// Geometry constraint validation is performed on the resultant geometry (an
+// [Geometry] constraint validation is performed on the resultant geometry (an
 // error will be returned if the geometry is invalid). If this validation isn't
 // needed or is undesirable, then the WKB should be scanned into a byte slice
-// and then UnmarshalWKB called manually (passing in NoValidate{}).
-func (g *Geometry) Scan(src interface{}) error {
+// and then [UnmarshalWKB] called manually (passing in [NoValidate]{}).
+func (g *Geometry) Scan(src any) error {
 	var wkb []byte
 	switch src := src.(type) {
 	case []byte:
@@ -380,7 +340,7 @@ func (g *Geometry) Scan(src interface{}) error {
 // geometry types. The src should be the input to Scan, typ should be the
 // concrete geometry type, and dst should be a pointer to the concrete geometry
 // to update (e.g. *LineString).
-func scanAsType(src interface{}, dst interface{}) error {
+func scanAsType(src any, dst any) error {
 	var g Geometry
 	if err := g.Scan(src); err != nil {
 		return err
@@ -396,7 +356,7 @@ func scanAsType(src interface{}, dst interface{}) error {
 // assignToConcrete assigns the geometry stored in g to the concrete geometry
 // pointed to by dst (i.e. dst must be a pointer to a concrete geometry). It
 // panics if the type of dst doesn't match the geometry stored in g.
-func assignToConcrete(dst interface{}, g Geometry) {
+func assignToConcrete(dst any, g Geometry) {
 	switch g.Type() {
 	case TypeGeometryCollection:
 		*dst.(*GeometryCollection) = g.MustAsGeometryCollection()
@@ -417,13 +377,13 @@ func assignToConcrete(dst interface{}, g Geometry) {
 	}
 }
 
-// Dimension returns the dimension of the Geometry. This is  0 for Points and
-// MultiPoints, 1 for LineStrings and MultiLineStrings, and 2 for Polygons and
-// MultiPolygons (regardless of whether or not they are empty). For
-// GeometryCollections it is the maximum dimension over the collection (or 0 if
+// Dimension returns the dimension of the [Geometry]. This is  0 for [Point]s and
+// [MultiPoint]s, 1 for [LineString]s and [MultiLineString]s, and 2 for [Polygon]s and
+// [MultiPolygon]s (regardless of whether or not they are empty). For
+// [GeometryCollection]s it is the maximum dimension over the collection (or 0 if
 // the collection is the empty collection).
 func (g Geometry) Dimension() int {
-	switch g.gtype {
+	switch g.Type() {
 	case TypeGeometryCollection:
 		return g.MustAsGeometryCollection().Dimension()
 	case TypePoint, TypeMultiPoint:
@@ -433,62 +393,34 @@ func (g Geometry) Dimension() int {
 	case TypePolygon, TypeMultiPolygon:
 		return 2
 	default:
-		panic("unknown geometry: " + g.gtype.String())
+		panic("unknown geometry: " + g.Type().String())
 	}
 }
 
 // IsEmpty returns true if this geometry is empty. Collection types are empty
 // if they have zero elements or only contain empty elements.
 func (g Geometry) IsEmpty() bool {
-	switch g.gtype {
-	case TypeGeometryCollection:
-		return g.MustAsGeometryCollection().IsEmpty()
-	case TypePoint:
-		return g.MustAsPoint().IsEmpty()
-	case TypeLineString:
-		return g.MustAsLineString().IsEmpty()
-	case TypePolygon:
-		return g.MustAsPolygon().IsEmpty()
-	case TypeMultiPoint:
-		return g.MustAsMultiPoint().IsEmpty()
-	case TypeMultiLineString:
-		return g.MustAsMultiLineString().IsEmpty()
-	case TypeMultiPolygon:
-		return g.MustAsMultiPolygon().IsEmpty()
-	default:
-		panic("unknown geometry: " + g.gtype.String())
+	if g.impl == nil {
+		return GeometryCollection{}.IsEmpty()
 	}
+	return g.impl.IsEmpty()
 }
 
 // Envelope returns the axis aligned bounding box that most tightly surrounds
 // the geometry.
 func (g Geometry) Envelope() Envelope {
-	switch g.gtype {
-	case TypeGeometryCollection:
-		return g.MustAsGeometryCollection().Envelope()
-	case TypePoint:
-		return g.MustAsPoint().Envelope()
-	case TypeLineString:
-		return g.MustAsLineString().Envelope()
-	case TypePolygon:
-		return g.MustAsPolygon().Envelope()
-	case TypeMultiPoint:
-		return g.MustAsMultiPoint().Envelope()
-	case TypeMultiLineString:
-		return g.MustAsMultiLineString().Envelope()
-	case TypeMultiPolygon:
-		return g.MustAsMultiPolygon().Envelope()
-	default:
-		panic("unknown geometry: " + g.gtype.String())
+	if g.impl == nil {
+		return GeometryCollection{}.Envelope()
 	}
+	return g.impl.Envelope()
 }
 
-// Boundary returns the Geometry representing the spatial limit of this
+// Boundary returns the [Geometry] representing the spatial limit of this
 // geometry. The precise definition is dependant on the concrete geometry type
-// (see the documentation of each concrete Geometry's Boundary method for
+// (see the documentation of each concrete [Geometry]'s [Geometry.Boundary] method for
 // details).
 func (g Geometry) Boundary() Geometry {
-	switch g.gtype {
+	switch g.Type() {
 	case TypeGeometryCollection:
 		return g.MustAsGeometryCollection().Boundary().AsGeometry()
 	case TypePoint:
@@ -509,7 +441,7 @@ func (g Geometry) Boundary() Geometry {
 	case TypeMultiPolygon:
 		return g.MustAsMultiPolygon().Boundary().AsGeometry()
 	default:
-		panic("unknown geometry: " + g.gtype.String())
+		panic("unknown geometry: " + g.Type().String())
 	}
 }
 
@@ -519,13 +451,13 @@ func (g Geometry) ConvexHull() Geometry {
 	return convexHull(g)
 }
 
-// TransformXY transforms this Geometry into another geometry according the
-// mapping provided by the XY function. Because the mapping is arbitrary, it
+// TransformXY transforms this [Geometry] into another geometry according the
+// mapping provided by the [XY] function. Because the mapping is arbitrary, it
 // has the potential to create an invalid geometry. This can be checked by
-// calling the Validate method on the result. Most mappings useful for GIS
+// calling the [Geometry.Validate] method on the result. Most mappings useful for GIS
 // applications will preserve validity.
 func (g Geometry) TransformXY(fn func(XY) XY) Geometry {
-	switch g.gtype {
+	switch g.Type() {
 	case TypeGeometryCollection:
 		return g.MustAsGeometryCollection().TransformXY(fn).AsGeometry()
 	case TypePoint:
@@ -541,19 +473,19 @@ func (g Geometry) TransformXY(fn func(XY) XY) Geometry {
 	case TypeMultiPolygon:
 		return g.MustAsMultiPolygon().TransformXY(fn).AsGeometry()
 	default:
-		panic("unknown geometry: " + g.gtype.String())
+		panic("unknown geometry: " + g.Type().String())
 	}
 }
 
-// Transform transforms this Geometry into another Geometry according to the
+// Transform transforms this [Geometry] into another [Geometry] according to the
 // provided function, which should transform coordinates in place in the
-// float64 slice argument. Coordinates are laid out in order X1, Y1, X2, Y2...
+// float64 slice argument. [Coordinates] are laid out in order X1, Y1, X2, Y2...
 // (for XY geometries), X1, Y1, Z1, X2, Y2, Z2... (for XYZ geometries), X1, Y1,
 // M1, X2, Y2, M2... (for XYM geometries), or X1, Y1, Z1, M1, X2, Y2, Z2, M2...
 // (for XYZM geometries). The function should return an error if the
 // transformation fails.
 func (g Geometry) Transform(fn func(CoordinatesType, []float64) error) (Geometry, error) {
-	switch g.gtype {
+	switch g.Type() {
 	case TypeGeometryCollection:
 		tf, err := g.MustAsGeometryCollection().Transform(fn)
 		return tf.AsGeometry(), err
@@ -576,13 +508,13 @@ func (g Geometry) Transform(fn func(CoordinatesType, []float64) error) (Geometry
 		tf, err := g.MustAsMultiPolygon().Transform(fn)
 		return tf.AsGeometry(), err
 	default:
-		panic("unknown geometry: " + g.gtype.String())
+		panic("unknown geometry: " + g.Type().String())
 	}
 }
 
-// Length gives the length of a Line, LineString, or MultiLineString
-// or the sum of the lengths of the components of a GeometryCollection.
-// Other Geometries are defined to return a length of zero.
+// Length gives the length of a Line, [LineString], or [MultiLineString]
+// or the sum of the lengths of the components of a [GeometryCollection].
+// Other [Geometry]s are defined to return a length of zero.
 func (g Geometry) Length() float64 {
 	switch {
 	case g.IsEmpty():
@@ -606,33 +538,19 @@ func (g Geometry) Length() float64 {
 	}
 }
 
-// Centroid returns the geometry's centroid Point. If the Geometry is empty,
-// then an empty Point is returned.
+// Centroid returns the geometry's centroid [Point]. If the [Geometry] is empty,
+// then an empty [Point] is returned.
 func (g Geometry) Centroid() Point {
-	switch g.gtype {
-	case TypeGeometryCollection:
-		return g.MustAsGeometryCollection().Centroid()
-	case TypePoint:
-		return g.MustAsPoint().Centroid()
-	case TypeLineString:
-		return g.MustAsLineString().Centroid()
-	case TypePolygon:
-		return g.MustAsPolygon().Centroid()
-	case TypeMultiPoint:
-		return g.MustAsMultiPoint().Centroid()
-	case TypeMultiLineString:
-		return g.MustAsMultiLineString().Centroid()
-	case TypeMultiPolygon:
-		return g.MustAsMultiPolygon().Centroid()
-	default:
-		panic("unknown geometry: " + g.gtype.String())
+	if g.impl == nil {
+		return GeometryCollection{}.Centroid()
 	}
+	return g.impl.Centroid()
 }
 
-// Area gives the area of the Polygon or MultiPolygon or GeometryCollection.
-// If the Geometry is none of those types, then 0 is returned.
+// Area gives the area of the [Polygon] or [MultiPolygon] or [GeometryCollection].
+// If the [Geometry] is none of those types, then 0 is returned.
 func (g Geometry) Area(opts ...AreaOption) float64 {
-	switch g.gtype {
+	switch g.Type() {
 	case TypeGeometryCollection:
 		return g.MustAsGeometryCollection().Area(opts...)
 	case TypePoint:
@@ -648,17 +566,17 @@ func (g Geometry) Area(opts ...AreaOption) float64 {
 	case TypeMultiPolygon:
 		return g.MustAsMultiPolygon().Area(opts...)
 	default:
-		panic("unknown geometry: " + g.gtype.String())
+		panic("unknown geometry: " + g.Type().String())
 	}
 }
 
 // IsSimple calculates whether or not the geometry contains any anomalous
 // geometric points such as self intersection or self tangency. For details
-// about the precise definition for each type of geometry, see the IsSimple
+// about the precise definition for each type of geometry, see the [Geometry.IsSimple]
 // method documentation on that type. It is not defined for
-// GeometryCollections, in which case false is returned.
+// [GeometryCollection]s, in which case false is returned.
 func (g Geometry) IsSimple() (isSimple bool, wellDefined bool) {
-	switch g.gtype {
+	switch g.Type() {
 	case TypeGeometryCollection:
 		return false, false
 	case TypePoint:
@@ -674,7 +592,7 @@ func (g Geometry) IsSimple() (isSimple bool, wellDefined bool) {
 	case TypeMultiPolygon:
 		return g.MustAsMultiPolygon().IsSimple(), true
 	default:
-		panic("unknown geometry: " + g.gtype.String())
+		panic("unknown geometry: " + g.Type().String())
 	}
 }
 
@@ -682,7 +600,7 @@ func (g Geometry) IsSimple() (isSimple bool, wellDefined bool) {
 // Multi component geometries do not reverse the order of their components,
 // but merely reverse each component's coordinates in place.
 func (g Geometry) Reverse() Geometry {
-	switch g.gtype {
+	switch g.Type() {
 	case TypeGeometryCollection:
 		return g.MustAsGeometryCollection().Reverse().AsGeometry()
 	case TypePoint:
@@ -698,37 +616,23 @@ func (g Geometry) Reverse() Geometry {
 	case TypeMultiPolygon:
 		return g.MustAsMultiPolygon().Reverse().AsGeometry()
 	default:
-		panic("unknown geometry: " + g.gtype.String())
+		panic("unknown geometry: " + g.Type().String())
 	}
 }
 
-// CoordinatesType returns the CoordinatesType used to represent points making
+// CoordinatesType returns the [CoordinatesType] used to represent points making
 // up the geometry.
 func (g Geometry) CoordinatesType() CoordinatesType {
-	switch g.gtype {
-	case TypeGeometryCollection:
-		return g.MustAsGeometryCollection().CoordinatesType()
-	case TypePoint:
-		return g.MustAsPoint().CoordinatesType()
-	case TypeLineString:
-		return g.MustAsLineString().CoordinatesType()
-	case TypePolygon:
-		return g.MustAsPolygon().CoordinatesType()
-	case TypeMultiPoint:
-		return g.MustAsMultiPoint().CoordinatesType()
-	case TypeMultiLineString:
-		return g.MustAsMultiLineString().CoordinatesType()
-	case TypeMultiPolygon:
-		return g.MustAsMultiPolygon().CoordinatesType()
-	default:
-		panic("unknown geometry: " + g.gtype.String())
+	if g.impl == nil {
+		return GeometryCollection{}.CoordinatesType()
 	}
+	return g.impl.CoordinatesType()
 }
 
-// ForceCoordinatesType returns a new Geometry with a different CoordinatesType. If a
+// ForceCoordinatesType returns a new [Geometry] with a different [CoordinatesType]. If a
 // dimension is added, then new values are populated with 0.
 func (g Geometry) ForceCoordinatesType(newCType CoordinatesType) Geometry {
-	switch g.gtype {
+	switch g.Type() {
 	case TypeGeometryCollection:
 		return g.MustAsGeometryCollection().ForceCoordinatesType(newCType).AsGeometry()
 	case TypePoint:
@@ -744,7 +648,7 @@ func (g Geometry) ForceCoordinatesType(newCType CoordinatesType) Geometry {
 	case TypeMultiPolygon:
 		return g.MustAsMultiPolygon().ForceCoordinatesType(newCType).AsGeometry()
 	default:
-		panic("unknown geometry: " + g.gtype.String())
+		panic("unknown geometry: " + g.Type().String())
 	}
 }
 
@@ -753,9 +657,9 @@ func (g Geometry) Force2D() Geometry {
 	return g.ForceCoordinatesType(DimXY)
 }
 
-// PointOnSurface returns a Point that lies inside the geometry.
+// PointOnSurface returns a [Point] that lies inside the geometry.
 func (g Geometry) PointOnSurface() Point {
-	switch g.gtype {
+	switch g.Type() {
 	case TypeGeometryCollection:
 		return g.MustAsGeometryCollection().PointOnSurface()
 	case TypePoint:
@@ -771,11 +675,11 @@ func (g Geometry) PointOnSurface() Point {
 	case TypeMultiPolygon:
 		return g.MustAsMultiPolygon().PointOnSurface()
 	default:
-		panic("unknown geometry: " + g.gtype.String())
+		panic("unknown geometry: " + g.Type().String())
 	}
 }
 
-// ForceCW returns the equivalent Geometry that has its exterior rings in a
+// ForceCW returns the equivalent [Geometry] that has its exterior rings in a
 // clockwise orientation and any inner rings in a counter-clockwise
 // orientation. Non-areal geometrys are returned as is.
 func (g Geometry) ForceCW() Geometry {
@@ -785,7 +689,7 @@ func (g Geometry) ForceCW() Geometry {
 	return g.forceOrientation(true)
 }
 
-// ForceCCW returns the equivalent Geometry that has its exterior rings in a
+// ForceCCW returns the equivalent [Geometry] that has its exterior rings in a
 // counter-clockwise orientation and any inner rings in a clockwise
 // orientation. Non-areal geometrys are returned as is.
 func (g Geometry) ForceCCW() Geometry {
@@ -796,7 +700,7 @@ func (g Geometry) ForceCCW() Geometry {
 }
 
 func (g Geometry) forceOrientation(forceCW bool) Geometry {
-	switch g.gtype {
+	switch g.Type() {
 	case TypePolygon:
 		return g.MustAsPolygon().forceOrientation(forceCW).AsGeometry()
 	case TypeMultiPolygon:
@@ -811,7 +715,7 @@ func (g Geometry) forceOrientation(forceCW bool) Geometry {
 // IsCW returns true iff the underlying geometry is CW.
 // For geometries (such as points) where this is undefined, return true.
 func (g Geometry) IsCW() bool {
-	switch g.gtype {
+	switch g.Type() {
 	case TypePolygon:
 		return g.MustAsPolygon().IsCW()
 	case TypeMultiPolygon:
@@ -826,7 +730,7 @@ func (g Geometry) IsCW() bool {
 // IsCCW returns true iff the underlying geometry is CCW.
 // For geometries (such as points) where this is undefined, return true.
 func (g Geometry) IsCCW() bool {
-	switch g.gtype {
+	switch g.Type() {
 	case TypePolygon:
 		return g.MustAsPolygon().IsCCW()
 	case TypeMultiPolygon:
@@ -839,7 +743,7 @@ func (g Geometry) IsCCW() bool {
 }
 
 func (g Geometry) controlPoints() int {
-	switch g.gtype {
+	switch g.Type() {
 	case TypeGeometryCollection:
 		var sum int
 		for _, g := range g.MustAsGeometryCollection().geoms {
@@ -859,17 +763,17 @@ func (g Geometry) controlPoints() int {
 	case TypeMultiPolygon:
 		return g.MustAsMultiPolygon().controlPoints()
 	default:
-		panic("unknown geometry: " + g.gtype.String())
+		panic("unknown geometry: " + g.Type().String())
 	}
 }
 
-// Dump breaks multi types (MultiPoints, MultiLineStrings, and MultiPolygons)
-// and GeometryCollections into their constituent non-multi types (Points,
-// LineStrings, and Polygons).
+// Dump breaks multi types ([MultiPoint]s, [MultiLineString]s, and [MultiPolygon]s)
+// and [GeometryCollection]s into their constituent non-multi types ([Point]s,
+// [LineString]s, and [Polygon]s).
 //
-// The returned slice will only ever contain Points, LineStrings, and Polygons.
+// The returned slice will only ever contain [Point]s, [LineString]s, and [Polygon]s.
 //
-// When called on a Point, LineString, or Polygon is input, the original value
+// When called on a [Point], [LineString], or [Polygon] is input, the original value
 // is returned in a slice of length 1.
 func (g Geometry) Dump() []Geometry {
 	return g.appendDump(nil)
@@ -910,9 +814,9 @@ func (g Geometry) appendDump(gs []Geometry) []Geometry {
 }
 
 // DumpCoordinates returns the control points making up the geometry as a
-// Sequence.
+// [Sequence].
 func (g Geometry) DumpCoordinates() Sequence {
-	switch g.gtype {
+	switch g.Type() {
 	case TypeGeometryCollection:
 		return g.MustAsGeometryCollection().DumpCoordinates()
 	case TypePoint:
@@ -932,41 +836,27 @@ func (g Geometry) DumpCoordinates() Sequence {
 	}
 }
 
-// Summary returns a text summary of the Geometry following a similar format to https://postgis.net/docs/ST_Summary.html.
+// Summary returns a text summary of the [Geometry] following a similar format to https://postgis.net/docs/ST_Summary.html.
 func (g Geometry) Summary() string {
-	switch g.gtype {
-	case TypeGeometryCollection:
-		return g.MustAsGeometryCollection().Summary()
-	case TypePoint:
-		return g.MustAsPoint().Summary()
-	case TypeLineString:
-		return g.MustAsLineString().Summary()
-	case TypePolygon:
-		return g.MustAsPolygon().Summary()
-	case TypeMultiPoint:
-		return g.MustAsMultiPoint().Summary()
-	case TypeMultiLineString:
-		return g.MustAsMultiLineString().Summary()
-	case TypeMultiPolygon:
-		return g.MustAsMultiPolygon().Summary()
-	default:
-		panic("unknown type: " + g.Type().String())
+	if g.impl == nil {
+		return GeometryCollection{}.Summary()
 	}
+	return g.impl.Summary()
 }
 
-// String returns the string representation of the Geometry.
+// String returns the string representation of the [Geometry].
 func (g Geometry) String() string {
 	return g.Summary()
 }
 
 // Simplify returns a simplified version of the geometry using the
-// Ramer-Douglas-Peucker algorithm. Simplification can cause Polygons and
-// MultiPolygons to become invalid, in which case an error is returned rather
-// than attempting to fix them them. NoValidate{} can be passed in, causing
+// Ramer-Douglas-Peucker algorithm. Simplification can cause [Polygon]s and
+// [MultiPolygon]s to become invalid, in which case an error is returned rather
+// than attempting to fix them them. [NoValidate]{} can be passed in, causing
 // this validation to be skipped (potentially resulting in invalid geometries
 // being returned).
 func (g Geometry) Simplify(threshold float64, nv ...NoValidate) (Geometry, error) {
-	switch g.gtype {
+	switch g.Type() {
 	case TypeGeometryCollection:
 		c, err := g.MustAsGeometryCollection().Simplify(threshold, nv...)
 		return c.AsGeometry(), err
@@ -990,36 +880,22 @@ func (g Geometry) Simplify(threshold float64, nv ...NoValidate) (Geometry, error
 	}
 }
 
-// Validate checks if the Geometry is valid. See the documentation for each
-// concrete geometry's Validate method for details about the validation rules.
+// Validate checks if the [Geometry] is valid. See the documentation for each
+// concrete geometry's [Geometry.Validate] method for details about the validation rules.
 func (g Geometry) Validate() error {
-	switch g.gtype {
-	case TypeGeometryCollection:
-		return g.MustAsGeometryCollection().Validate()
-	case TypePoint:
-		return g.MustAsPoint().Validate()
-	case TypeLineString:
-		return g.MustAsLineString().Validate()
-	case TypePolygon:
-		return g.MustAsPolygon().Validate()
-	case TypeMultiPoint:
-		return g.MustAsMultiPoint().Validate()
-	case TypeMultiLineString:
-		return g.MustAsMultiLineString().Validate()
-	case TypeMultiPolygon:
-		return g.MustAsMultiPolygon().Validate()
-	default:
-		panic("unknown type: " + g.Type().String())
+	if g.impl == nil {
+		return GeometryCollection{}.Validate()
 	}
+	return g.impl.Validate()
 }
 
-// Densify returns a new Geometry with additional linearly interpolated control
+// Densify returns a new [Geometry] with additional linearly interpolated control
 // points such that the distance between any two consecutive control points is
 // at most the given maxDistance.
 //
 // Panics if maxDistance is zero or negative.
 func (g Geometry) Densify(maxDistance float64) Geometry {
-	switch g.gtype {
+	switch g.Type() {
 	case TypePoint, TypeMultiPoint:
 		// Points cannot be densified, but still check that the max distance is
 		// valid for consistency between types.
@@ -1054,7 +930,7 @@ func (g Geometry) Densify(maxDistance float64) Geometry {
 // Returned geometries may be invalid due to snapping, even if the input
 // geometry was valid.
 func (g Geometry) SnapToGrid(decimalPlaces int) Geometry {
-	switch g.gtype {
+	switch g.Type() {
 	case TypeGeometryCollection:
 		return g.MustAsGeometryCollection().SnapToGrid(decimalPlaces).AsGeometry()
 	case TypePoint:
@@ -1076,7 +952,7 @@ func (g Geometry) SnapToGrid(decimalPlaces int) Geometry {
 
 // FlipCoordinates returns a new geometry with X and Y coordinates swapped.
 func (g Geometry) FlipCoordinates() Geometry {
-	switch g.gtype {
+	switch g.Type() {
 	case TypeGeometryCollection:
 		return g.MustAsGeometryCollection().FlipCoordinates().AsGeometry()
 	case TypePoint:
@@ -1092,6 +968,6 @@ func (g Geometry) FlipCoordinates() Geometry {
 	case TypeMultiPolygon:
 		return g.MustAsMultiPolygon().FlipCoordinates().AsGeometry()
 	default:
-		panic("unknown geometry: " + g.gtype.String())
+		panic("unknown geometry: " + g.Type().String())
 	}
 }

@@ -44,7 +44,7 @@ func (t *SQLFeaturesTable) InitializeTable(ctx context.Context, db *sql.DB) erro
 	return database_sql.CreateTableIfNecessary(ctx, db, t)
 }
 
-func (t *SQLFeaturesTable) IndexRecord(ctx context.Context, db *sql.DB, tx *sql.Tx, i interface{}) error {
+func (t *SQLFeaturesTable) IndexRecord(ctx context.Context, db *sql.DB, tx *sql.Tx, i any) error {
 	return nil
 }
 
