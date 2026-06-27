@@ -14,6 +14,10 @@ test:
 	git lfs checkout fixtures/sf.pmtiles
 	go test -v ./...
 
+pip:
+	./bin/pip -spatial-database-uri "$(DATABASE)"
+
+
 cli:
 	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/pmtile cmd/pmtile/main.go
 	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/http-server cmd/http-server/main.go
