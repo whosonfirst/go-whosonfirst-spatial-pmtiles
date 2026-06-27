@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/whosonfirst/go-whosonfirst-spatial-grpc/app/client"
+	"github.com/whosonfirst/go-whosonfirst/v4/app/spatial/grpc/client"
 )
 
 func main() {

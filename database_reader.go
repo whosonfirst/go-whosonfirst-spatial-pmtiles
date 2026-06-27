@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/whosonfirst/go-ioutil"
-	"github.com/whosonfirst/go-whosonfirst-spatial"
-	"github.com/whosonfirst/go-whosonfirst-uri"
+	"github.com/whosonfirst/go-whosonfirst/v4/spatial"
+	"github.com/whosonfirst/go-whosonfirst/v4/uri"
 )
 
 func (db *PMTilesSpatialDatabase) Read(ctx context.Context, path string) (io.ReadSeekCloser, error) {

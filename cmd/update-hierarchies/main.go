@@ -5,7 +5,7 @@ import (
 	"log"
 
 	_ "github.com/whosonfirst/go-whosonfirst-spatial-pmtiles"
-	"github.com/whosonfirst/go-whosonfirst-spatial/app/hierarchy/update"
+	"github.com/whosonfirst/go-whosonfirst/v4/app/spatial/hierarchy/update"
 )
 
 func main() {

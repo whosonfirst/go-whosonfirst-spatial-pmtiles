@@ -5,7 +5,7 @@ import (
 	"log"
 
 	_ "github.com/whosonfirst/go-whosonfirst-spatial-pmtiles"
-	"github.com/whosonfirst/go-whosonfirst-spatial/app/pip"
+	"github.com/whosonfirst/go-whosonfirst/v4/app/spatial/pip"
 )
 
 func main() {

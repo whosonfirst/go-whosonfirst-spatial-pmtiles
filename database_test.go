@@ -12,8 +12,8 @@ import (
 
 	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/geojson"
-	"github.com/whosonfirst/go-whosonfirst-spatial/database"
-	"github.com/whosonfirst/go-whosonfirst-spatial/filter"
+	"github.com/whosonfirst/go-whosonfirst/v4/spatial/database"
+	"github.com/whosonfirst/go-whosonfirst/v4/spatial/filter"
 )
 
 func TestDatabase(t *testing.T) {

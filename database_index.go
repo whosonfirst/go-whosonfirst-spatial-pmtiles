@@ -22,10 +22,10 @@ import (
 	"github.com/paulmach/orb/maptile/tilecover"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
-	"github.com/whosonfirst/go-whosonfirst-spatial"
-	"github.com/whosonfirst/go-whosonfirst-spatial/database"
-	"github.com/whosonfirst/go-whosonfirst-spatial/geo"
-	"github.com/whosonfirst/go-whosonfirst-spr/v2"
+	"github.com/whosonfirst/go-whosonfirst/v4/spatial"
+	"github.com/whosonfirst/go-whosonfirst/v4/spatial/database"
+	"github.com/whosonfirst/go-whosonfirst/v4/spatial/geo"
+	"github.com/whosonfirst/go-whosonfirst/v4/spr"
 )
 
 func (db *PMTilesSpatialDatabase) IndexFeature(context.Context, []byte) error {

@@ -8,7 +8,7 @@ import (
 	"sync"
 
 	"github.com/paulmach/orb/geojson"
-	"github.com/whosonfirst/go-whosonfirst-feature/properties"
+	"github.com/whosonfirst/go-whosonfirst/v4/feature/properties"
 )
 
 func CacheFeatureCollection(ctx context.Context, m CacheManager, fc *geojson.FeatureCollection) ([]string, error) {

@@ -18,8 +18,8 @@ import (
 	"github.com/protomaps/go-pmtiles/pmtiles"
 	"github.com/whosonfirst/go-reader/v2"
 	"github.com/whosonfirst/go-whosonfirst-spatial-pmtiles/cache"
-	"github.com/whosonfirst/go-whosonfirst-spatial/database"
-	"github.com/whosonfirst/go-whosonfirst-spr/v2"
+	"github.com/whosonfirst/go-whosonfirst/v4/spatial/database"
+	"github.com/whosonfirst/go-whosonfirst/v4/spr"
 )
 
 func init() {
