@@ -2,6 +2,21 @@
 
 Go package to implement the `whosonfirst/go-whosonfirst-spatial` interfaces using a Protomaps `.pmtiles` database.
 
+
+## Deprecation notice
+
+This package has been deprecated. Its functionality has been moved in to the [whosonfirst/go-whosonfirst](https://github.com/whosonfirst/go-whosonfirst) package. Efforts have been made to keep changes as minimal as possible. In most (but not all) cases update should be as simple as replacing:
+
+```
+import "github.com/whosonfirst/go-whosonfirst-spatial-pmtiles`
+```
+
+With:
+
+```
+import "github.com/whosonfirst/go-whosonfirst/v4/spatial/pmtiles"
+```
+
 ## Background
 
 [A global point-in-polygon service using a static 8GB data file](https://millsfield.sfomuseum.org/blog/2022/12/19/pmtiles-pip/)
